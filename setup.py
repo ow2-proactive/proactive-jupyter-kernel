@@ -13,7 +13,7 @@ install_requires = \
     ['pexpect>=4.0', 'proactive', 'jupyter_client', 'IPython', 'traitlets', 'ipykernel', 'notebook']
 
 setup(name='proactive-jupyter-kernel',
-      version='1.0',
+      version='0.1',
       description='A proactive kernel for Jupyter',
       author='ActiveEon',
       author_email='www.activeeon.com',
