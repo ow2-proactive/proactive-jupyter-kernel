@@ -13,7 +13,7 @@ import urllib
 import json
 import ipykernel
 
-__version__ = '1.0'
+__version__ = '0.1'
 
 
 def notebook_path():
