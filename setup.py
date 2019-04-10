@@ -10,7 +10,7 @@ package_data = \
     {'': ['*']}
 
 install_requires = \
-    ['pexpect>=4.0', 'proactive', 'jupyter_client', 'IPython', 'traitlets', 'ipykernel', 'notebook']
+    ['pexpect>=4.0', 'proactive', 'jupyter_client', 'IPython', 'traitlets', 'ipykernel', 'notebook', 'configparser']
 
 setup(name='proactive-jupyter-kernel',
       version='0.1',

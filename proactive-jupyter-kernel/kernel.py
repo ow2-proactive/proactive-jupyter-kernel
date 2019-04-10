@@ -3,6 +3,7 @@ from subprocess import check_output
 import os
 import re
 import ast
+import configparser as cp
 import random
 import proactive
 
@@ -59,7 +60,13 @@ class ProActiveKernel(Kernel):
     tasks_names = []
     tasks_count = 0
 
+    proactive_config = None
+
     proactive_connected = False
+    proactive_default_connection = False
+    proactive_failed_connection = False
+
+    error_message = ''
 
     @property
     def banner(self):
@@ -72,35 +79,71 @@ class ProActiveKernel(Kernel):
         try:
             self._start_proactive()
 
-        except AssertionError as ae:
-            self.process_output("Initialization of the Gateway failed.")
+        except Exception as e:
+            self.proactive_failed_connection = True
+            self.error_message = str(e)
 
     def _start_proactive(self):
-        proactive_host = 'try.activeeon.com'
-        proactive_port = '8080'
-        proactive_url = "http://" + proactive_host + ":" + proactive_port
-        javaopts = []
-        # uncomment for detailed logs
-        # javaopts.append('-Dlog4j.configuration=file:'+os.path.join(os.getcwd(),'log4j.properties'))
-        redirectJVMOutput = False
-        self.gateway = proactive.ProActiveGateway(proactive_url, javaopts, redirectJVMOutput)
+        config_file = str(notebook_path().rsplit('/', 1)[0]) + '/proactive_config.ini'
+        exists = os.path.isfile(config_file)
+        if exists:
+            # raise Exception(self.config)
+            self.proactive_config = cp.ConfigParser()
+            self.proactive_config.read(config_file)
+
+            proactive_host = self.proactive_config['proactive_server']['host']
+            proactive_port = self.proactive_config['proactive_server']['port']
+
+            proactive_url = "http://" + proactive_host + ":" + proactive_port
+            javaopts = []
+            # uncomment for detailed logs
+            # javaopts.append('-Dlog4j.configuration=file:'+os.path.join(os.getcwd(),'log4j.properties'))
+            redirectJVMOutput = False
+            self.gateway = proactive.ProActiveGateway(proactive_url, javaopts, redirectJVMOutput)
+
+            if 'user' in self.proactive_config and 'login' in self.proactive_config['user'] and 'password' in self.proactive_config['user']:
+                if self.proactive_config['user']['login'] != '' and self.proactive_config['user']['password'] != '':
+                    self.gateway.connect(username=self.proactive_config['user']['login'],
+                                         password=self.proactive_config['user']['password'])
+                    assert self.gateway.isConnected() is True
+                    self.proactive_connected = True
+
+        else:
+            proactive_host = 'try.activeeon.com'
+            proactive_port = '8080'
+            proactive_url = "http://" + proactive_host + ":" + proactive_port
+            javaopts = []
+            # uncomment for detailed logs
+            # javaopts.append('-Dlog4j.configuration=file:'+os.path.join(os.getcwd(),'log4j.properties'))
+            redirectJVMOutput = False
+            self.gateway = proactive.ProActiveGateway(proactive_url, javaopts, redirectJVMOutput)
+
+            self.proactive_default_connection = True
 
     def __parse_pragma__(self, pragma):
         pragma = pragma.strip(" #%)")
         sep_lines = pragma.split('(', 1)
 
-        # if len(data) == 2:
-        #     data[1] = data[1].strip(")")
-
         data = dict(trigger=sep_lines[0], name='')
 
         if len(sep_lines) == 2:  # TODO: add blank character (regex support and stripping blanks)
+            pattern_path = r"^(\/|\.\/)([A-z0-9-_+]+\/)*([A-z0-9]+\.(py))$"
             pattern_generic = r"^(name=[a-zA-Z_][a-zA-Z0-9_]*)(,[a-zA-Z]*=[a-zA-Z_][a-zA-Z0-9_]*)*$"
-            pattern_connect = r"^(login=[a-zA-Z_][a-zA-Z0-9_]*) *, *(password=[^ ]*)$"
+            pattern_generic_with_path = pattern_generic.strip('$)') + r"(,path=" + pattern_path.strip("^$") + r")?$"
+            pattern_connect = r"^(host=(www.)?[a-z0-9]+(\.[a-z]+(\/[a-zA-Z0-9#]+)*)*(\.[a-z]+) *, " \
+                              r"*port=\d+ *, *)?(login=[a-zA-Z_][a-zA-Z0-9_]*) *, *(password=[^ ]*)$"
 
-            if (not re.match(pattern_generic, sep_lines[1]) and data['trigger'] in ['job', 'task']) \
-                    or (not re.match(pattern_connect, sep_lines[1]) and data['trigger'] == 'connect'):
-                raise Exception('Not valid parameters')
+            pragmas_with_name = ['job', 'task', 'selection_script', 'fork_env']
+            pragmas_with_name_and_path = ['task', 'selection_script', 'fork_env']
+
+            invalid_generic = not re.match(pattern_generic, sep_lines[1]) and not \
+                re.match(pattern_generic_with_path, sep_lines[1]) and data['trigger'] in pragmas_with_name
+            invalid_with_path = not re.match(pattern_generic_with_path, sep_lines[1]) and \
+                                data['trigger'] in pragmas_with_name_and_path
+            invalid_connect = not re.match(pattern_connect, sep_lines[1]) and data['trigger'] == 'connect'
+
+            if invalid_connect or invalid_generic or invalid_with_path:
+                raise Exception('Invalid parameters')
 
             if data['trigger'] == 'submit_job':
                 if sep_lines[1] != '':
@@ -126,21 +169,85 @@ class ProActiveKernel(Kernel):
         return name
 
     def __connect__(self, input_data):
+        if self.proactive_connected:
+            self.__kernel_print_ok_message__('WARNING: Proactive is already connected.\n')
+            self.__kernel_print_ok_message__('Disconnecting from server: ' + self.gateway.base_url + ' ...\n')
+            self.gateway.disconnect()
+            self.proactive_connected = False
+
+        if 'host' in input_data and 'port' in input_data:
+            proactive_host = input_data['host']
+            proactive_port = input_data['port']
+            self.proactive_default_connection = False
+
+            proactive_url = "http://" + proactive_host + ":" + proactive_port
+            javaopts = []
+            # uncomment for detailed logs
+            # javaopts.append('-Dlog4j.configuration=file:'+os.path.join(os.getcwd(),'log4j.properties'))
+            redirectJVMOutput = False
+            self.gateway = proactive.ProActiveGateway(proactive_url, javaopts, redirectJVMOutput)
+
         self.__kernel_print_ok_message__('Connecting to server ...\n')
-        try:
-            self.gateway.connect(username=input_data['login'], password=input_data['password'])
-            assert self.gateway.isConnected() is True
 
-            self.__kernel_print_ok_message__('Connected!')
+        self.gateway.connect(username=input_data['login'], password=input_data['password'])
+        assert self.gateway.isConnected() is True
 
-            self.proactive_connected = True
+        self.__kernel_print_ok_message__('Connected!')
 
-        except Exception as e:
-            error_content = {'execution_count': self.execution_count,
-                             'ename': 'Proactive connexion error', 'evalue': str(e), 'traceback': []}
-            self.send_response(self.iopub_socket, 'error', error_content)
-            return error_content
+        self.proactive_connected = True
+
         return 0
+
+    def __set_selection_script_from_task__(self, input_data):
+        proactive_selection_script = self.gateway.createDefaultSelectionScript()
+        if 'path' in input_data:
+            exists = os.path.isfile(input_data['path'])
+            if exists:
+                proactive_selection_script.setImplementationFromFile(input_data['path'])
+                if input_data['code'] != '':
+                    self.__kernel_print_ok_message__('WARNING: The code written is ignored.\n')
+            else:
+                raise Exception('The file \'' + input_data['path'] + '\' does not exist')
+        else:
+            proactive_selection_script.setImplementation(input_data['code'])
+
+        input_data['task'].setSelectionScript(proactive_selection_script)
+
+    def __set_selection_script_from_name__(self, input_data):
+        for value in self.proactive_tasks:
+            if value.getTaskName() == input_data['name']:
+                self.__kernel_print_ok_message__('Adding a selection script to the proactive task...\n')
+                input_data['task'] = value
+                self.__set_selection_script_from_task__(input_data)
+                self.__kernel_print_ok_message__('Selection script added to \'' + input_data['name'] + '\'.\n')
+                return 0
+        raise Exception('The task named \'' + input_data['name'] + '\' does not exist.')
+
+    def __create_fork_environment_from_task__(self, input_data):
+        proactive_fork_env = self.gateway.createDefaultForkEnvironment()
+        if 'path' in input_data:
+            exists = os.path.isfile(input_data['path'])
+            if exists:
+                proactive_fork_env.setImplementationFromFile(input_data['path'])
+                if input_data['code'] != '':
+                    self.__kernel_print_ok_message__('WARNING: The code written is ignored.\n')
+            else:
+                raise Exception('The file \'' + input_data['path'] + '\' does not exist')
+        else:
+            proactive_fork_env.setImplementation(input_data['code'])
+
+        input_data['task'].setForkEnvironment(proactive_fork_env)
+
+    def __create_fork_environment_from_name__(self, input_data):
+        for value in self.proactive_tasks:
+            if value.getTaskName() == input_data['name']:
+                self.__kernel_print_ok_message__('Adding a fork environment to the proactive task...\n')
+                input_data['task'] = value
+                self.__set_selection_script_from_task__(input_data)
+                self.__create_fork_environment_from_task__(input_data)
+                self.__kernel_print_ok_message__('Fork environment added to \'' + input_data['name'] + '\'.\n')
+                return 0
+        raise Exception('The task named \'' + input_data['name'] + '\' does not exist.')
 
     def __create_task__(self, input_data):
         self.__kernel_print_ok_message__('Creating a proactive task...\n')
@@ -161,13 +268,16 @@ class ProActiveKernel(Kernel):
             input_data['name'] = name
 
         proactive_task.setTaskName(input_data['name'])
-        proactive_task.setTaskImplementation(input_data['code'])
+        if 'path' in input_data:
+            proactive_task.setTaskImplementation(input_data['path'])
+            if input_data['code'] != '':
+                self.__kernel_print_ok_message__('WARNING: The code written is ignored.\n')
+        else:
+            proactive_task.setTaskImplementationFromFile(input_data['code'])
 
         self.__kernel_print_ok_message__('Adding a selection script to the proactive task...\n')
-        proactive_selection_script = self.gateway.createDefaultSelectionScript()
-        proactive_selection_script.setImplementation("selected = True")
-        # proactive_selection_script.setImplementationFromFile("scripts/selection_script.py")
-        proactive_task.setSelectionScript(proactive_selection_script)
+
+        self.__set_selection_script_from_task__({'code': 'selected = True', 'task': proactive_task})
 
         self.__kernel_print_ok_message__('Task \'' + input_data['name'] + '\' created.\n')
 
@@ -235,6 +345,18 @@ class ProActiveKernel(Kernel):
         if interrupted:
             return {'status': 'abort', 'execution_count': self.execution_count}
 
+        if self.proactive_failed_connection:
+            error_content = {'execution_count': self.execution_count,
+                             'ename': 'Proactive connexion error', 'evalue':
+                                 'Please, reconfigure proactive connection and restart kernel',
+                             'traceback': []}
+            self.send_response(self.iopub_socket, 'error', error_content)
+            error_content = {'execution_count': self.execution_count,
+                             'ename': 'Error', 'evalue': self.error_message,
+                             'traceback': []}
+            self.send_response(self.iopub_socket, 'error', error_content)
+            return error_content
+
         pattern = r"^#%"
 
         func = self.__create_task__
@@ -265,6 +387,13 @@ class ProActiveKernel(Kernel):
                         func = self.__create_job__
                     elif pragma_info['trigger'] == 'submit_job':
                         func = self.__submit_job__
+                    elif pragma_info['trigger'] == 'selection_script':
+                        func = self.__set_selection_script_from_name__
+                    elif pragma_info['trigger'] == 'fork_env':
+                        func = self.__create_fork_environment_from_name__
+                    elif pragma_info['trigger'] == 'connect':
+
+                        func = self.__connect__
                     elif pragma_info['trigger'] != 'task':
                         error_content = {'execution_count': self.execution_count,
                                          'ename': 'Pragma error', 'evalue': 'Directive \'' +
@@ -272,21 +401,21 @@ class ProActiveKernel(Kernel):
                                          'traceback': []}
                         self.send_response(self.iopub_socket, 'error', error_content)
                         return error_content
-                elif pragma_info['trigger'] in ['task', 'job', 'submit_job']:
+                elif pragma_info['trigger'] == 'connect':
+                    func = self.__connect__
+                elif pragma_info['trigger'] in ['task', 'selection_script', 'fork_env', 'job', 'submit_job']:
                     error_content = {'execution_count': self.execution_count,
                                      'ename': 'Proactive error', 'evalue': 'Use #%connect() to connect to server '
                                                                            'first.', 'traceback': []}
                     self.send_response(self.iopub_socket, 'error', error_content)
                     return error_content
-                elif pragma_info['trigger'] != 'connect':
+                else:
                     error_content = {'execution_count': self.execution_count,
                                      'ename': 'Pragma error', 'evalue': 'Directive \'' +
                                                                         pragma_info['trigger'] + '\' not known.',
                                      'traceback': []}
                     self.send_response(self.iopub_socket, 'error', error_content)
                     return error_content
-                else:
-                    func = self.__connect__
 
             try:
                 ast.parse(code)
@@ -303,8 +432,20 @@ class ProActiveKernel(Kernel):
                                                                            'proactive server first.', 'traceback': []}
                     self.send_response(self.iopub_socket, 'error', error_content)
                     return error_content
+
                 pragma_info['code'] = code
-                exitcode = func(pragma_info)
+
+                if self.proactive_default_connection and pragma_info['trigger'] != 'connect':
+                    self.__kernel_print_ok_message__('WARNING: Proactive is connected by default on \''
+                                                     + self.gateway.base_url + '\'.\n')
+                try:
+                    exitcode = func(pragma_info)
+                except AssertionError as ae:
+                    error_content = {'execution_count': self.execution_count,
+                                     'ename': 'Proactive connexion error', 'evalue': str(ae), 'traceback': []}
+                    self.send_response(self.iopub_socket, 'error', error_content)
+                    return error_content
+
             except Exception as e:
                 error_content = {'execution_count': self.execution_count,
                                  'ename': 'Proactive error', 'evalue': str(e), 'traceback': []}
