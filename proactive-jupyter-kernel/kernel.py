@@ -39,6 +39,18 @@ def notebook_path():
     return None
 
 
+class PragmaError(ValueError):
+    def __init__(self, arg):
+        self.strerror = arg
+        self.args = {arg}
+
+
+class ParsingError(ValueError):
+    def __init__(self, arg):
+        self.strerror = arg
+        self.args = {arg}
+
+
 class ProActiveKernel(Kernel):
     implementation = 'ProActive'
     implementation_version = __version__
@@ -101,7 +113,8 @@ class ProActiveKernel(Kernel):
             redirectJVMOutput = False
             self.gateway = proactive.ProActiveGateway(proactive_url, javaopts, redirectJVMOutput)
 
-            if 'user' in self.proactive_config and 'login' in self.proactive_config['user'] and 'password' in self.proactive_config['user']:
+            if 'user' in self.proactive_config and 'login' in self.proactive_config['user'] and 'password' in \
+                    self.proactive_config['user']:
                 if self.proactive_config['user']['login'] != '' and self.proactive_config['user']['password'] != '':
                     self.gateway.connect(username=self.proactive_config['user']['login'],
                                          password=self.proactive_config['user']['password'])
@@ -135,6 +148,7 @@ class ProActiveKernel(Kernel):
 
             pragmas_with_name = ['job', 'task', 'selection_script', 'fork_env']
             pragmas_with_name_and_path = ['task', 'selection_script', 'fork_env']
+            pragmas = ['job', 'task', 'selection_script', 'fork_env', 'connect']
 
             invalid_generic = not re.match(pattern_generic, sep_lines[1]) and not \
                 re.match(pattern_generic_with_path, sep_lines[1]) and data['trigger'] in pragmas_with_name
@@ -143,7 +157,7 @@ class ProActiveKernel(Kernel):
             invalid_connect = not re.match(pattern_connect, sep_lines[1]) and data['trigger'] == 'connect'
 
             if invalid_connect or invalid_generic or invalid_with_path:
-                raise Exception('Invalid parameters')
+                raise ParsingError('Invalid parameters')
 
             if data['trigger'] == 'submit_job':
                 if sep_lines[1] != '':
@@ -151,10 +165,11 @@ class ProActiveKernel(Kernel):
                                                      + ' are ignored.\n\n')
                 return data
 
-            sep_lines = sep_lines[1].split(',')
-            for line in sep_lines:
-                params = line.split('=')
-                data[params[0]] = params[1]
+            if data['trigger'] in pragmas:
+                sep_lines = sep_lines[1].split(',')
+                for line in sep_lines:
+                    params = line.split('=')
+                    data[params[0]] = params[1]
 
         return data
 
@@ -162,11 +177,34 @@ class ProActiveKernel(Kernel):
         message = dict(name='stdout', text=text)
         self.send_response(self.iopub_socket, 'stream', message)
 
+    def __kernel_print_error_message(self, error_data):
+        error_content = {'execution_count': self.execution_count,
+                         'ename': error_data['ename'], 'evalue': error_data['evalue'],
+                         'traceback': []}
+        self.send_response(self.iopub_socket, 'error', error_content)
+        return error_content
+
     def __get_unique_task_name__(self):
         name = 'DT' + str(self.tasks_count)
         while name in self.tasks_names:
             name = 'DT' + str(random.randint(100, 9999999))
         return name
+
+    def __trigger_pragma__(self, pragma_info):
+        if pragma_info['trigger'] == 'job':
+            return self.__create_job__
+        elif pragma_info['trigger'] == 'submit_job':
+            return self.__submit_job__
+        elif pragma_info['trigger'] == 'selection_script':
+            return self.__set_selection_script_from_name__
+        elif pragma_info['trigger'] == 'fork_env':
+            return self.__create_fork_environment_from_name__
+        elif pragma_info['trigger'] == 'connect':
+            return self.__connect__
+        elif pragma_info['trigger'] == 'task':
+            return self.__create_task__
+        else:
+            raise PragmaError('Directive \'' + pragma_info['trigger'] + '\' not known.')
 
     def __connect__(self, input_data):
         if self.proactive_connected:
@@ -258,6 +296,7 @@ class ProActiveKernel(Kernel):
             self.__kernel_print_ok_message__('WARNING: Task \'' + input_data['name'] + '\' renamed to : '
                                              + name + '\n')
             input_data['name'] = name
+
         elif input_data['name'] in self.tasks_names:
             self.__kernel_print_ok_message__('Task name : ' + input_data['name'] + ' exists already...\n')
 
@@ -269,11 +308,12 @@ class ProActiveKernel(Kernel):
 
         proactive_task.setTaskName(input_data['name'])
         if 'path' in input_data:
-            proactive_task.setTaskImplementation(input_data['path'])
+            proactive_task.setTaskImplementationFromFile(input_data['path'])
             if input_data['code'] != '':
                 self.__kernel_print_ok_message__('WARNING: The code written is ignored.\n')
+
         else:
-            proactive_task.setTaskImplementationFromFile(input_data['code'])
+            proactive_task.setTaskImplementation(input_data['code'])
 
         self.__kernel_print_ok_message__('Adding a selection script to the proactive task...\n')
 
@@ -346,22 +386,16 @@ class ProActiveKernel(Kernel):
             return {'status': 'abort', 'execution_count': self.execution_count}
 
         if self.proactive_failed_connection:
-            error_content = {'execution_count': self.execution_count,
-                             'ename': 'Proactive connexion error', 'evalue':
-                                 'Please, reconfigure proactive connection and restart kernel',
-                             'traceback': []}
-            self.send_response(self.iopub_socket, 'error', error_content)
-            error_content = {'execution_count': self.execution_count,
-                             'ename': 'Error', 'evalue': self.error_message,
-                             'traceback': []}
-            self.send_response(self.iopub_socket, 'error', error_content)
-            return error_content
+            self.__kernel_print_error_message({'ename': 'Proactive connexion error',
+                                               'evalue': 'Please, reconfigure proactive connection and restart kernel'})
+
+            return self.__kernel_print_error_message({'ename': 'Error', 'evalue': self.error_message})
 
         pattern = r"^#%"
 
         func = self.__create_task__
 
-        pragma_info = {'name': ''}
+        pragma_info = {'name': '', 'trigger': 'task'}
 
         try:
             if re.match(pattern, code):
@@ -376,62 +410,35 @@ class ProActiveKernel(Kernel):
                 try:
                     pragma_info = self.__parse_pragma__(pragma)
 
-                except Exception as e:
-                    error_content = {'execution_count': self.execution_count,
-                                     'ename': 'Parsing error', 'evalue': str(e), 'traceback': []}
-                    self.send_response(self.iopub_socket, 'error', error_content)
-                    return error_content
+                except ParsingError as pe:
+                    return self.__kernel_print_error_message({'ename': 'Parsing error', 'evalue': pe.strerror})
 
                 if self.proactive_connected:
-                    if pragma_info['trigger'] == 'job':
-                        func = self.__create_job__
-                    elif pragma_info['trigger'] == 'submit_job':
-                        func = self.__submit_job__
-                    elif pragma_info['trigger'] == 'selection_script':
-                        func = self.__set_selection_script_from_name__
-                    elif pragma_info['trigger'] == 'fork_env':
-                        func = self.__create_fork_environment_from_name__
-                    elif pragma_info['trigger'] == 'connect':
+                    try:
+                        func = self.__trigger_pragma__(pragma_info)
+                    except PragmaError as pe:
+                        return self.__kernel_print_error_message({'ename': 'Pragma error', 'evalue': pe.strerror})
 
-                        func = self.__connect__
-                    elif pragma_info['trigger'] != 'task':
-                        error_content = {'execution_count': self.execution_count,
-                                         'ename': 'Pragma error', 'evalue': 'Directive \'' +
-                                                                            pragma_info['trigger'] + '\' not known.',
-                                         'traceback': []}
-                        self.send_response(self.iopub_socket, 'error', error_content)
-                        return error_content
                 elif pragma_info['trigger'] == 'connect':
                     func = self.__connect__
                 elif pragma_info['trigger'] in ['task', 'selection_script', 'fork_env', 'job', 'submit_job']:
-                    error_content = {'execution_count': self.execution_count,
-                                     'ename': 'Proactive error', 'evalue': 'Use #%connect() to connect to server '
-                                                                           'first.', 'traceback': []}
-                    self.send_response(self.iopub_socket, 'error', error_content)
-                    return error_content
+                    return self.__kernel_print_error_message({'ename': 'Proactive error',
+                                                              'evalue': 'Use #%connect() to connect to server first.'})
                 else:
-                    error_content = {'execution_count': self.execution_count,
-                                     'ename': 'Pragma error', 'evalue': 'Directive \'' +
-                                                                        pragma_info['trigger'] + '\' not known.',
-                                     'traceback': []}
-                    self.send_response(self.iopub_socket, 'error', error_content)
-                    return error_content
+                    return self.__kernel_print_error_message({'ename': 'Pragma error', 'evalue':
+                                                              'Directive \'' + pragma_info['trigger']
+                                                              + '\' not known.'})
 
             try:
                 ast.parse(code)
             except SyntaxError as e:
-                error_content = {'execution_count': self.execution_count,
-                                 'ename': 'Syntax error', 'evalue': str(e), 'traceback': []}
-                self.send_response(self.iopub_socket, 'error', error_content)
-                return error_content
+                return self.__kernel_print_error_message({'ename': 'Syntax error', 'evalue': str(e)})
 
             try:
                 if not self.proactive_connected and not pragma_info['trigger'] == 'connect':
-                    error_content = {'execution_count': self.execution_count,
-                                     'ename': 'Proactive error', 'evalue': 'Use \'#%connect()\' to connect to '
-                                                                           'proactive server first.', 'traceback': []}
-                    self.send_response(self.iopub_socket, 'error', error_content)
-                    return error_content
+                    return self.__kernel_print_error_message({'ename': 'Proactive error',
+                                                              'evalue': 'Use \'#%connect()\' to '
+                                                                        'connect to proactive server first.'})
 
                 pragma_info['code'] = code
 
@@ -441,24 +448,16 @@ class ProActiveKernel(Kernel):
                 try:
                     exitcode = func(pragma_info)
                 except AssertionError as ae:
-                    error_content = {'execution_count': self.execution_count,
-                                     'ename': 'Proactive connexion error', 'evalue': str(ae), 'traceback': []}
-                    self.send_response(self.iopub_socket, 'error', error_content)
-                    return error_content
+                    return self.__kernel_print_error_message({'ename': 'Proactive connexion error', 'evalue': str(ae)})
 
             except Exception as e:
-                error_content = {'execution_count': self.execution_count,
-                                 'ename': 'Proactive error', 'evalue': str(e), 'traceback': []}
-                self.send_response(self.iopub_socket, 'error', error_content)
-                return error_content
+                return self.__kernel_print_error_message({'ename': 'Proactive error', 'evalue': str(e)})
 
         except Exception as e:
             exitcode = e
 
         if exitcode:
-            error_content = {'execution_count': self.execution_count,
-                             'ename': 'Error', 'evalue': str(exitcode), 'traceback': []}
-            self.send_response(self.iopub_socket, 'error', error_content)
+            error_content = self.__kernel_print_error_message({'ename': 'Error', 'evalue': str(exitcode)})
             error_content['status'] = 'error'
             return error_content
 
