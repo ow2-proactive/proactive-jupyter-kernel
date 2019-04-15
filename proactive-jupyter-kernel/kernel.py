@@ -96,42 +96,45 @@ class ProActiveKernel(Kernel):
             self.error_message = str(e)
 
     def _start_proactive(self):
-        config_file = str(notebook_path().rsplit('/', 1)[0]) + '/proactive_config.ini'
-        exists = os.path.isfile(config_file)
-        if exists:
-            # raise Exception(self.config)
-            self.proactive_config = cp.ConfigParser()
-            self.proactive_config.read(config_file)
+        if notebook_path() is not None:
+            config_file = str(notebook_path().rsplit('/', 1)[0]) + '/proactive_config.ini'
 
-            proactive_host = self.proactive_config['proactive_server']['host']
-            proactive_port = self.proactive_config['proactive_server']['port']
+            exists = os.path.isfile(config_file)
 
-            proactive_url = "http://" + proactive_host + ":" + proactive_port
-            javaopts = []
-            # uncomment for detailed logs
-            # javaopts.append('-Dlog4j.configuration=file:'+os.path.join(os.getcwd(),'log4j.properties'))
-            redirectJVMOutput = False
-            self.gateway = proactive.ProActiveGateway(proactive_url, javaopts, redirectJVMOutput)
+            if exists:
+                # raise Exception(self.config)
+                self.proactive_config = cp.ConfigParser()
+                self.proactive_config.read(config_file)
 
-            if 'user' in self.proactive_config and 'login' in self.proactive_config['user'] and 'password' in \
-                    self.proactive_config['user']:
-                if self.proactive_config['user']['login'] != '' and self.proactive_config['user']['password'] != '':
-                    self.gateway.connect(username=self.proactive_config['user']['login'],
-                                         password=self.proactive_config['user']['password'])
-                    assert self.gateway.isConnected() is True
-                    self.proactive_connected = True
+                proactive_host = self.proactive_config['proactive_server']['host']
+                proactive_port = self.proactive_config['proactive_server']['port']
 
-        else:
-            proactive_host = 'try.activeeon.com'
-            proactive_port = '8080'
-            proactive_url = "http://" + proactive_host + ":" + proactive_port
-            javaopts = []
-            # uncomment for detailed logs
-            # javaopts.append('-Dlog4j.configuration=file:'+os.path.join(os.getcwd(),'log4j.properties'))
-            redirectJVMOutput = False
-            self.gateway = proactive.ProActiveGateway(proactive_url, javaopts, redirectJVMOutput)
+                proactive_url = "http://" + proactive_host + ":" + proactive_port
+                javaopts = []
+                # uncomment for detailed logs
+                # javaopts.append('-Dlog4j.configuration=file:'+os.path.join(os.getcwd(),'log4j.properties'))
+                redirectJVMOutput = False
+                self.gateway = proactive.ProActiveGateway(proactive_url, javaopts, redirectJVMOutput)
 
-            self.proactive_default_connection = True
+                if 'user' in self.proactive_config and 'login' in self.proactive_config['user'] and 'password' in \
+                        self.proactive_config['user']:
+                    if self.proactive_config['user']['login'] != '' and self.proactive_config['user']['password'] != '':
+                        self.gateway.connect(username=self.proactive_config['user']['login'],
+                                             password=self.proactive_config['user']['password'])
+                        assert self.gateway.isConnected() is True
+                        self.proactive_connected = True
+
+                return
+
+        proactive_host = 'try.activeeon.com'
+        proactive_port = '8080'
+        proactive_url = "http://" + proactive_host + ":" + proactive_port
+        javaopts = []
+        # uncomment for detailed logs
+        # javaopts.append('-Dlog4j.configuration=file:'+os.path.join(os.getcwd(),'log4j.properties'))
+        redirectJVMOutput = False
+        self.gateway = proactive.ProActiveGateway(proactive_url, javaopts, redirectJVMOutput)
+        self.proactive_default_connection = True
 
     def __parse_pragma__(self, pragma):
         pragma = pragma.strip(" #%)")
@@ -145,6 +148,7 @@ class ProActiveKernel(Kernel):
             pattern_generic_with_path = pattern_generic.strip('$)') + r"(,path=" + pattern_path.strip("^$") + r")?$"
             pattern_connect = r"^(host=(www.)?[a-z0-9]+(\.[a-z]+(\/[a-zA-Z0-9#]+)*)*(\.[a-z]+) *, " \
                               r"*port=\d+ *, *)?(login=[a-zA-Z_][a-zA-Z0-9_]*) *, *(password=[^ ]*)$"
+            # TODO: handling connect with url path of config file
 
             pragmas_with_name = ['job', 'task', 'selection_script', 'fork_env']
             pragmas_with_name_and_path = ['task', 'selection_script', 'fork_env']
