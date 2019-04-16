@@ -51,6 +51,12 @@ class ParsingError(ValueError):
         self.args = {arg}
 
 
+class ConfigError(ValueError):
+    def __init__(self, arg):
+        self.strerror = arg
+        self.args = {arg}
+
+
 class ProActiveKernel(Kernel):
     implementation = 'ProActive'
     implementation_version = __version__
@@ -143,12 +149,13 @@ class ProActiveKernel(Kernel):
         data = dict(trigger=sep_lines[0], name='')
 
         if len(sep_lines) == 2:  # TODO: add blank character (regex support and stripping blanks)
-            pattern_path = r"^(\/|\.\/)([A-z0-9-_+]+\/)*([A-z0-9]+\.(py))$"
+            pattern_path_cars = r"^[a-zA-Z0-9_\/\\:\.-]*$"
             pattern_generic = r"^(name=[a-zA-Z_][a-zA-Z0-9_]*)(,[a-zA-Z]*=[a-zA-Z_][a-zA-Z0-9_]*)*$"
-            pattern_generic_with_path = pattern_generic.strip('$)') + r"(,path=" + pattern_path.strip("^$") + r")?$"
+            pattern_generic_with_path = pattern_generic.strip('$)') + r"(,path=" + \
+                                        pattern_path_cars.strip("^$") + r")?$"
             pattern_connect = r"^(host=(www.)?[a-z0-9]+(\.[a-z]+(\/[a-zA-Z0-9#]+)*)*(\.[a-z]+) *, " \
                               r"*port=\d+ *, *)?(login=[a-zA-Z_][a-zA-Z0-9_]*) *, *(password=[^ ]*)$"
-            # TODO: handling connect with url path of config file
+            pattern_connect_with_path = r"^(path=" + pattern_path_cars.strip("^$") + r")$"
 
             pragmas_with_name = ['job', 'task', 'selection_script', 'fork_env']
             pragmas_with_name_and_path = ['task', 'selection_script', 'fork_env']
@@ -158,7 +165,8 @@ class ProActiveKernel(Kernel):
                 re.match(pattern_generic_with_path, sep_lines[1]) and data['trigger'] in pragmas_with_name
             invalid_with_path = not re.match(pattern_generic_with_path, sep_lines[1]) and \
                                 data['trigger'] in pragmas_with_name_and_path
-            invalid_connect = not re.match(pattern_connect, sep_lines[1]) and data['trigger'] == 'connect'
+            invalid_connect = not (re.match(pattern_connect, sep_lines[1]) or
+                                   re.match(pattern_connect_with_path, sep_lines[1])) and data['trigger'] == 'connect'
 
             if invalid_connect or invalid_generic or invalid_with_path:
                 raise ParsingError('Invalid parameters')
@@ -217,6 +225,46 @@ class ProActiveKernel(Kernel):
             self.gateway.disconnect()
             self.proactive_connected = False
 
+        if 'path' in input_data:
+            exists = os.path.isfile(input_data['path'])
+
+            if exists:
+                try:
+                    # raise Exception(self.config)
+                    self.proactive_config = cp.ConfigParser()
+                    self.proactive_config.read(input_data['path'])
+
+                    proactive_host = self.proactive_config['proactive_server']['host']
+                    proactive_port = self.proactive_config['proactive_server']['port']
+
+                    proactive_url = "http://" + proactive_host + ":" + proactive_port
+                    javaopts = []
+                    # uncomment for detailed logs
+                    # javaopts.append('-Dlog4j.configuration=file:'+os.path.join(os.getcwd(),'log4j.properties'))
+                    redirectJVMOutput = False
+                    self.gateway = proactive.ProActiveGateway(proactive_url, javaopts, redirectJVMOutput)
+                    self.gateway.connect(username=self.proactive_config['user']['login'],
+                                         password=self.proactive_config['user']['password'])
+
+                    self.__kernel_print_ok_message__('Connecting to server ...\n')
+
+                    assert self.gateway.isConnected() is True
+
+                    self.__kernel_print_ok_message__('Connected as \'' + self.proactive_config['user']['login']
+                                                     + '\'!\n')
+
+                    self.proactive_connected = True
+
+                    return 0
+
+                except AssertionError as ae:
+                    raise AssertionError(ae)
+                except Exception as e:
+                    raise ConfigError(str(e))
+
+            else:
+                raise ConfigError(input_data['path'] + ': No such a file.\n')
+
         if 'host' in input_data and 'port' in input_data:
             proactive_host = input_data['host']
             proactive_port = input_data['port']
@@ -234,7 +282,7 @@ class ProActiveKernel(Kernel):
         self.gateway.connect(username=input_data['login'], password=input_data['password'])
         assert self.gateway.isConnected() is True
 
-        self.__kernel_print_ok_message__('Connected!')
+        self.__kernel_print_ok_message__('Connected as \'' + input_data['login'] + '\'!\n')
 
         self.proactive_connected = True
 
@@ -362,7 +410,11 @@ class ProActiveKernel(Kernel):
     def __submit_job__(self, input_data):
         if not self.job_created:
             if input_data['name'] == '':
-                input_data['name'] = notebook_path().rsplit('/', 1)[1].split('.', 1)[0]
+                if notebook_path() is not None:
+                    input_data['name'] = notebook_path().rsplit('/', 1)[1].split('.', 1)[0]
+                else:
+                    input_data['name'] = 'DefaultJob_' + str(random.randint(1000, 9999))
+
             self.__create_job__(input_data)
 
         self.__kernel_print_ok_message__('Submitting the job to the proactive scheduler...\n')
@@ -430,8 +482,8 @@ class ProActiveKernel(Kernel):
                                                               'evalue': 'Use #%connect() to connect to server first.'})
                 else:
                     return self.__kernel_print_error_message({'ename': 'Pragma error', 'evalue':
-                                                              'Directive \'' + pragma_info['trigger']
-                                                              + '\' not known.'})
+                        'Directive \'' + pragma_info['trigger']
+                        + '\' not known.'})
 
             try:
                 ast.parse(code)
@@ -451,6 +503,8 @@ class ProActiveKernel(Kernel):
                                                      + self.gateway.base_url + '\'.\n')
                 try:
                     exitcode = func(pragma_info)
+                except ConfigError as ce:
+                    return self.__kernel_print_error_message({'ename': 'Proactive config error', 'evalue': ce.strerror})
                 except AssertionError as ae:
                     return self.__kernel_print_error_message({'ename': 'Proactive connexion error', 'evalue': str(ae)})
 
