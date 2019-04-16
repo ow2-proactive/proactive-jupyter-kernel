@@ -55,7 +55,7 @@ Once you receive your login and password, connect using the `#%connect()` pragma
 #%connect(login=YOUR_LOGIN, password=YOUR_PASSWORD)
 ```
 
-If you want to connect to another host, use the later pragma this way:
+To connect to another host, use the later pragma this way:
 
 ```python
 #%connect(host=YOUR_HOST, port=YOUR_PORT, login=YOUR_LOGIN, password=YOUR_PASSWORD)
@@ -78,6 +78,12 @@ password = YOUR_PASSWORD
 ```
 
 Save your file changes and restart the proactive kernel.
+
+You can also force the current Kernel to connect using any .ini config file through the `#%connect()` pragma:
+
+```python
+#%connect(path=PATH_TO/YOUR_CONFIG_FILE.ini)
+```
 
 (for more information about this format please check 
 [configParser](https://docs.python.org/3/library/configparser.html))
@@ -161,7 +167,7 @@ performed when the job is submitted (check next section). In the later case, the
 To finally submit your job to the proactive scheduler, use the `#%submit_job()` pragma:
 
 ```python
-#%submitJob()
+#%submit_job()
 ```
 
 The returned values of your final tasks will be automatically printed in the notebook results.
