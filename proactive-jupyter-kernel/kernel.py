@@ -75,7 +75,7 @@ class ProActiveKernel(Kernel):
 
     job_created = False
 
-    tasks_names = []
+    tasks_names = []  # TODO: handling added tasks after job already submitted
     tasks_count = 0
 
     proactive_config = None
@@ -146,16 +146,16 @@ class ProActiveKernel(Kernel):
         pragma = pragma.strip(" #%)")
         sep_lines = pragma.split('(', 1)
 
-        data = dict(trigger=sep_lines[0], name='')
+        data = dict(trigger=sep_lines[0].strip(" "), name='')
 
-        if len(sep_lines) == 2:  # TODO: add blank character (regex support and stripping blanks)
+        if len(sep_lines) == 2:
             pattern_path_cars = r"^[a-zA-Z0-9_\/\\:\.-]*$"
-            pattern_generic = r"^(name=[a-zA-Z_][a-zA-Z0-9_]*)(,[a-zA-Z]*=[a-zA-Z_][a-zA-Z0-9_]*)*$"
-            pattern_generic_with_path = pattern_generic.strip('$)') + r"(,path=" + \
-                                        pattern_path_cars.strip("^$") + r")?$"
-            pattern_connect = r"^(host=(www.)?[a-z0-9]+(\.[a-z]+(\/[a-zA-Z0-9#]+)*)*(\.[a-z]+) *, " \
-                              r"*port=\d+ *, *)?(login=[a-zA-Z_][a-zA-Z0-9_]*) *, *(password=[^ ]*)$"
-            pattern_connect_with_path = r"^(path=" + pattern_path_cars.strip("^$") + r")$"
+            pattern_generic = r"^( *name *= *[a-zA-Z_][a-zA-Z0-9_]*)( *, *[a-zA-Z]* *= *[a-zA-Z_][a-zA-Z0-9_]* *)*$"
+            pattern_generic_with_path = pattern_generic.strip('$)') + r"( *, *path *= *" + \
+                                        pattern_path_cars.strip("^$") + r" *)?$"
+            pattern_connect = r"^( *host *= *(www.)?[a-z0-9]+(\.[a-z]+(\/[a-zA-Z0-9#]+)*)*(\.[a-z]+) *, *" \
+                              r"port *= *\d+ *, *)?(login *= *[a-zA-Z_][a-zA-Z0-9_]*) *, *(password *= *[^ ]*)$"
+            pattern_connect_with_path = r"^( *path *= *" + pattern_path_cars.strip("^$") + r" *)$"
 
             pragmas_with_name = ['job', 'task', 'selection_script', 'fork_env']
             pragmas_with_name_and_path = ['task', 'selection_script', 'fork_env']
@@ -181,7 +181,7 @@ class ProActiveKernel(Kernel):
                 sep_lines = sep_lines[1].split(',')
                 for line in sep_lines:
                     params = line.split('=')
-                    data[params[0]] = params[1]
+                    data[params[0].strip(" ")] = params[1].strip(" ")
 
         return data
 
