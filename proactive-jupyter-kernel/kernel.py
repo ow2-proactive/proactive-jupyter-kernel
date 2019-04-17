@@ -430,12 +430,12 @@ class ProActiveKernel(Kernel):
 
             self.__create_job__(input_data)
 
-        if self.job_created and not self.job_up_to_date:
+        elif not self.job_up_to_date:
             if input_data['name'] == '':
                 input_data['name'] = self.job_name
             self.__create_job__(input_data)
 
-        if self.job_created and self.job_up_to_date and input_data['name'] != '':
+        elif input_data['name'] != '':
             self.__kernel_print_ok_message__('Job renamed to \'' + input_data['name'] + '\'.\n')
             self.__set_job_name__(input_data['name'])
 
