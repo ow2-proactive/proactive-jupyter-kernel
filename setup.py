@@ -39,10 +39,5 @@ setup(name='proactive-jupyter-kernel',
       url='https://github.com/ow2-proactive/proactive-jupyter-kernel',
       packages=packages,
       package_data=package_data,
-      install_requires=install_requires,
-      classifiers=[
-                    "Programming Language :: Python :: 3",
-                    "License :: Activeeon :: BSD 2-Clause License",
-                    "Operating System :: OS Independent",
-                  ],
+      install_requires=install_requires
       )
