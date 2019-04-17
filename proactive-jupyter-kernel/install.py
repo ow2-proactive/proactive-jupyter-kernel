@@ -23,7 +23,7 @@ def install_my_kernel_spec(user=True, prefix=None):
         print('Installing IPython kernel spec')
         try:
             KernelSpecManager().install_kernel_spec(td, 'ProActive', user=user, prefix=prefix)
-            print('Success!')
+            print('Successfully installed ProActive kernel!')
         except Exception as e:
             print(str(e))
 

@@ -26,13 +26,23 @@ with open('gradle.properties') as fp:
                 value = value.replace("-SNAPSHOT", dev_version)
             gradle_properties[name] = value
 
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
 setup(name='proactive-jupyter-kernel',
       version=gradle_properties["version"],
       description='A proactive kernel for Jupyter',
+      long_description=long_description,
+      long_description_content_type="text/markdown",
       author='ActiveEon',
       author_email='www.activeeon.com',
       url='https://github.com/ow2-proactive/proactive-jupyter-kernel',
       packages=packages,
       package_data=package_data,
       install_requires=install_requires,
+      classifiers=[
+                    "Programming Language :: Python :: 3",
+                    "License :: Activeeon :: BSD 2-Clause License",
+                    "Operating System :: OS Independent",
+                  ],
       )
