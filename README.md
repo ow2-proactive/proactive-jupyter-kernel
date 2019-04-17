@@ -159,16 +159,25 @@ To create a job, use the `#%job()` pragma:
 
 If the job was already been created, the call of this pragma would just rename the job already created by the new provided name.
 
-Notice that it is not necessary to create and name explicitly the job. If not done by the user, this step is implicitly 
-performed when the job is submitted (check next section). In the later case, the job will be named same as your notebook.
+**Notice that it is not necessary to create and name explicitly the job. If not done by the user, this step is implicitly 
+performed when the job is submitted (check next section).**
 
 #### 5.5 Submit your job to the scheduler
 
-To finally submit your job to the proactive scheduler, use the `#%submit_job()` pragma:
+To finally submit the job to the proactive scheduler, the user has to use the `#%submit_job()` pragma:
 
 ```python
 #%submit_job()
 ```
+
+If the job is not created, **or** is not up-to-date, the `#%submit_job()` starts by creating a new job named as the old one.
+To provide a new name, use the same pragma and provide a name as parameter:
+
+```python
+#%submit_job(name=JOB_NAME)
+```
+
+If the kernel, during its execution, never received a job name, he uses the current notebook name, if possible, or gives a random one.
 
 The returned values of your final tasks will be automatically printed in the notebook results.
 

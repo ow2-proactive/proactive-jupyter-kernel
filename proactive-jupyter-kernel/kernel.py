@@ -74,8 +74,10 @@ class ProActiveKernel(Kernel):
     proactive_job = Any()
 
     job_created = False
+    job_up_to_date = False
+    job_name = None
 
-    tasks_names = []  # TODO: handling added tasks after job already submitted
+    tasks_names = []
     tasks_count = 0
 
     proactive_config = None
@@ -156,6 +158,7 @@ class ProActiveKernel(Kernel):
             pattern_connect = r"^( *host *= *(www.)?[a-z0-9]+(\.[a-z]+(\/[a-zA-Z0-9#]+)*)*(\.[a-z]+) *, *" \
                               r"port *= *\d+ *, *)?(login *= *[a-zA-Z_][a-zA-Z0-9_]*) *, *(password *= *[^ ]*)$"
             pattern_connect_with_path = r"^( *path *= *" + pattern_path_cars.strip("^$") + r" *)$"
+            pattern_submit = r"^( *name *= *[a-zA-Z_][a-zA-Z0-9_]* *)?$"
 
             pragmas_with_name = ['job', 'task', 'selection_script', 'fork_env']
             pragmas_with_name_and_path = ['task', 'selection_script', 'fork_env']
@@ -167,17 +170,18 @@ class ProActiveKernel(Kernel):
                                 data['trigger'] in pragmas_with_name_and_path
             invalid_connect = not (re.match(pattern_connect, sep_lines[1]) or
                                    re.match(pattern_connect_with_path, sep_lines[1])) and data['trigger'] == 'connect'
+            invalid_submit = not re.match(pattern_submit, sep_lines[1]) and data['trigger'] == 'submit_job'
 
-            if invalid_connect or invalid_generic or invalid_with_path:
+            if invalid_connect or invalid_generic or invalid_with_path or invalid_submit:
                 raise ParsingError('Invalid parameters')
 
-            if data['trigger'] == 'submit_job':
+            if data['trigger'] == 'draw_job':
                 if sep_lines[1] != '':
                     self.__kernel_print_ok_message__('WARNING: The parameters ' + str(sep_lines)
                                                      + ' are ignored.\n\n')
                 return data
 
-            if data['trigger'] in pragmas:
+            if data['trigger'] in pragmas or (data['trigger'] == 'submit_job' and '=' in sep_lines[1]):
                 sep_lines = sep_lines[1].split(',')
                 for line in sep_lines:
                     params = line.split('=')
@@ -310,6 +314,7 @@ class ProActiveKernel(Kernel):
                 input_data['task'] = value
                 self.__set_selection_script_from_task__(input_data)
                 self.__kernel_print_ok_message__('Selection script added to \'' + input_data['name'] + '\'.\n')
+                self.job_up_to_date = False
                 return 0
         raise Exception('The task named \'' + input_data['name'] + '\' does not exist.')
 
@@ -333,9 +338,9 @@ class ProActiveKernel(Kernel):
             if value.getTaskName() == input_data['name']:
                 self.__kernel_print_ok_message__('Adding a fork environment to the proactive task...\n')
                 input_data['task'] = value
-                self.__set_selection_script_from_task__(input_data)
                 self.__create_fork_environment_from_task__(input_data)
                 self.__kernel_print_ok_message__('Fork environment added to \'' + input_data['name'] + '\'.\n')
+                self.job_up_to_date = False
                 return 0
         raise Exception('The task named \'' + input_data['name'] + '\' does not exist.')
 
@@ -378,15 +383,21 @@ class ProActiveKernel(Kernel):
         self.tasks_names.append(input_data['name'])
         self.tasks_count += 1
 
+        self.job_up_to_date = False
+
         return 0
 
     def __create_job__(self, input_data):
-        if self.job_created:
+        if self.job_created and self.job_up_to_date:
             self.__set_job_name__(input_data['name'])
             self.__kernel_print_ok_message__('Job renamed to \'' + input_data['name'] + '\'.\n')
             return 0
 
-        self.__kernel_print_ok_message__('Creating a proactive job...\n')
+        if self.job_created:
+            self.__kernel_print_ok_message__('Re-creating the proactive job due to tasks changes ...\n')
+        else:
+            self.__kernel_print_ok_message__('Creating a proactive job...\n')
+
         self.proactive_job = self.gateway.createJob()
         self.__set_job_name__(input_data['name'])
 
@@ -400,11 +411,13 @@ class ProActiveKernel(Kernel):
         self.proactive_job.setOutputFolder(os.getcwd())
 
         self.job_created = True
+        self.job_up_to_date = True
 
         return 0
 
     def __set_job_name__(self, name):
         self.proactive_job.setJobName(name)
+        self.job_name = name
         return 0
 
     def __submit_job__(self, input_data):
@@ -416,6 +429,15 @@ class ProActiveKernel(Kernel):
                     input_data['name'] = 'DefaultJob_' + str(random.randint(1000, 9999))
 
             self.__create_job__(input_data)
+
+        elif not self.job_up_to_date:
+            if input_data['name'] == '':
+                input_data['name'] = self.job_name
+            self.__create_job__(input_data)
+
+        elif input_data['name'] != '':
+            self.__kernel_print_ok_message__('Job renamed to \'' + input_data['name'] + '\'.\n')
+            self.__set_job_name__(input_data['name'])
 
         self.__kernel_print_ok_message__('Submitting the job to the proactive scheduler...\n')
 
