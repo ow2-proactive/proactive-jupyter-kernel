@@ -14,6 +14,10 @@ import urllib
 import json
 import ipykernel
 
+import matplotlib.pyplot as plt
+import networkx as nx
+from networkx.drawing.nx_agraph import write_dot, graphviz_layout
+
 __version__ = '0.1'
 
 
@@ -88,6 +92,11 @@ class ProActiveKernel(Kernel):
 
     error_message = ''
 
+    graph_created = False
+
+    G = None
+    labels = {}
+
     @property
     def banner(self):
         if self._banner is None:
@@ -144,44 +153,51 @@ class ProActiveKernel(Kernel):
         self.gateway = proactive.ProActiveGateway(proactive_url, javaopts, redirectJVMOutput)
         self.proactive_default_connection = True
 
+    @staticmethod
+    def __is_valid_pragma__(data, sep_lines):
+        pattern_path_cars = r"^[a-zA-Z0-9_\/\\:\.-]*$"
+        pattern_generic_with_name = r"^( *name *= *[a-zA-Z_]\w*)( *, *[a-zA-Z]* *= *[a-zA-Z_]\w* *)*$"
+        pattern_generic_with_path = pattern_generic_with_name.strip('$)') + r"( *, *path *= *" + \
+                                    pattern_path_cars.strip("^$") + r" *)?$"
+        pattern_connect = r"^( *host *= *(www.)?[a-z0-9]+(\.[a-z]+(\/[a-zA-Z0-9#]+)*)*(\.[a-z]+) *, *" \
+                          r"port *= *\d+ *, *)?(login *= *[a-zA-Z_][a-zA-Z0-9_]*) *, *(password *= *[^ ]*)$"
+        pattern_connect_with_path = r"^( *path *= *" + pattern_path_cars.strip("^$") + r" *)$"
+        pattern_with_name_only = r"^( *name *= *[a-zA-Z_]\w* *)?$"
+
+        pragmas_with_name = ['job', 'task', 'selection_script', 'fork_env', 'write_dot']
+        pragmas_with_name_and_path = ['task', 'selection_script', 'fork_env']
+        pragmas_with_name_only = ['submit_job', 'draw_job']
+
+        invalid_generic = not re.match(pattern_generic_with_name, sep_lines[1]) and not \
+            re.match(pattern_generic_with_path, sep_lines[1]) and data['trigger'] in pragmas_with_name
+        invalid_with_path = not re.match(pattern_generic_with_path, sep_lines[1]) and \
+                            data['trigger'] in pragmas_with_name_and_path
+        invalid_connect = not (re.match(pattern_connect, sep_lines[1]) or
+                               re.match(pattern_connect_with_path, sep_lines[1])) and data['trigger'] == 'connect'
+        invalid_with_name_only = not re.match(pattern_with_name_only, sep_lines[1]) and data['trigger'] \
+                                 in pragmas_with_name_only
+
+        if invalid_connect or invalid_generic or invalid_with_path or invalid_with_name_only:
+            raise ParsingError('Invalid parameters')
+
     def __parse_pragma__(self, pragma):
+        pragmas = ['job', 'task', 'selection_script', 'fork_env', 'connect', 'write_dot']
+        pragmas_empty = ['submit_job', 'draw_job']
         pragma = pragma.strip(" #%)")
         sep_lines = pragma.split('(', 1)
 
         data = dict(trigger=sep_lines[0].strip(" "), name='')
 
         if len(sep_lines) == 2:
-            pattern_path_cars = r"^[a-zA-Z0-9_\/\\:\.-]*$"
-            pattern_generic = r"^( *name *= *[a-zA-Z_][a-zA-Z0-9_]*)( *, *[a-zA-Z]* *= *[a-zA-Z_][a-zA-Z0-9_]* *)*$"
-            pattern_generic_with_path = pattern_generic.strip('$)') + r"( *, *path *= *" + \
-                                        pattern_path_cars.strip("^$") + r" *)?$"
-            pattern_connect = r"^( *host *= *(www.)?[a-z0-9]+(\.[a-z]+(\/[a-zA-Z0-9#]+)*)*(\.[a-z]+) *, *" \
-                              r"port *= *\d+ *, *)?(login *= *[a-zA-Z_][a-zA-Z0-9_]*) *, *(password *= *[^ ]*)$"
-            pattern_connect_with_path = r"^( *path *= *" + pattern_path_cars.strip("^$") + r" *)$"
-            pattern_submit = r"^( *name *= *[a-zA-Z_][a-zA-Z0-9_]* *)?$"
+            self.__is_valid_pragma__(data, sep_lines)
 
-            pragmas_with_name = ['job', 'task', 'selection_script', 'fork_env']
-            pragmas_with_name_and_path = ['task', 'selection_script', 'fork_env']
-            pragmas = ['job', 'task', 'selection_script', 'fork_env', 'connect']
+            # if data['trigger'] == 'draw_job':
+            #     if sep_lines[1] != '':
+            #         self.__kernel_print_ok_message__('WARNING: The parameters \'' + str(sep_lines[1])
+            #                                          + '\' are ignored.\n\n')
+            #     return data
 
-            invalid_generic = not re.match(pattern_generic, sep_lines[1]) and not \
-                re.match(pattern_generic_with_path, sep_lines[1]) and data['trigger'] in pragmas_with_name
-            invalid_with_path = not re.match(pattern_generic_with_path, sep_lines[1]) and \
-                                data['trigger'] in pragmas_with_name_and_path
-            invalid_connect = not (re.match(pattern_connect, sep_lines[1]) or
-                                   re.match(pattern_connect_with_path, sep_lines[1])) and data['trigger'] == 'connect'
-            invalid_submit = not re.match(pattern_submit, sep_lines[1]) and data['trigger'] == 'submit_job'
-
-            if invalid_connect or invalid_generic or invalid_with_path or invalid_submit:
-                raise ParsingError('Invalid parameters')
-
-            if data['trigger'] == 'draw_job':
-                if sep_lines[1] != '':
-                    self.__kernel_print_ok_message__('WARNING: The parameters ' + str(sep_lines)
-                                                     + ' are ignored.\n\n')
-                return data
-
-            if data['trigger'] in pragmas or (data['trigger'] == 'submit_job' and '=' in sep_lines[1]):
+            if data['trigger'] in pragmas or (data['trigger'] in pragmas_empty and '=' in sep_lines[1]):
                 sep_lines = sep_lines[1].split(',')
                 for line in sep_lines:
                     params = line.split('=')
@@ -211,6 +227,10 @@ class ProActiveKernel(Kernel):
             return self.__create_job__
         elif pragma_info['trigger'] == 'submit_job':
             return self.__submit_job__
+        elif pragma_info['trigger'] == 'draw_job':
+            return self.__draw_job__
+        elif pragma_info['trigger'] == 'write_dot':
+            return self.__write_dot__
         elif pragma_info['trigger'] == 'selection_script':
             return self.__set_selection_script_from_name__
         elif pragma_info['trigger'] == 'fork_env':
@@ -221,6 +241,84 @@ class ProActiveKernel(Kernel):
             return self.__create_task__
         else:
             raise PragmaError('Directive \'' + pragma_info['trigger'] + '\' not known.')
+
+    def draw_graph(self, input_data):
+        pos = graphviz_layout(self.G, prog='dot')
+
+        # nodes
+        nx.draw_networkx_nodes(self.G, pos,
+                               node_color='orange',
+                               node_size=3000,
+                               alpha=0.5)
+
+        # edges
+        nx.draw_networkx_edges(self.G, pos,
+                               arrowstyle='->',
+                               arrowsize=50,
+                               edge_color='green',
+                               width=2,
+                               alpha=0.5)
+
+        nx.draw_networkx_labels(self.G, pos,
+                                self.labels,
+                                font_size=13)
+
+        plt.axis('off')
+        if 'name' in input_data and input_data['name'] != '':
+            self.__kernel_print_ok_message__('Saving the job workflow into a png file...\n')
+            plt.title(input_data['name'])
+            plt.savefig('./' + input_data['name'] + '.png')  # save as png
+            self.__kernel_print_ok_message__('\'' + input_data['name'] + '.png\' file created.\n')
+        else:
+            plt.title('job')
+
+        self.__kernel_print_ok_message__('Plotting...\n')
+        plt.show()  # display
+        self.__kernel_print_ok_message__('End.\n')
+
+    def __draw_job__(self, input_data):
+        if not self.graph_created or not self.job_up_to_date:
+            self.__kernel_print_ok_message__('Creating the job workflow...\n')
+            self.G = nx.DiGraph()
+
+            # nodes
+            nodes_ids = [i for i in range(len(self.proactive_tasks))]
+            self.G.add_nodes_from(nodes_ids)
+
+            # edges (beta) # TODO: adapt to dependency edges
+            for index in range(len(nodes_ids) - 1):
+                self.G.add_edge(nodes_ids[index], nodes_ids[index + 1])
+
+            # labels
+            for i in nodes_ids:
+                # some math labels
+                self.labels[i] = r'$' + self.proactive_tasks[i].getTaskName() + '$'
+
+            self.graph_created = True
+            self.__kernel_print_ok_message__('Workflow created.\n')
+
+        self.draw_graph(input_data)
+
+        return 0
+
+    def __write_dot__(self, input_data):
+        self.__kernel_print_ok_message__('Creating the job workflow (dot format) ...\n')
+        g_dot = nx.DiGraph()
+
+        # nodes
+        tasks_names = []
+        for task in self.proactive_tasks:
+            tasks_names.append(task.getTaskName())
+        g_dot.add_nodes_from(tasks_names)
+
+        # edges
+        # TODO: add dependency edges
+
+        self.__kernel_print_ok_message__('Writing the dot file...\n')
+        write_dot(g_dot, './' + input_data['name'] + '.dot')
+        self.__kernel_print_ok_message__('\'' + input_data['name'] + '.dot\' file created.\n')
+
+        return 0
 
     def __connect__(self, input_data):
         if self.proactive_connected:
@@ -499,13 +597,14 @@ class ProActiveKernel(Kernel):
 
                 elif pragma_info['trigger'] == 'connect':
                     func = self.__connect__
-                elif pragma_info['trigger'] in ['task', 'selection_script', 'fork_env', 'job', 'submit_job']:
+                elif pragma_info['trigger'] in ['task', 'selection_script', 'fork_env', 'job', 'submit_job',
+                                                'draw_job']:
                     return self.__kernel_print_error_message({'ename': 'Proactive error',
                                                               'evalue': 'Use #%connect() to connect to server first.'})
                 else:
                     return self.__kernel_print_error_message({'ename': 'Pragma error', 'evalue':
-                                                              'Directive \'' + pragma_info['trigger']
-                                                              + '\' not known.'})
+                        'Directive \'' + pragma_info['trigger']
+                        + '\' not known.'})
 
             try:
                 ast.parse(code)
