@@ -126,7 +126,7 @@ containerWorkingDirectory = '-w '+workspaceContainer+' '
 preJavaHomeCmd = dockerRunCommand + dockerParameters + proActiveHomeVolume + workspaceVolume + containerWorkingDirectory + containerName
 ```
 
-A second way is by providing the name of the task, and the path of a .py file containing the fork environment code:
+A second way is by providing the name of the task, and the path of a _.py_ file containing the fork environment code:
 
 ```python
 #%fork_env(name=TASK_NAME, path=./FORK_ENV_FILE.py)
@@ -148,7 +148,6 @@ A second way is by providing the name of the task, and the path of a .py file co
 #%selection_script(name=TASK_NAME, path=./SELECTION_CODE_FILE.py)
 ```
 
-
 #### 5.4 Create a job
 
 To create a job, use the `#%job()` pragma:
@@ -160,9 +159,32 @@ To create a job, use the `#%job()` pragma:
 If the job was already been created, the call of this pragma would just rename the job already created by the new provided name.
 
 **Notice that it is not necessary to create and name explicitly the job. If not done by the user, this step is implicitly 
-performed when the job is submitted (check next section).**
+performed when the job is submitted (check section 5.7 for more information).**
 
-#### 5.5 Submit your job to the scheduler
+#### 5.5 Plot job
+
+To verify the created workflow, use the `#%draw_job()` pragma to plot it into a separate window:
+
+```python
+#%draw_job()
+```
+
+You can also draw it in a separate window and save it into a _.png_ file by providing the file name this way:
+
+```python
+#%draw_job(name=FILE_NAME)
+```
+
+#### 5.6 Save workflow in dot format
+
+To save the created workflow into a [GraphViz](https://www.graphviz.org/) _.dot_ format, use the `#%write_dot()` pragma:
+
+```python
+#%write_dot(name=FILE_NAME)
+```
+
+
+#### 5.7 Submit your job to the scheduler
 
 To finally submit the job to the proactive scheduler, the user has to use the `#%submit_job()` pragma:
 
@@ -180,6 +202,7 @@ To provide a new name, use the same pragma and provide a name as parameter:
 If the kernel, during its execution, never received a job name, he uses the current notebook name, if possible, or gives a random one.
 
 The returned values of your final tasks will be automatically printed in the notebook results.
+
 
 Current status
 ----------
