@@ -229,14 +229,12 @@ Current status
 
 Features:
 
-* connect, task, selection_script, fork_env, job, submit_job
+* connect, task, selection_script, fork_env, job, draw_job, write_dot, submit_job
 * connection using a configuration file
 * get and print results implicitly in submit_job
 
 TODO:
 
 1. add task dependency
-2. less spaces sensitivity in pragma's parsing
-3. get_results pragma
-4. check how to use NetworkX for plotting graphs
-5. check how to highlight Python syntax
+2. get_results pragma
+3. check how to highlight Python syntax
