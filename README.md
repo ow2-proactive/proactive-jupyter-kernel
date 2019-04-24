@@ -169,10 +169,30 @@ To verify the created workflow, use the `#%draw_job()` pragma to plot it into a 
 #%draw_job()
 ```
 
-You can also draw it in a separate window and save it into a _.png_ file by providing the file name this way:
+Two optional parameters can be used to configure the way the kernel plot the workflow.
+
+* **inline plotting:**
+
+If this parameter is set to 'off', the workflow plotting is made through the [Matplotlib](https://matplotlib.org/) 
+external window. The default value is 'on'.
 
 ```python
-#%draw_job(name=FILE_NAME)
+#%draw_job(inline=off)
+```
+
+* **saving into hard disk:**
+
+To be sure the workflow is saved into a _.png_ file, this option needs to be set to 'on'. The default value is 'off'.
+
+```python
+#%draw_job(save=on)
+```
+
+Note that the job will be named (in the order of existence) by the name provided using the 'name' parameter, by the name of the job 
+if it is created, by the name of the notebook if reachable or at worst by "Unnamed_job".
+
+```python
+#%draw_job([name=JOB_NAME], [inline=off], [save=on])`
 ```
 
 #### 5.6 Save workflow in dot format
