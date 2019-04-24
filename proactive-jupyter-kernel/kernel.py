@@ -18,6 +18,8 @@ import matplotlib.pyplot as plt
 import networkx as nx
 from networkx.drawing.nx_agraph import write_dot, graphviz_layout
 
+from .images import display_data_for_image
+
 __version__ = '0.1'
 
 
@@ -156,28 +158,31 @@ class ProActiveKernel(Kernel):
     @staticmethod
     def __is_valid_pragma__(data, sep_lines):
         pattern_path_cars = r"^[a-zA-Z0-9_\/\\:\.-]*$"
-        pattern_generic_with_name = r"^( *name *= *[a-zA-Z_]\w*)( *, *[a-zA-Z]* *= *[a-zA-Z_]\w* *)*$"
-        pattern_generic_with_path = pattern_generic_with_name.strip('$)') + r"( *, *path *= *" + \
-                                    pattern_path_cars.strip("^$") + r" *)?$"
+        pattern_generic = r"^( *[a-zA-Z]* *= *[a-zA-Z_]\w* *, *)*([a-zA-Z]* *= *[a-zA-Z_]\w* *)?$"
+        pattern_with_name = r"^( *name *= *[a-zA-Z_]\w*)( *, *[a-zA-Z]* *= *[a-zA-Z_]\w* *)*$"
+        pattern_with_path = pattern_with_name.strip('$)') + r"( *, *path *= *" + \
+            pattern_path_cars.strip("^$") + r" *)?$"
         pattern_connect = r"^( *host *= *(www.)?[a-z0-9]+(\.[a-z]+(\/[a-zA-Z0-9#]+)*)*(\.[a-z]+) *, *" \
                           r"port *= *\d+ *, *)?(login *= *[a-zA-Z_][a-zA-Z0-9_]*) *, *(password *= *[^ ]*)$"
         pattern_connect_with_path = r"^( *path *= *" + pattern_path_cars.strip("^$") + r" *)$"
         pattern_with_name_only = r"^( *name *= *[a-zA-Z_]\w* *)?$"
 
-        pragmas_with_name = ['job', 'task', 'selection_script', 'fork_env', 'write_dot']
+        pragmas_generic = ['draw_job']
+        pragmas_with_name = ['job', 'task', 'selection_script', 'fork_env']
         pragmas_with_name_and_path = ['task', 'selection_script', 'fork_env']
-        pragmas_with_name_only = ['submit_job', 'draw_job']
+        pragmas_with_name_only = ['submit_job', 'write_dot']
 
-        invalid_generic = not re.match(pattern_generic_with_name, sep_lines[1]) and not \
-            re.match(pattern_generic_with_path, sep_lines[1]) and data['trigger'] in pragmas_with_name
-        invalid_with_path = not re.match(pattern_generic_with_path, sep_lines[1]) and \
-                            data['trigger'] in pragmas_with_name_and_path
+        invalid_generic = not re.match(pattern_generic, sep_lines[1]) and data['trigger'] in pragmas_generic
+        invalid_with_name = not re.match(pattern_with_name, sep_lines[1]) and not \
+            re.match(pattern_with_path, sep_lines[1]) and data['trigger'] in pragmas_with_name
+        invalid_with_path = not re.match(pattern_with_path, sep_lines[1]) and \
+            data['trigger'] in pragmas_with_name_and_path
         invalid_connect = not (re.match(pattern_connect, sep_lines[1]) or
                                re.match(pattern_connect_with_path, sep_lines[1])) and data['trigger'] == 'connect'
         invalid_with_name_only = not re.match(pattern_with_name_only, sep_lines[1]) and data['trigger'] \
-                                 in pragmas_with_name_only
+            in pragmas_with_name_only
 
-        if invalid_connect or invalid_generic or invalid_with_path or invalid_with_name_only:
+        if invalid_connect or invalid_generic or invalid_with_name or invalid_with_path or invalid_with_name_only:
             raise ParsingError('Invalid parameters')
 
     def __parse_pragma__(self, pragma):
@@ -202,6 +207,7 @@ class ProActiveKernel(Kernel):
                 for line in sep_lines:
                     params = line.split('=')
                     data[params[0].strip(" ")] = params[1].strip(" ")
+                # TODO: improve by saying if there is ignored parameters
 
         return data
 
@@ -264,17 +270,47 @@ class ProActiveKernel(Kernel):
                                 font_size=13)
 
         plt.axis('off')
-        if 'name' in input_data and input_data['name'] != '':
-            self.__kernel_print_ok_message__('Saving the job workflow into a png file...\n')
-            plt.title(input_data['name'])
-            plt.savefig('./' + input_data['name'] + '.png')  # save as png
-            self.__kernel_print_ok_message__('\'' + input_data['name'] + '.png\' file created.\n')
-        else:
-            plt.title('job')
 
-        self.__kernel_print_ok_message__('Plotting...\n')
-        plt.show()  # display
-        self.__kernel_print_ok_message__('End.\n')
+        if 'name' in input_data and input_data['name'] != '':
+            title = input_data['name']
+        elif self.job_created:
+            title = self.job_name
+        elif notebook_path() is not None:
+            title = str(notebook_path().rsplit('/', 1)[1].split('.', 1)[0])
+        else:
+            title = 'Unnamed_job'
+
+        plt.title(title)
+        filename = './' + title + '.png'
+
+        if 'inline' in input_data and input_data['inline'] == 'off':
+            if 'save' in input_data and input_data['save'] == 'on':
+                self.__kernel_print_ok_message__('Saving the job workflow into a png file...\n')
+                plt.savefig(filename)  # save as png
+                self.__kernel_print_ok_message__('\'' + filename + '\' file created.\n')
+
+            self.__kernel_print_ok_message__('Plotting...\n')
+            plt.show()  # display
+            self.__kernel_print_ok_message__('End.\n')
+
+        else:
+            if 'save' in input_data and input_data['save'] == 'on':
+                self.__kernel_print_ok_message__('Saving the job workflow into a png file...\n')
+                plt.savefig(filename)  # save as png
+                self.__kernel_print_ok_message__('\'' + filename + '\' file created.\n')
+                save_file = True
+            else:
+                plt.savefig(filename)  # save as png
+                save_file = False
+
+            try:
+                self.__kernel_print_ok_message__('Plotting...\n')
+                data = display_data_for_image(filename, save_file)
+            except ValueError as e:
+                message = {'name': 'stdout', 'text': str(e)}
+                self.send_response(self.iopub_socket, 'stream', message)
+            else:
+                self.send_response(self.iopub_socket, 'display_data', data)
 
     def __draw_job__(self, input_data):
         if not self.graph_created or not self.job_up_to_date:
