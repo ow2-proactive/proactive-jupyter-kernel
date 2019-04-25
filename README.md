@@ -206,7 +206,7 @@ To save the created workflow into a [GraphViz](https://www.graphviz.org/) _.dot_
 
 #### 5.7 Submit your job to the scheduler
 
-To finally submit the job to the proactive scheduler, the user has to use the `#%submit_job()` pragma:
+To submit the job to the proactive scheduler, the user has to use the `#%submit_job()` pragma:
 
 ```python
 #%submit_job()
@@ -221,6 +221,21 @@ To provide a new name, use the same pragma and provide a name as parameter:
 
 If the kernel, during its execution, never received a job name, he uses the current notebook name, if possible, or gives a random one.
 
+
+#### 5.8 Printing results
+
+To finally get the job result(s), the user has to use the `#%get_result()` pragma by providing the job name:
+
+```python
+#%get_result(name=JOB_NAME)
+```
+
+**or** by the job id:
+
+```python
+#%get_result(id=JOB_ID)
+```
+
 The returned values of your final tasks will be automatically printed in the notebook results.
 
 
@@ -229,12 +244,22 @@ Current status
 
 Features:
 
-* connect, task, selection_script, fork_env, job, draw_job, write_dot, submit_job
-* connection using a configuration file
-* get and print results implicitly in submit_job
+* connect: connects to an ActiveEon server 
+* OPTION: connection using a configuration file
+* task: creates a task
+* selection_script: sets the selection script of a task
+* fork_env: sets the fork environment script
+* job: creates/renames the job
+* draw_job: plot the workflow
+* write_dot: writes the workflow in .dot format
+* submit_job: submits the job to the scheduler
+* get_result: gets and prints the job results
+
 
 TODO:
 
 1. add task dependency
-2. get_results pragma
-3. check how to highlight Python syntax
+2. help pragma
+3. modify tasks handling instead of creating a new one if the name already exists
+4. check how to highlight Python syntax
+5. add auto-complete
