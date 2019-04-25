@@ -63,41 +63,22 @@ class ConfigError(ValueError):
         self.args = {arg}
 
 
+class ResultError(ValueError):
+    def __init__(self, arg):
+        self.strerror = arg
+        self.args = {arg}
+
+
 class ProActiveKernel(Kernel):
     implementation = 'ProActive'
     implementation_version = __version__
 
     _banner = "A ProActive Kernel - as useful as a parrot"
 
-    gateway = Any()
-
     language_info = {'name': 'python',
                      'codemirror_mode': 'ProActive',
                      'mimetype': 'text/x-python',
                      'file_extension': '.py'}
-
-    proactive_tasks = []
-    proactive_job = Any()
-
-    job_created = False
-    job_up_to_date = False
-    job_name = None
-
-    tasks_names = []
-    tasks_count = 0
-
-    proactive_config = None
-
-    proactive_connected = False
-    proactive_default_connection = False
-    proactive_failed_connection = False
-
-    error_message = ''
-
-    graph_created = False
-
-    G = None
-    labels = {}
 
     @property
     def banner(self):
@@ -107,6 +88,35 @@ class ProActiveKernel(Kernel):
 
     def __init__(self, **kwargs):
         Kernel.__init__(self, **kwargs)
+
+        self.gateway = None
+
+        self.proactive_tasks = []
+        self.proactive_job = None
+
+        self.job_created = False
+        self.job_up_to_date = False
+        self.job_name = None
+
+        self.submitted_jobs_names = []
+        self.submitted_jobs_ids = {}
+
+        self.tasks_names = []
+        self.tasks_count = 0
+
+        self.proactive_config = None
+
+        self.proactive_connected = False
+        self.proactive_default_connection = False
+        self.proactive_failed_connection = False
+
+        self.error_message = ''
+
+        self.graph_created = False
+
+        self.G = None
+        self.labels = {}
+
         try:
             self._start_proactive()
 
@@ -165,12 +175,15 @@ class ProActiveKernel(Kernel):
         pattern_connect = r"^( *host *= *(www.)?[a-z0-9]+(\.[a-z]+(\/[a-zA-Z0-9#]+)*)*(\.[a-z]+) *, *" \
                           r"port *= *\d+ *, *)?(login *= *[a-zA-Z_][a-zA-Z0-9_]*) *, *(password *= *[^ ]*)$"
         pattern_connect_with_path = r"^( *path *= *" + pattern_path_cars.strip("^$") + r" *)$"
-        pattern_with_name_only = r"^( *name *= *[a-zA-Z_]\w* *)?$"
+        pattern_with_name_only = r"^( *name *= *[a-zA-Z_]\w* *)$"
+        pattern_with_id_only = r"^( *id *= *\d+ *)$"
 
         pragmas_generic = ['draw_job']
         pragmas_with_name = ['job', 'task', 'selection_script', 'fork_env']
         pragmas_with_name_and_path = ['task', 'selection_script', 'fork_env']
         pragmas_with_name_only = ['submit_job', 'write_dot']
+        pragmas_with_id_or_name_only = ['get_result']
+        pragmas_empty = ['submit_job', 'draw_job']
 
         invalid_generic = not re.match(pattern_generic, sep_lines[1]) and data['trigger'] in pragmas_generic
         invalid_with_name = not re.match(pattern_with_name, sep_lines[1]) and not \
@@ -179,14 +192,19 @@ class ProActiveKernel(Kernel):
             data['trigger'] in pragmas_with_name_and_path
         invalid_connect = not (re.match(pattern_connect, sep_lines[1]) or
                                re.match(pattern_connect_with_path, sep_lines[1])) and data['trigger'] == 'connect'
-        invalid_with_name_only = not re.match(pattern_with_name_only, sep_lines[1]) and data['trigger'] \
-            in pragmas_with_name_only
+        invalid_with_name_only = (not re.match(pattern_with_name_only, sep_lines[1]) and data['trigger'] in
+                                  pragmas_with_name_only)
+        invalid_with_name_or_id = not (re.match(pattern_with_name_only, sep_lines[1]) or
+                                       re.match(pattern_with_id_only, sep_lines[1])) and data['trigger'] in \
+            pragmas_with_id_or_name_only
+        valid_empty = sep_lines[1] == "" and data['trigger'] in pragmas_empty
 
-        if invalid_connect or invalid_generic or invalid_with_name or invalid_with_path or invalid_with_name_only:
+        if (invalid_connect or invalid_generic or invalid_with_name or invalid_with_path or invalid_with_name_only
+                or invalid_with_name_or_id) and not valid_empty:
             raise ParsingError('Invalid parameters')
 
     def __parse_pragma__(self, pragma):
-        pragmas = ['job', 'task', 'selection_script', 'fork_env', 'connect', 'write_dot']
+        pragmas = ['job', 'task', 'selection_script', 'fork_env', 'connect', 'write_dot', 'get_result']
         pragmas_empty = ['submit_job', 'draw_job']
         pragma = pragma.strip(" #%)")
         sep_lines = pragma.split('(', 1)
@@ -229,22 +247,24 @@ class ProActiveKernel(Kernel):
         return name
 
     def __trigger_pragma__(self, pragma_info):
-        if pragma_info['trigger'] == 'job':
-            return self.__create_job__
-        elif pragma_info['trigger'] == 'submit_job':
-            return self.__submit_job__
+        if pragma_info['trigger'] == 'task':
+            return self.__create_task__
         elif pragma_info['trigger'] == 'draw_job':
             return self.__draw_job__
+        elif pragma_info['trigger'] == 'connect':
+            return self.__connect__
+        elif pragma_info['trigger'] == 'submit_job':
+            return self.__submit_job__
+        elif pragma_info['trigger'] == 'get_result':
+            return self.__get_result__
+        elif pragma_info['trigger'] == 'job':
+            return self.__create_job__
         elif pragma_info['trigger'] == 'write_dot':
             return self.__write_dot__
         elif pragma_info['trigger'] == 'selection_script':
             return self.__set_selection_script_from_name__
         elif pragma_info['trigger'] == 'fork_env':
             return self.__create_fork_environment_from_name__
-        elif pragma_info['trigger'] == 'connect':
-            return self.__connect__
-        elif pragma_info['trigger'] == 'task':
-            return self.__create_task__
         else:
             raise PragmaError('Directive \'' + pragma_info['trigger'] + '\' not known.')
 
@@ -311,6 +331,8 @@ class ProActiveKernel(Kernel):
                 self.send_response(self.iopub_socket, 'stream', message)
             else:
                 self.send_response(self.iopub_socket, 'display_data', data)
+
+            plt.close()
 
     def __draw_job__(self, input_data):
         if not self.graph_created or not self.job_up_to_date:
@@ -554,6 +576,27 @@ class ProActiveKernel(Kernel):
         self.job_name = name
         return 0
 
+    def __get_result__(self, input_data):
+        job_id = 0
+
+        if 'id' in input_data:
+            job_id = int(input_data['id'])
+            self.__kernel_print_ok_message__('Getting job ' + str(job_id) + ' output...\n')
+
+        elif 'name' in input_data and input_data['name'] != '':
+            if input_data['name'] not in self.submitted_jobs_ids:
+                raise ResultError("The job named \'" + input_data['name'] + "\' does not exist.")
+            job_id = self.submitted_jobs_ids[input_data['name']]
+            self.__kernel_print_ok_message__('Getting job \'' + input_data['name'] + '\' output...\n')
+
+        try:
+            job_result = self.gateway.getJobResult(job_id)
+        except Exception:
+            raise ResultError("Results unreachable for job: " + str(job_id))
+
+        self.__kernel_print_ok_message__('Result:\n')
+        self.__kernel_print_ok_message__(job_result)
+
     def __submit_job__(self, input_data):
         if not self.job_created:
             if input_data['name'] == '':
@@ -573,16 +616,15 @@ class ProActiveKernel(Kernel):
             self.__kernel_print_ok_message__('Job renamed to \'' + input_data['name'] + '\'.\n')
             self.__set_job_name__(input_data['name'])
 
+        else:
+            input_data['name'] = self.job_name
+
         self.__kernel_print_ok_message__('Submitting the job to the proactive scheduler...\n')
 
-        job_id = self.gateway.submitJob(self.proactive_job, debug=False)
+        self.submitted_jobs_names.append(self.job_name)
+        self.submitted_jobs_ids[self.job_name] = self.gateway.submitJob(self.proactive_job, debug=False)
 
-        self.__kernel_print_ok_message__('job_id: ' + str(job_id) + '\n')
-
-        self.__kernel_print_ok_message__('Getting job output...\n')
-        job_result = self.gateway.getJobResult(job_id)
-
-        self.__kernel_print_ok_message__(job_result)
+        self.__kernel_print_ok_message__('job_id: ' + str(self.submitted_jobs_ids[self.job_name]) + '\n')
 
         return 0
 
@@ -662,6 +704,8 @@ class ProActiveKernel(Kernel):
                     exitcode = func(pragma_info)
                 except ConfigError as ce:
                     return self.__kernel_print_error_message({'ename': 'Proactive config error', 'evalue': ce.strerror})
+                except ResultError as rer:
+                    return self.__kernel_print_error_message({'ename': 'Proactive result error', 'evalue': rer.strerror})
                 except AssertionError as ae:
                     return self.__kernel_print_error_message({'ename': 'Proactive connexion error', 'evalue': str(ae)})
 
