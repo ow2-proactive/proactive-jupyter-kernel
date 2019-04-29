@@ -258,8 +258,9 @@ Features:
 
 TODO:
 
-1. add task dependency
-2. help pragma
-3. modify tasks handling instead of creating a new one if the name already exists
-4. check how to highlight Python syntax
-5. add auto-complete
+1. help pragma
+2. modify tasks handling instead of creating a new one if the name already exists
+3. check how to highlight Python syntax
+4. add auto-complete
+5. re-adapt the valid_pragma method to be more robust to parameters order in pragmas (parse and, then, check regular 
+expression of each parameter value)

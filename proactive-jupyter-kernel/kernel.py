@@ -7,8 +7,6 @@ import configparser as cp
 import random
 import proactive
 
-from traitlets import Any
-
 from notebook import notebookapp
 import urllib
 import json
@@ -88,32 +86,22 @@ class ProActiveKernel(Kernel):
 
     def __init__(self, **kwargs):
         Kernel.__init__(self, **kwargs)
-
         self.gateway = None
-
         self.proactive_tasks = []
         self.proactive_job = None
-
         self.job_created = False
         self.job_up_to_date = False
         self.job_name = None
-
         self.submitted_jobs_names = []
         self.submitted_jobs_ids = {}
-
         self.tasks_names = []
         self.tasks_count = 0
-
         self.proactive_config = None
-
         self.proactive_connected = False
         self.proactive_default_connection = False
         self.proactive_failed_connection = False
-
         self.error_message = ''
-
         self.graph_created = False
-
         self.G = None
         self.labels = {}
 
@@ -171,16 +159,20 @@ class ProActiveKernel(Kernel):
         pattern_generic = r"^( *[a-zA-Z]* *= *[a-zA-Z_]\w* *, *)*([a-zA-Z]* *= *[a-zA-Z_]\w* *)?$"
         pattern_with_name = r"^( *name *= *[a-zA-Z_]\w*)( *, *[a-zA-Z]* *= *[a-zA-Z_]\w* *)*$"
         pattern_with_path = pattern_with_name.strip('$)') + r"( *, *path *= *" + \
-            pattern_path_cars.strip("^$") + r" *)?$"
+                            pattern_path_cars.strip("^$") + r" *)?$"
         pattern_connect = r"^( *host *= *(www.)?[a-z0-9]+(\.[a-z]+(\/[a-zA-Z0-9#]+)*)*(\.[a-z]+) *, *" \
                           r"port *= *\d+ *, *)?(login *= *[a-zA-Z_][a-zA-Z0-9_]*) *, *(password *= *[^ ]*)$"
         pattern_connect_with_path = r"^( *path *= *" + pattern_path_cars.strip("^$") + r" *)$"
+        pattern_with_name_and_list_dep = r"^( *name *= *[a-zA-Z_]\w*)( *, *dep *= *\[ *[a-zA-Z_]\w*" \
+                                         r"( *, *[a-zA-Z_]\w*)* *\] *)?( *, *[a-zA-Z]* *= *[a-zA-Z_]\w* *)*$"
+        pattern_with_path_and_list_dep = pattern_with_name_and_list_dep.strip('$)') + r"( *, *path *= *" + \
+                                         pattern_path_cars.strip("^$") + r" *)?$"
         pattern_with_name_only = r"^( *name *= *[a-zA-Z_]\w* *)$"
         pattern_with_id_only = r"^( *id *= *\d+ *)$"
 
         pragmas_generic = ['draw_job']
-        pragmas_with_name = ['job', 'task', 'selection_script', 'fork_env']
-        pragmas_with_name_and_path = ['task', 'selection_script', 'fork_env']
+        pragmas_with_name = ['job', 'selection_script', 'fork_env']
+        pragmas_with_name_and_path = ['selection_script', 'fork_env']
         pragmas_with_name_only = ['submit_job', 'write_dot']
         pragmas_with_id_or_name_only = ['get_result']
         pragmas_empty = ['submit_job', 'draw_job']
@@ -189,18 +181,20 @@ class ProActiveKernel(Kernel):
         invalid_with_name = not re.match(pattern_with_name, sep_lines[1]) and not \
             re.match(pattern_with_path, sep_lines[1]) and data['trigger'] in pragmas_with_name
         invalid_with_path = not re.match(pattern_with_path, sep_lines[1]) and \
-            data['trigger'] in pragmas_with_name_and_path
+                                data['trigger'] in pragmas_with_name_and_path
+        invalid_task = not re.match(pattern_with_name_and_list_dep, sep_lines[1]) and not \
+            re.match(pattern_with_path_and_list_dep, sep_lines[1]) and data['trigger'] == 'task'
         invalid_connect = not (re.match(pattern_connect, sep_lines[1]) or
                                re.match(pattern_connect_with_path, sep_lines[1])) and data['trigger'] == 'connect'
         invalid_with_name_only = (not re.match(pattern_with_name_only, sep_lines[1]) and data['trigger'] in
                                   pragmas_with_name_only)
         invalid_with_name_or_id = not (re.match(pattern_with_name_only, sep_lines[1]) or
                                        re.match(pattern_with_id_only, sep_lines[1])) and data['trigger'] in \
-            pragmas_with_id_or_name_only
+                                  pragmas_with_id_or_name_only
         valid_empty = sep_lines[1] == "" and data['trigger'] in pragmas_empty
 
         if (invalid_connect or invalid_generic or invalid_with_name or invalid_with_path or invalid_with_name_only
-                or invalid_with_name_or_id) and not valid_empty:
+            or invalid_with_name_or_id or invalid_task) and not valid_empty:
             raise ParsingError('Invalid parameters')
 
     def __parse_pragma__(self, pragma):
@@ -220,12 +214,23 @@ class ProActiveKernel(Kernel):
             #                                          + '\' are ignored.\n\n')
             #     return data
 
-            if data['trigger'] in pragmas or (data['trigger'] in pragmas_empty and '=' in sep_lines[1]):
+            # TODO: improve by saying if there is ignored parameters
+            if data['trigger'] == 'task' and 'dep' in sep_lines[1]:
+                draft = re.split(r'[\]\[]', sep_lines[1])
+                sep_lines = draft[0] + 'TEMP' + draft[2]
+                sep_lines = sep_lines.split(',')
+                dep_list = draft[1].split(',')
+                for line in sep_lines:
+                    params = line.split('=')
+                    data[params[0].strip(" ")] = params[1].strip(" ")
+
+                data['dep'] = dep_list
+
+            elif data['trigger'] in pragmas or (data['trigger'] in pragmas_empty and '=' in sep_lines[1]):
                 sep_lines = sep_lines[1].split(',')
                 for line in sep_lines:
                     params = line.split('=')
                     data[params[0].strip(" ")] = params[1].strip(" ")
-                # TODO: improve by saying if there is ignored parameters
 
         return data
 
@@ -343,9 +348,13 @@ class ProActiveKernel(Kernel):
             nodes_ids = [i for i in range(len(self.proactive_tasks))]
             self.G.add_nodes_from(nodes_ids)
 
-            # edges (beta) # TODO: adapt to dependency edges
-            for index in range(len(nodes_ids) - 1):
-                self.G.add_edge(nodes_ids[index], nodes_ids[index + 1])
+            # edges
+            for index_son in range(len(self.proactive_tasks)):
+                dependencies = self.proactive_tasks[index_son].getDependencesList()
+                for parent_task in dependencies:
+                    for index_parent in range(len(self.proactive_tasks)):
+                        if parent_task.getTaskName() == self.proactive_tasks[index_parent].getTaskName():
+                            self.G.add_edge(index_parent, index_son)
 
             # labels
             for i in nodes_ids:
@@ -370,7 +379,12 @@ class ProActiveKernel(Kernel):
         g_dot.add_nodes_from(tasks_names)
 
         # edges
-        # TODO: add dependency edges
+        for son_task in self.proactive_tasks:
+            dependencies = son_task.getDependencesList()
+            for parent_task in dependencies:
+                g_dot.add_edge(parent_task.getTaskName(), son_task.getTaskName())
+
+        g_dot.name = self.job_name
 
         self.__kernel_print_ok_message__('Writing the dot file...\n')
         write_dot(g_dot, './' + input_data['name'] + '.dot')
@@ -500,6 +514,23 @@ class ProActiveKernel(Kernel):
                 return 0
         raise Exception('The task named \'' + input_data['name'] + '\' does not exist.')
 
+    def __get_task_from_name__(self, name):
+        for task in self.proactive_tasks:
+            if task.getTaskName() == name:
+                return task
+        return None
+
+    def __add_dependency__(self, proactive_task, input_data):
+        for task_name in input_data['dep']:
+            task = self.__get_task_from_name__(task_name)
+            if task is not None:
+                proactive_task.addDependence(task)
+                self.__kernel_print_ok_message__('Dependence \'' + task_name + '\'==>\'' + input_data['name'] +
+                                                 '\' added.\n')
+            else:
+                self.__kernel_print_ok_message__('WARNING: Task \'' + task_name + '\' does not exist, '
+                                                                                  'dependence ignored.\n')
+
     def __create_task__(self, input_data):
         self.__kernel_print_ok_message__('Creating a proactive task...\n')
         proactive_task = self.gateway.createPythonTask()
@@ -529,10 +560,11 @@ class ProActiveKernel(Kernel):
             proactive_task.setTaskImplementation(input_data['code'])
 
         self.__kernel_print_ok_message__('Adding a selection script to the proactive task...\n')
-
         self.__set_selection_script_from_task__({'code': 'selected = True', 'task': proactive_task})
-
         self.__kernel_print_ok_message__('Task \'' + input_data['name'] + '\' created.\n')
+
+        if 'dep' in input_data:
+            self.__add_dependency__(proactive_task, input_data)
 
         self.proactive_tasks.append(proactive_task)
 
@@ -705,7 +737,8 @@ class ProActiveKernel(Kernel):
                 except ConfigError as ce:
                     return self.__kernel_print_error_message({'ename': 'Proactive config error', 'evalue': ce.strerror})
                 except ResultError as rer:
-                    return self.__kernel_print_error_message({'ename': 'Proactive result error', 'evalue': rer.strerror})
+                    return self.__kernel_print_error_message(
+                        {'ename': 'Proactive result error', 'evalue': rer.strerror})
                 except AssertionError as ae:
                     return self.__kernel_print_error_message({'ename': 'Proactive connexion error', 'evalue': str(ae)})
 
