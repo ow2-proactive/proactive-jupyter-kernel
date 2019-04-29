@@ -523,34 +523,43 @@ class ProActiveKernel(Kernel):
     def __add_dependency__(self, proactive_task, input_data):
         for task_name in input_data['dep']:
             task = self.__get_task_from_name__(task_name)
-            if task is not None:
+            if task is not None and task not in proactive_task.getDependencesList():
                 proactive_task.addDependence(task)
                 self.__kernel_print_ok_message__('Dependence \'' + task_name + '\'==>\'' + input_data['name'] +
                                                  '\' added.\n')
+            elif task is not None:
+                pass
             else:
                 self.__kernel_print_ok_message__('WARNING: Task \'' + task_name + '\' does not exist, '
                                                                                   'dependence ignored.\n')
 
     def __create_task__(self, input_data):
-        self.__kernel_print_ok_message__('Creating a proactive task...\n')
-        proactive_task = self.gateway.createPythonTask()
 
-        if input_data['name'] == '':
-            name = self.__get_unique_task_name__()
-            self.__kernel_print_ok_message__('WARNING: Task \'' + input_data['name'] + '\' renamed to : '
-                                             + name + '\n')
-            input_data['name'] = name
+        if input_data['name'] in self.tasks_names:
+            self.__kernel_print_ok_message__('WARNING: Task \'' + input_data['name'] + '\' exists already...\n')
+            proactive_task = self.__get_task_from_name__(input_data['name'])
 
-        elif input_data['name'] in self.tasks_names:
-            self.__kernel_print_ok_message__('Task name : ' + input_data['name'] + ' exists already...\n')
+        else:
+            self.__kernel_print_ok_message__('Creating a proactive task...\n')
+            proactive_task = self.gateway.createPythonTask()
 
-            name = self.__get_unique_task_name__()
+            if input_data['name'] == '':
+                name = self.__get_unique_task_name__()
+                self.__kernel_print_ok_message__('WARNING: Task \'' + input_data['name'] + '\' renamed to : '
+                                                 + name + '\n')
+                input_data['name'] = name
 
-            self.__kernel_print_ok_message__('WARNING: Task \'' + input_data['name'] + '\' renamed to : '
-                                             + name + '\n')
-            input_data['name'] = name
+            proactive_task.setTaskName(input_data['name'])
 
-        proactive_task.setTaskName(input_data['name'])
+            self.__kernel_print_ok_message__('Adding a selection script to the proactive task...\n')
+            self.__set_selection_script_from_task__({'code': 'selected = True', 'task': proactive_task})
+            self.__kernel_print_ok_message__('Task \'' + input_data['name'] + '\' created.\n')
+
+            self.proactive_tasks.append(proactive_task)
+            self.tasks_names.append(input_data['name'])
+
+            self.tasks_count += 1
+
         if 'path' in input_data:
             proactive_task.setTaskImplementationFromFile(input_data['path'])
             if input_data['code'] != '':
@@ -559,17 +568,8 @@ class ProActiveKernel(Kernel):
         else:
             proactive_task.setTaskImplementation(input_data['code'])
 
-        self.__kernel_print_ok_message__('Adding a selection script to the proactive task...\n')
-        self.__set_selection_script_from_task__({'code': 'selected = True', 'task': proactive_task})
-        self.__kernel_print_ok_message__('Task \'' + input_data['name'] + '\' created.\n')
-
         if 'dep' in input_data:
             self.__add_dependency__(proactive_task, input_data)
-
-        self.proactive_tasks.append(proactive_task)
-
-        self.tasks_names.append(input_data['name'])
-        self.tasks_count += 1
 
         self.job_up_to_date = False
 

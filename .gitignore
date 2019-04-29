@@ -1,6 +1,6 @@
 .idea/
 test/
-.pypirc
+pypirc
 scripts/.ipynb_checkpoints
 proactive-jupyter-kernel/__pycache__
 dist

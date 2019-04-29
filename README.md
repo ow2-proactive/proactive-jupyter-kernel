@@ -259,8 +259,7 @@ Features:
 TODO:
 
 1. help pragma
-2. modify tasks handling instead of creating a new one if the name already exists
-3. check how to highlight Python syntax
-4. add auto-complete
-5. re-adapt the valid_pragma method to be more robust to parameters order in pragmas (parse and, then, check regular 
+2. check how to highlight Python syntax
+3. add auto-complete
+4. re-adapt the valid_pragma method to be more robust to parameters order in pragmas (parse and, then, check regular 
 expression of each parameter value)
