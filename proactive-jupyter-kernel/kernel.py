@@ -106,13 +106,13 @@ class ProActiveKernel(Kernel):
         self.labels = {}
 
         try:
-            self._start_proactive()
+            self.__start_proactive__()
 
         except Exception as e:
             self.proactive_failed_connection = True
             self.error_message = str(e)
 
-    def _start_proactive(self):
+    def __start_proactive__(self):
         if notebook_path() is not None:
             config_file = str(notebook_path().rsplit('/', 1)[0]) + '/proactive_config.ini'
 
@@ -527,9 +527,7 @@ class ProActiveKernel(Kernel):
                 proactive_task.addDependence(task)
                 self.__kernel_print_ok_message__('Dependence \'' + task_name + '\'==>\'' + input_data['name'] +
                                                  '\' added.\n')
-            elif task is not None:
-                pass
-            else:
+            elif task is None:
                 self.__kernel_print_ok_message__('WARNING: Task \'' + task_name + '\' does not exist, '
                                                                                   'dependence ignored.\n')
 
@@ -538,6 +536,7 @@ class ProActiveKernel(Kernel):
         if input_data['name'] in self.tasks_names:
             self.__kernel_print_ok_message__('WARNING: Task \'' + input_data['name'] + '\' exists already...\n')
             proactive_task = self.__get_task_from_name__(input_data['name'])
+            proactive_task.clearDependencesList()
 
         else:
             self.__kernel_print_ok_message__('Creating a proactive task...\n')
