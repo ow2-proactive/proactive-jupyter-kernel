@@ -192,7 +192,7 @@ Note that the job will be named (in the order of existence) by the name provided
 if it is created, by the name of the notebook if reachable or at worst by "Unnamed_job".
 
 ```python
-#%draw_job([name=JOB_NAME], [inline=off], [save=on])`
+#%draw_job([name=JOB_NAME], [inline=off], [save=on])
 ```
 
 #### 5.6 Save workflow in dot format
@@ -244,6 +244,7 @@ Current status
 
 Features:
 
+* help: prints all different pragmas/features of the kernel
 * connect: connects to an ActiveEon server 
 * OPTION: connection using a configuration file
 * task: creates a task
@@ -258,8 +259,12 @@ Features:
 
 TODO:
 
-1. help pragma
-2. check how to highlight Python syntax
-3. add auto-complete
-4. re-adapt the valid_pragma method to be more robust to parameters order in pragmas (parse and, then, check regular 
+1. add other languages support for tasks
+2. generic_info parameter to task pragma (list of key,value pairs)
+3. add pre/post-script to existing tasks (through new pragmas)
+4. check how to highlight Python syntax
+5. add auto-complete
+6. re-adapt the valid_pragma method to be more robust to parameters order in pragmas (parse and, then, check regular 
 expression of each parameter value)
+7. explain dependencies handling in the README file
+8. add some examples pictures to README
