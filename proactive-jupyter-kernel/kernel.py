@@ -12,6 +12,8 @@ import urllib
 import json
 import ipykernel
 
+from proactive.model.ProactiveScriptLanguage import *
+
 import matplotlib.pyplot as plt
 import networkx as nx
 from networkx.drawing.nx_agraph import write_dot, graphviz_layout
@@ -94,6 +96,7 @@ class ProActiveKernel(Kernel):
         Kernel.__init__(self, **kwargs)
         self.gateway = None
         self.proactive_tasks = []
+        self.proactive_script_languages = None
         self.proactive_job = None
         self.job_created = False
         self.job_up_to_date = False
@@ -110,6 +113,12 @@ class ProActiveKernel(Kernel):
         self.graph_created = False
         self.G = None
         self.labels = {}
+
+        self.proactive_script_languages = ProactiveScriptLanguage().get_supported_languages()
+
+        self.script_languages = ''
+        for script_language in self.proactive_script_languages:
+            self.script_languages += '   - ' + script_language + '\n'
 
         try:
             self.__start_proactive__()
@@ -146,7 +155,6 @@ class ProActiveKernel(Kernel):
                                              password=self.proactive_config['user']['password'])
                         assert self.gateway.isConnected() is True
                         self.proactive_connected = True
-
                 return
 
         proactive_host = 'try.activeeon.com'
@@ -170,10 +178,11 @@ class ProActiveKernel(Kernel):
         pattern_connect = r"^( *host *= *(www.)?[a-z0-9]+(\.[a-z]+(\/[a-zA-Z0-9#]+)*)*(\.[a-z]+) *, *" \
                           r"port *= *\d+ *, *)?(login *= *[a-zA-Z_][a-zA-Z0-9_]*) *, *(password *= *[^ ]*)$"
         pattern_connect_with_path = r"^( *path *= *" + pattern_path_cars.strip("^$") + r" *)$"
-        pattern_with_name_and_list_dep = r"^( *name *= *[a-zA-Z_]\w*)( *, *dep *= *\[ *[a-zA-Z_]\w*" \
-                                         r"( *, *[a-zA-Z_]\w*)* *\] *)?( *, *[a-zA-Z]* *= *[a-zA-Z_]\w* *)*$"
-        pattern_with_path_and_list_dep = pattern_with_name_and_list_dep.strip('$)') + r"( *, *path *= *" + \
-                                         pattern_path_cars.strip("^$") + r" *)?$"
+        pattern_task_with_name = r"^( *name *= *[a-zA-Z_]\w*)( *, *dep *= *\[ *[a-zA-Z_]\w* *( *, *[a-zA-Z_]\w*)* *\]" \
+                                 r" *)?( *, *generic_info *= *\[ *\( *\w+ *, *\w+ *\)( *, *\( *\w+ *, *\w+ *\))* *\]" \
+                                 r" *)?( *, *[a-zA-Z]* *= *[a-zA-Z_]\w* *)*$"
+        pattern_task_with_path = pattern_task_with_name.strip('$)') + r"( *, *path *= *" + \
+                                 pattern_path_cars.strip("^$") + r" *)?$"
         pattern_with_name_only = r"^( *name *= *[a-zA-Z_]\w* *)$"
         pattern_with_id_only = r"^( *id *= *\d+ *)$"
 
@@ -188,14 +197,14 @@ class ProActiveKernel(Kernel):
         invalid_with_name = not re.match(pattern_with_name, sep_lines[1]) and not \
             re.match(pattern_with_path, sep_lines[1]) and data['trigger'] in pragmas_with_name
         invalid_with_path = not re.match(pattern_with_path, sep_lines[1]) and \
-                                data['trigger'] in pragmas_with_name_and_path
-        invalid_task = not re.match(pattern_with_name_and_list_dep, sep_lines[1]) and not \
-            re.match(pattern_with_path_and_list_dep, sep_lines[1]) and data['trigger'] == 'task'
+                            data['trigger'] in pragmas_with_name_and_path
+        invalid_task = not re.match(pattern_task_with_name, sep_lines[1]) and not \
+            re.match(pattern_task_with_path, sep_lines[1]) and data['trigger'] == 'task'
         invalid_connect = not (re.match(pattern_connect, sep_lines[1]) or
                                re.match(pattern_connect_with_path, sep_lines[1])) and data['trigger'] == 'connect'
         invalid_help = not re.match(pattern_help, sep_lines[1]) and data['trigger'] == 'help'
-        invalid_with_name_only = (not re.match(pattern_with_name_only, sep_lines[1]) and data['trigger'] in
-                                  pragmas_with_name_only)
+        invalid_with_name_only = not re.match(pattern_with_name_only, sep_lines[1]) and data['trigger'] in \
+                                 pragmas_with_name_only
         invalid_with_name_or_id = not (re.match(pattern_with_name_only, sep_lines[1]) or
                                        re.match(pattern_with_id_only, sep_lines[1])) and data['trigger'] in \
                                   pragmas_with_id_or_name_only
@@ -219,8 +228,7 @@ class ProActiveKernel(Kernel):
         if len(sep_lines) == 2:
             self.__is_valid_pragma__(data, sep_lines)
 
-            # TODO: improve by saying if there is ignored parameters
-            if data['trigger'] == 'task' and 'dep' in sep_lines[1]:
+            if data['trigger'] == 'task' and 'dep' in sep_lines[1] and 'generic_info' not in sep_lines[1]:
                 draft = re.split(r'[\]\[]', sep_lines[1])
                 sep_lines = draft[0] + 'TEMP' + draft[2]
                 sep_lines = sep_lines.split(',')
@@ -230,6 +238,40 @@ class ProActiveKernel(Kernel):
                     data[params[0].strip(" ")] = params[1].strip(" ")
 
                 data['dep'] = dep_list
+
+            elif data['trigger'] == 'task' and 'dep' not in sep_lines[1] and 'generic_info' in sep_lines[1]:
+                draft = re.split(r'[\]\[]', sep_lines[1])
+                sep_lines = draft[0] + 'TEMP' + draft[2]
+                sep_lines = sep_lines.split(',')
+                draft_gen_info_list = draft[1].split(',')
+                gen_info_list = []
+                for index in range(0, len(draft_gen_info_list), 2):
+                    gen_info_list.append((draft_gen_info_list[index].strip('()'),
+                                          draft_gen_info_list[index + 1].strip('()')))
+
+                for line in sep_lines:
+                    params = line.split('=')
+                    data[params[0].strip(" ")] = params[1].strip(" ")
+
+                data['generic_info'] = gen_info_list
+
+            elif data['trigger'] == 'task' and 'dep' in sep_lines[1] and 'generic_info' in sep_lines[1]:
+                draft = re.split(r'[\]\[]', sep_lines[1])
+                sep_lines = draft[0] + 'TEMP' + draft[2] + 'TEMP' + draft[4]
+                sep_lines = sep_lines.split(',')
+                dep_list = draft[1].split(',')
+                draft_gen_info_list = draft[3].split(',')
+                gen_info_list = []
+                for index in range(0, len(draft_gen_info_list), 2):
+                    gen_info_list.append((draft_gen_info_list[index].strip('()'),
+                                          draft_gen_info_list[index + 1].strip('()')))
+
+                for line in sep_lines:
+                    params = line.split('=')
+                    data[params[0].strip(" ")] = params[1].strip(" ")
+
+                data['dep'] = dep_list
+                data['generic_info'] = gen_info_list
 
             elif data['trigger'] in pragmas or (data['trigger'] in pragmas_empty and '=' in sep_lines[1]):
                 sep_lines = sep_lines[1].split(',')
@@ -498,7 +540,8 @@ class ProActiveKernel(Kernel):
 
     @staticmethod
     def __get_usage_task__():
-        return '   #%task(name=TASK_NAME, [dep=[TASK_NAME1,TASK_NAME2,...]])\n'
+        return '   #%task(name=TASK_NAME, [dep=[TASK_NAME1,TASK_NAME2,...]], [generic_info=[(KEY1,VAL1),' \
+               '(KEY2,VALUE2),...]], [path=IMPLEMENTATION_FILE_PATH])\n'
 
     @staticmethod
     def __get_usage_selection_script__():
@@ -570,7 +613,7 @@ class ProActiveKernel(Kernel):
                                              + '#%submit_job(): submits the job to the scheduler\n'
                                              + '#%get_result(): gets and prints the job results\n\n'
                                              + 'For more information, please check: https://github.com/ow2-proactive/'
-                                             'proactive-jupyter-kernel/blob/master/README.md\n')
+                                               'proactive-jupyter-kernel/blob/master/README.md\n')
 
     def __set_selection_script_from_task__(self, input_data):
         proactive_selection_script = self.gateway.createDefaultSelectionScript()
@@ -642,15 +685,38 @@ class ProActiveKernel(Kernel):
                                                                                   'dependence ignored.\n')
 
     def __create_task__(self, input_data):
-
         if input_data['name'] in self.tasks_names:
             self.__kernel_print_ok_message__('WARNING: Task \'' + input_data['name'] + '\' exists already...\n')
             proactive_task = self.__get_task_from_name__(input_data['name'])
             proactive_task.clearDependencies()
+            proactive_task.clearGenericInformation()
+
+            if 'language' in input_data:
+                if input_data['language'] in self.proactive_script_languages:
+                    self.__kernel_print_ok_message__('Changing script language to \'' + input_data['language']
+                                                     + '\' ...\n')
+                    proactive_task.setScriptLanguage(self.proactive_script_languages[input_data['language']])
+                else:
+                    raise ParameterError('Language \'' + input_data['language'] +
+                                         '\' not supported!\n Supported Languages:\n' + self.script_languages)
+            else:
+                self.__kernel_print_ok_message__('Changing script language to \'Python\' ...\n')
+                proactive_task.setScriptLanguage(self.proactive_script_languages['Python'])
 
         else:
-            self.__kernel_print_ok_message__('Creating a proactive task...\n')
-            proactive_task = self.gateway.createPythonTask()
+            if 'language' in input_data:
+                if input_data['language'] in self.proactive_script_languages:
+                    self.__kernel_print_ok_message__('Creating a proactive ' + input_data['language'] + ' task...\n')
+                    proactive_task = self.gateway.createTask(self.proactive_script_languages[input_data['language']])
+                elif input_data['language'] == 'Python':
+                    self.__kernel_print_ok_message__('Creating a proactive \'Python\' task...\n')
+                    proactive_task = self.gateway.createPythonTask()
+                else:
+                    raise ParameterError('Language \'' + input_data['language'] +
+                                         '\' not supported!\n Supported Languages:\n' + self.script_languages)
+            else:
+                self.__kernel_print_ok_message__('Creating a proactive \'Python\' task...\n')
+                proactive_task = self.gateway.createPythonTask()
 
             if input_data['name'] == '':
                 name = self.__get_unique_task_name__()
@@ -679,6 +745,11 @@ class ProActiveKernel(Kernel):
 
         if 'dep' in input_data:
             self.__add_dependency__(proactive_task, input_data)
+
+        if 'generic_info' in input_data:
+            self.__kernel_print_ok_message__('Adding generic information...\n')
+            for gen_info in input_data['generic_info']:
+                proactive_task.addGenericInformation(gen_info[0], gen_info[1])
 
         self.job_up_to_date = False
 
