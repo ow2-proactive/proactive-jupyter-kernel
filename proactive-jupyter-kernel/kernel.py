@@ -55,6 +55,12 @@ class ParsingError(ValueError):
         self.args = {arg}
 
 
+class ParameterError(ValueError):
+    def __init__(self, arg):
+        self.strerror = arg
+        self.args = {arg}
+
+
 class ConfigError(ValueError):
     def __init__(self, arg):
         self.strerror = arg
@@ -160,6 +166,7 @@ class ProActiveKernel(Kernel):
         pattern_with_name = r"^( *name *= *[a-zA-Z_]\w*)( *, *[a-zA-Z]* *= *[a-zA-Z_]\w* *)*$"
         pattern_with_path = pattern_with_name.strip('$)') + r"( *, *path *= *" + \
                             pattern_path_cars.strip("^$") + r" *)?$"
+        pattern_help = r"^( *pragma *= *[a-zA-Z_]+ *)$"
         pattern_connect = r"^( *host *= *(www.)?[a-z0-9]+(\.[a-z]+(\/[a-zA-Z0-9#]+)*)*(\.[a-z]+) *, *" \
                           r"port *= *\d+ *, *)?(login *= *[a-zA-Z_][a-zA-Z0-9_]*) *, *(password *= *[^ ]*)$"
         pattern_connect_with_path = r"^( *path *= *" + pattern_path_cars.strip("^$") + r" *)$"
@@ -175,7 +182,7 @@ class ProActiveKernel(Kernel):
         pragmas_with_name_and_path = ['selection_script', 'fork_env']
         pragmas_with_name_only = ['submit_job', 'write_dot']
         pragmas_with_id_or_name_only = ['get_result']
-        pragmas_empty = ['submit_job', 'draw_job']
+        pragmas_empty = ['submit_job', 'draw_job', 'help']
 
         invalid_generic = not re.match(pattern_generic, sep_lines[1]) and data['trigger'] in pragmas_generic
         invalid_with_name = not re.match(pattern_with_name, sep_lines[1]) and not \
@@ -186,6 +193,7 @@ class ProActiveKernel(Kernel):
             re.match(pattern_with_path_and_list_dep, sep_lines[1]) and data['trigger'] == 'task'
         invalid_connect = not (re.match(pattern_connect, sep_lines[1]) or
                                re.match(pattern_connect_with_path, sep_lines[1])) and data['trigger'] == 'connect'
+        invalid_help = not re.match(pattern_help, sep_lines[1]) and data['trigger'] == 'help'
         invalid_with_name_only = (not re.match(pattern_with_name_only, sep_lines[1]) and data['trigger'] in
                                   pragmas_with_name_only)
         invalid_with_name_or_id = not (re.match(pattern_with_name_only, sep_lines[1]) or
@@ -193,13 +201,16 @@ class ProActiveKernel(Kernel):
                                   pragmas_with_id_or_name_only
         valid_empty = sep_lines[1] == "" and data['trigger'] in pragmas_empty
 
-        if (invalid_connect or invalid_generic or invalid_with_name or invalid_with_path or invalid_with_name_only
-            or invalid_with_name_or_id or invalid_task) and not valid_empty:
+        if valid_empty:
+            return
+
+        if invalid_connect or invalid_generic or invalid_with_name or invalid_with_path or invalid_with_name_only \
+                or invalid_with_name_or_id or invalid_task or invalid_help:
             raise ParsingError('Invalid parameters')
 
     def __parse_pragma__(self, pragma):
         pragmas = ['job', 'task', 'selection_script', 'fork_env', 'connect', 'write_dot', 'get_result']
-        pragmas_empty = ['submit_job', 'draw_job']
+        pragmas_empty = ['submit_job', 'draw_job', 'help']
         pragma = pragma.strip(" #%)")
         sep_lines = pragma.split('(', 1)
 
@@ -207,12 +218,6 @@ class ProActiveKernel(Kernel):
 
         if len(sep_lines) == 2:
             self.__is_valid_pragma__(data, sep_lines)
-
-            # if data['trigger'] == 'draw_job':
-            #     if sep_lines[1] != '':
-            #         self.__kernel_print_ok_message__('WARNING: The parameters \'' + str(sep_lines[1])
-            #                                          + '\' are ignored.\n\n')
-            #     return data
 
             # TODO: improve by saying if there is ignored parameters
             if data['trigger'] == 'task' and 'dep' in sep_lines[1]:
@@ -254,6 +259,8 @@ class ProActiveKernel(Kernel):
     def __trigger_pragma__(self, pragma_info):
         if pragma_info['trigger'] == 'task':
             return self.__create_task__
+        elif pragma_info['trigger'] == 'help':
+            return self.__help__
         elif pragma_info['trigger'] == 'draw_job':
             return self.__draw_job__
         elif pragma_info['trigger'] == 'connect':
@@ -350,7 +357,7 @@ class ProActiveKernel(Kernel):
 
             # edges
             for index_son in range(len(self.proactive_tasks)):
-                dependencies = self.proactive_tasks[index_son].getDependencesList()
+                dependencies = self.proactive_tasks[index_son].getDependencies()
                 for parent_task in dependencies:
                     for index_parent in range(len(self.proactive_tasks)):
                         if parent_task.getTaskName() == self.proactive_tasks[index_parent].getTaskName():
@@ -380,7 +387,7 @@ class ProActiveKernel(Kernel):
 
         # edges
         for son_task in self.proactive_tasks:
-            dependencies = son_task.getDependencesList()
+            dependencies = son_task.getDependencies()
             for parent_task in dependencies:
                 g_dot.add_edge(parent_task.getTaskName(), son_task.getTaskName())
 
@@ -462,6 +469,109 @@ class ProActiveKernel(Kernel):
 
         return 0
 
+    def __print_usage_from_pragma__(self, pragma):
+        trigger = pragma.strip(" #%)").split('(', 1)[0].strip(" ")
+        if trigger == 'connect':
+            self.__kernel_print_error_message({'ename': 'Usages', 'evalue': '\n' + self.__get_usage_connect__()})
+        elif trigger == 'task':
+            self.__kernel_print_error_message({'ename': 'Usages', 'evalue': '\n' + self.__get_usage_task__()})
+        elif trigger == 'selection_script':
+            self.__kernel_print_error_message({'ename': 'Usages', 'evalue': '\n' +
+                                                                            self.__get_usage_selection_script__()})
+        elif trigger == 'fork_env':
+            self.__kernel_print_error_message({'ename': 'Usages', 'evalue': '\n' + self.__get_usage_fork_env__()})
+        elif trigger == 'job':
+            self.__kernel_print_error_message({'ename': 'Usages', 'evalue': '\n' + self.__get_usage_job__()})
+        elif trigger == 'draw_job':
+            self.__kernel_print_error_message({'ename': 'Usages', 'evalue': '\n' + self.__get_usage_draw_job__()})
+        elif trigger == 'write_job':
+            self.__kernel_print_error_message({'ename': 'Usages', 'evalue': '\n' + self.__get_usage_write_job__()})
+        elif trigger == 'submit_job':
+            self.__kernel_print_error_message({'ename': 'Usages', 'evalue': '\n' + self.__get_usage_submit_job__()})
+        elif trigger == 'get_result':
+            self.__kernel_print_error_message({'ename': 'Usages', 'evalue': '\n' + self.__get_usage_get_result__()})
+
+    @staticmethod
+    def __get_usage_connect__():
+        return '   #%connect([host=YOUR_HOST, port=YOUR_PORT], login=YOUR_LOGIN, password=YOUR_PASSWORD)\n' \
+               + '   #%connect(path=PATH_TO/YOUR_CONFIG_FILE.ini)\n'
+
+    @staticmethod
+    def __get_usage_task__():
+        return '   #%task(name=TASK_NAME, [dep=[TASK_NAME1,TASK_NAME2,...]])\n'
+
+    @staticmethod
+    def __get_usage_selection_script__():
+        return '   #%selection_script(name=TASK_NAME, [path=./SELECTION_CODE_FILE.py])\n'
+
+    @staticmethod
+    def __get_usage_fork_env__():
+        return '   #%fork_env(name=TASK_NAME, [path=./FORK_ENV_FILE.py])\n'
+
+    @staticmethod
+    def __get_usage_job__():
+        return '   #%job(name=JOB_NAME)\n'
+
+    @staticmethod
+    def __get_usage_draw_job__():
+        return '   #%draw_job([name=JOB_NAME], [inline=on/off], [save=on/off])\n'
+
+    @staticmethod
+    def __get_usage_write_job__():
+        return '   #%write_dot(name=FILE_NAME)\n'
+
+    @staticmethod
+    def __get_usage_submit_job__():
+        return '   #%submit_job([name=JOB_NAME])\n'
+
+    @staticmethod
+    def __get_usage_get_result__():
+        return '   #%get_result(id=JOB_ID)\n'
+
+    def __help__(self, input_data):
+        if 'pragma' in input_data:
+            if input_data['pragma'] == 'connect':
+                self.__kernel_print_ok_message__('Pragma #%connect(): connects to an ActiveEon server\n')
+                self.__kernel_print_ok_message__('Usages:\n' + self.__get_usage_connect__())
+            elif input_data['pragma'] == 'task':
+                self.__kernel_print_ok_message__('#%task(): creates/modifies a task\n')
+                self.__kernel_print_ok_message__('Usages:\n' + self.__get_usage_task__())
+            elif input_data['pragma'] == 'selection_script':
+                self.__kernel_print_ok_message__('#%selection_script(): sets the selection script of a task\n')
+                self.__kernel_print_ok_message__('Usages:\n' + self.__get_usage_selection_script__())
+            elif input_data['pragma'] == 'fork_env':
+                self.__kernel_print_ok_message__('#%fork_env(): sets the fork environment script\n')
+                self.__kernel_print_ok_message__('Usages:\n' + self.__get_usage_fork_env__())
+            elif input_data['pragma'] == 'job':
+                self.__kernel_print_ok_message__('#%job(): creates/renames the job\n')
+                self.__kernel_print_ok_message__('Usages:\n' + self.__get_usage_job__())
+            elif input_data['pragma'] == 'draw_job':
+                self.__kernel_print_ok_message__('#%draw_job(): plot the workflow\n')
+                self.__kernel_print_ok_message__('Usages:\n' + self.__get_usage_draw_job__())
+            elif input_data['pragma'] == 'write_dot':
+                self.__kernel_print_ok_message__('#%write_dot(): writes the workflow in .dot format\n')
+                self.__kernel_print_ok_message__('Usages:\n' + self.__get_usage_write_job__())
+            elif input_data['pragma'] == 'submit_job':
+                self.__kernel_print_ok_message__('#%submit_job(): submits the job to the scheduler\n')
+                self.__kernel_print_ok_message__('Usages:\n' + self.__get_usage_submit_job__())
+            elif input_data['pragma'] == 'get_result':
+                self.__kernel_print_ok_message__('#%get_result(): gets and prints the job results\n')
+                self.__kernel_print_ok_message__('Usages:\n' + self.__get_usage_get_result__())
+            else:
+                raise ParameterError('Pragma \'' + input_data['pragma'] + '\' not known.')
+        else:
+            self.__kernel_print_ok_message__('\n#%connect(): connects to an ActiveEon server\n'
+                                             + '#%task(): creates/modifies a task\n'
+                                             + '#%selection_script(): sets the selection script of a task\n'
+                                             + '#%fork_env(): sets the fork environment script\n'
+                                             + '#%job(): creates/renames the job\n'
+                                             + '#%draw_job(): plot the workflow\n'
+                                             + '#%write_dot(): writes the workflow in .dot format\n'
+                                             + '#%submit_job(): submits the job to the scheduler\n'
+                                             + '#%get_result(): gets and prints the job results\n\n'
+                                             + 'For more information, please check: https://github.com/ow2-proactive/'
+                                             'proactive-jupyter-kernel/blob/master/README.md\n')
+
     def __set_selection_script_from_task__(self, input_data):
         proactive_selection_script = self.gateway.createDefaultSelectionScript()
         if 'path' in input_data:
@@ -523,8 +633,8 @@ class ProActiveKernel(Kernel):
     def __add_dependency__(self, proactive_task, input_data):
         for task_name in input_data['dep']:
             task = self.__get_task_from_name__(task_name)
-            if task is not None and task not in proactive_task.getDependencesList():
-                proactive_task.addDependence(task)
+            if task is not None and task not in proactive_task.getDependencies():
+                proactive_task.addDependency(task)
                 self.__kernel_print_ok_message__('Dependence \'' + task_name + '\'==>\'' + input_data['name'] +
                                                  '\' added.\n')
             elif task is None:
@@ -536,7 +646,7 @@ class ProActiveKernel(Kernel):
         if input_data['name'] in self.tasks_names:
             self.__kernel_print_ok_message__('WARNING: Task \'' + input_data['name'] + '\' exists already...\n')
             proactive_task = self.__get_task_from_name__(input_data['name'])
-            proactive_task.clearDependencesList()
+            proactive_task.clearDependencies()
 
         else:
             self.__kernel_print_ok_message__('Creating a proactive task...\n')
@@ -696,7 +806,9 @@ class ProActiveKernel(Kernel):
                     pragma_info = self.__parse_pragma__(pragma)
 
                 except ParsingError as pe:
-                    return self.__kernel_print_error_message({'ename': 'Parsing error', 'evalue': pe.strerror})
+                    errorValue = self.__kernel_print_error_message({'ename': 'Parsing error', 'evalue': pe.strerror})
+                    self.__print_usage_from_pragma__(pragma)
+                    return errorValue
 
                 if self.proactive_connected:
                     try:
@@ -735,6 +847,8 @@ class ProActiveKernel(Kernel):
                     exitcode = func(pragma_info)
                 except ConfigError as ce:
                     return self.__kernel_print_error_message({'ename': 'Proactive config error', 'evalue': ce.strerror})
+                except ParameterError as pe:
+                    return self.__kernel_print_error_message({'ename': 'Parameter error', 'evalue': pe.strerror})
                 except ResultError as rer:
                     return self.__kernel_print_error_message(
                         {'ename': 'Proactive result error', 'evalue': rer.strerror})
