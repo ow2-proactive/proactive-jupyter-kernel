@@ -14,7 +14,8 @@ ProActiveKernel for Jupyter
 2) install the proactive jupyter kernel
 
     ```Bash
-    $ pip install proactive-kernel --upgrade
+    $ pip install proactive proactive-jupyter-kernel --upgrade
+    $ python -m proactive-jupyter-kernel.install
     ```
 
 ### 2.2 Using source code
