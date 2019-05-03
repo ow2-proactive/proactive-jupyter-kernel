@@ -174,6 +174,11 @@ class ProActiveKernel(Kernel):
         pattern_with_name = r"^( *name *= *[a-zA-Z_]\w*)( *, *[a-zA-Z]* *= *[a-zA-Z_]\w* *)*$"
         pattern_with_path = pattern_with_name.strip('$)') + r"( *, *path *= *" + \
                             pattern_path_cars.strip("^$") + r" *)?$"
+        pattern_with_name_and_language = r"^( *name *= *[a-zA-Z_]\w*)( *, *language *= *[a-zA-Z_]+)" \
+                                         r"( *, *[a-zA-Z]* *= *[a-zA-Z_]\w* *)*$"
+        pattern_with_name_language_and_path = r"^( *name *= *[a-zA-Z_]\w*)( *, *language *= *[a-zA-Z_]+)" \
+                                              r"( *, *[a-zA-Z]* *= *[a-zA-Z_]\w* *)*( *, *path *= *" + \
+                                              pattern_path_cars.strip("^$") + r" *)$"
         pattern_help = r"^( *pragma *= *[a-zA-Z_]+ *)$"
         pattern_connect = r"^( *host *= *(www.)?[a-z0-9]+(\.[a-z]+(\/[a-zA-Z0-9#]+)*)*(\.[a-z]+) *, *" \
                           r"port *= *\d+ *, *)?(login *= *[a-zA-Z_][a-zA-Z0-9_]*) *, *(password *= *[^ ]*)$"
@@ -182,13 +187,14 @@ class ProActiveKernel(Kernel):
                                  r" *)?( *, *generic_info *= *\[ *\( *\w+ *, *\w+ *\)( *, *\( *\w+ *, *\w+ *\))* *\]" \
                                  r" *)?( *, *[a-zA-Z]* *= *[a-zA-Z_]\w* *)*$"
         pattern_task_with_path = pattern_task_with_name.strip('$)') + r"( *, *path *= *" + \
-                                 pattern_path_cars.strip("^$") + r" *)?$"
+                                 pattern_path_cars.strip("^$") + r" *)$"
         pattern_with_name_only = r"^( *name *= *[a-zA-Z_]\w* *)$"
         pattern_with_id_only = r"^( *id *= *\d+ *)$"
 
         pragmas_generic = ['draw_job']
         pragmas_with_name = ['job', 'selection_script', 'fork_env']
         pragmas_with_name_and_path = ['selection_script', 'fork_env']
+        pragmas_pre_post_script = ['pre_script', 'post_script']
         pragmas_with_name_only = ['submit_job', 'write_dot']
         pragmas_with_id_or_name_only = ['get_result']
         pragmas_empty = ['submit_job', 'draw_job', 'help']
@@ -200,6 +206,8 @@ class ProActiveKernel(Kernel):
                             data['trigger'] in pragmas_with_name_and_path
         invalid_task = not re.match(pattern_task_with_name, sep_lines[1]) and not \
             re.match(pattern_task_with_path, sep_lines[1]) and data['trigger'] == 'task'
+        invalid_pre_post_script = not re.match(pattern_with_name_and_language, sep_lines[1]) and not \
+            re.match(pattern_with_name_language_and_path, sep_lines[1]) and data['trigger'] in pragmas_pre_post_script
         invalid_connect = not (re.match(pattern_connect, sep_lines[1]) or
                                re.match(pattern_connect_with_path, sep_lines[1])) and data['trigger'] == 'connect'
         invalid_help = not re.match(pattern_help, sep_lines[1]) and data['trigger'] == 'help'
@@ -214,12 +222,24 @@ class ProActiveKernel(Kernel):
             return
 
         if invalid_connect or invalid_generic or invalid_with_name or invalid_with_path or invalid_with_name_only \
-                or invalid_with_name_or_id or invalid_task or invalid_help:
+                or invalid_with_name_or_id or invalid_task or invalid_pre_post_script or invalid_help:
             raise ParsingError('Invalid parameters')
 
     def __parse_pragma__(self, pragma):
-        pragmas = ['job', 'task', 'selection_script', 'fork_env', 'connect', 'write_dot', 'get_result']
-        pragmas_empty = ['submit_job', 'draw_job', 'help']
+        pragmas = ['job',
+                   'task',
+                   'pre_script',
+                   'post_script',
+                   'selection_script',
+                   'fork_env',
+                   'connect',
+                   'write_dot',
+                   'get_result'
+                   ]
+        pragmas_empty = ['submit_job',
+                         'draw_job',
+                         'help'
+                         ]
         pragma = pragma.strip(" #%)")
         sep_lines = pragma.split('(', 1)
 
@@ -315,6 +335,10 @@ class ProActiveKernel(Kernel):
             return self.__create_job__
         elif pragma_info['trigger'] == 'write_dot':
             return self.__write_dot__
+        elif pragma_info['trigger'] == 'pre_script':
+            return self.__create_pre_script_from_name__
+        elif pragma_info['trigger'] == 'post_script':
+            return self.__create_post_script_from_name__
         elif pragma_info['trigger'] == 'selection_script':
             return self.__set_selection_script_from_name__
         elif pragma_info['trigger'] == 'fork_env':
@@ -615,6 +639,66 @@ class ProActiveKernel(Kernel):
                                              + 'For more information, please check: https://github.com/ow2-proactive/'
                                                'proactive-jupyter-kernel/blob/master/README.md\n')
 
+    def __create_pre_script_from_task__(self, input_data):
+        if input_data['language'] in self.proactive_script_languages:
+            pre_script = self.gateway.createPreScript(self.proactive_script_languages[input_data['language']])
+        else:
+            raise ParameterError('Language \'' + input_data['language'] +
+                                 '\' not supported!\n Supported Languages:\n' + self.script_languages)
+        if 'path' in input_data:
+            exists = os.path.isfile(input_data['path'])
+            if exists:
+                pre_script.setImplementationFromFile(input_data['path'])
+                if input_data['code'] != '':
+                    self.__kernel_print_ok_message__('WARNING: The code written is ignored.\n')
+            else:
+                raise Exception('The file \'' + input_data['path'] + '\' does not exist')
+        else:
+            pre_script.setImplementation(input_data['code'])
+
+        input_data['task'].setPreScript(pre_script)
+
+    def __create_pre_script_from_name__(self, input_data):
+        for value in self.proactive_tasks:
+            if value.getTaskName() == input_data['name']:
+                self.__kernel_print_ok_message__('Adding a pre-script to the proactive task...\n')
+                input_data['task'] = value
+                self.__create_pre_script_from_task__(input_data)
+                self.__kernel_print_ok_message__('Pre-script added to \'' + input_data['name'] + '\'.\n')
+                self.job_up_to_date = False
+                return 0
+        raise Exception('The task named \'' + input_data['name'] + '\' does not exist.')
+
+    def __create_post_script_from_task__(self, input_data):
+        if input_data['language'] in self.proactive_script_languages:
+            post_script = self.gateway.createPostScript(self.proactive_script_languages[input_data['language']])
+        else:
+            raise ParameterError('Language \'' + input_data['language'] +
+                                 '\' not supported!\n Supported Languages:\n' + self.script_languages)
+        if 'path' in input_data:
+            exists = os.path.isfile(input_data['path'])
+            if exists:
+                post_script.setImplementationFromFile(input_data['path'])
+                if input_data['code'] != '':
+                    self.__kernel_print_ok_message__('WARNING: The code written is ignored.\n')
+            else:
+                raise Exception('The file \'' + input_data['path'] + '\' does not exist')
+        else:
+            post_script.setImplementation(input_data['code'])
+
+        input_data['task'].setPostScript(post_script)
+
+    def __create_post_script_from_name__(self, input_data):
+        for value in self.proactive_tasks:
+            if value.getTaskName() == input_data['name']:
+                self.__kernel_print_ok_message__('Adding a post-script to the proactive task...\n')
+                input_data['task'] = value
+                self.__create_post_script_from_task__(input_data)
+                self.__kernel_print_ok_message__('Post-script added to \'' + input_data['name'] + '\'.\n')
+                self.job_up_to_date = False
+                return 0
+        raise Exception('The task named \'' + input_data['name'] + '\' does not exist.')
+
     def __set_selection_script_from_task__(self, input_data):
         proactive_selection_script = self.gateway.createDefaultSelectionScript()
         if 'path' in input_data:
@@ -751,6 +835,7 @@ class ProActiveKernel(Kernel):
             for gen_info in input_data['generic_info']:
                 proactive_task.addGenericInformation(gen_info[0], gen_info[1])
 
+        self.__kernel_print_ok_message__('Done.\n')
         self.job_up_to_date = False
 
         return 0
@@ -897,11 +982,11 @@ class ProActiveKernel(Kernel):
                     return self.__kernel_print_error_message({'ename': 'Pragma error', 'evalue':
                         'Directive \'' + pragma_info['trigger']
                         + '\' not known.'})
-
-            try:
-                ast.parse(code)
-            except SyntaxError as e:
-                return self.__kernel_print_error_message({'ename': 'Syntax error', 'evalue': str(e)})
+            if 'language' in pragma_info and pragma_info['language'] == 'Python':
+                try:
+                    ast.parse(code)
+                except SyntaxError as e:
+                    return self.__kernel_print_error_message({'ename': 'Syntax error', 'evalue': str(e)})
 
             try:
                 if not self.proactive_connected and not pragma_info['trigger'] == 'connect':
