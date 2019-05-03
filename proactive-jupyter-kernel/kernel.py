@@ -180,7 +180,7 @@ class ProActiveKernel(Kernel):
                                               r"( *, *[a-zA-Z]* *= *[a-zA-Z_]\w* *)*( *, *path *= *" + \
                                               pattern_path_cars.strip("^$") + r" *)$"
         pattern_help = r"^( *pragma *= *[a-zA-Z_]+ *)$"
-        pattern_connect = r"^( *host *= *(www.)?[a-z0-9]+(\.[a-z]+(\/[a-zA-Z0-9#]+)*)*(\.[a-z]+) *, *" \
+        pattern_connect = r"^( *host *= *" + pattern_path_cars.strip("^$") + r" *, *" \
                           r"port *= *\d+ *, *)?(login *= *[a-zA-Z_][a-zA-Z0-9_]*) *, *(password *= *[^ ]*)$"
         pattern_connect_with_path = r"^( *path *= *" + pattern_path_cars.strip("^$") + r" *)$"
         pattern_task_with_name = r"^( *name *= *[a-zA-Z_]\w*)( *, *dep *= *\[ *[a-zA-Z_]\w* *( *, *[a-zA-Z_]\w*)* *\]" \
@@ -974,6 +974,8 @@ class ProActiveKernel(Kernel):
 
                 elif pragma_info['trigger'] == 'connect':
                     func = self.__connect__
+                elif pragma_info['trigger'] == 'help':
+                    func = self.__help__
                 elif pragma_info['trigger'] in ['task', 'selection_script', 'fork_env', 'job', 'submit_job',
                                                 'draw_job']:
                     return self.__kernel_print_error_message({'ename': 'Proactive error',
@@ -989,7 +991,7 @@ class ProActiveKernel(Kernel):
                     return self.__kernel_print_error_message({'ename': 'Syntax error', 'evalue': str(e)})
 
             try:
-                if not self.proactive_connected and not pragma_info['trigger'] == 'connect':
+                if not self.proactive_connected and pragma_info['trigger'] not in ['connect', 'help']:
                     return self.__kernel_print_error_message({'ename': 'Proactive error',
                                                               'evalue': 'Use \'#%connect()\' to '
                                                                         'connect to proactive server first.'})
