@@ -246,7 +246,7 @@ Features:
 
 * help: prints all different pragmas/features of the kernel
 * connect: connects to an ActiveEon server 
-* OPTION: connection using a configuration file
+  - OPTION: connection using a configuration file
 * task: creates a task
 * selection_script: sets the selection script of a task
 * fork_env: sets the fork environment script
@@ -259,12 +259,10 @@ Features:
 
 TODO:
 
-1. add other languages support for tasks
-2. generic_info parameter to task pragma (list of key,value pairs)
-3. add pre/post-script to existing tasks (through new pragmas)
-4. check how to highlight Python syntax
-5. add auto-complete
-6. re-adapt the valid_pragma method to be more robust to parameters order in pragmas (parse and, then, check regular 
+1. check how to highlight Python syntax
+2. add auto-complete
+3. re-adapt the valid_pragma method to be more robust to parameters order in pragmas (parse and, then, check regular 
 expression of each parameter value)
-7. explain dependencies handling in the README file
-8. add some examples pictures to README
+4. explain dependencies handling in the README file
+5. add some examples pictures to README
+6. add generic_info, pre/post scripts description in README file
