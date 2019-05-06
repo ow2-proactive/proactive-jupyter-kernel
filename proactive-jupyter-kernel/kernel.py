@@ -82,7 +82,7 @@ class ProActiveKernel(Kernel):
     _banner = "A ProActive Kernel - as useful as a parrot"
 
     language_info = {'name': 'python',
-                     'codemirror_mode': 'ProActive',
+                     'codemirror_mode': 'python',
                      'mimetype': 'text/x-python',
                      'file_extension': '.py'}
 
