@@ -82,7 +82,7 @@ class ProActiveKernel(Kernel):
     _banner = "A ProActive Kernel - as useful as a parrot"
 
     language_info = {'name': 'python',
-                     'codemirror_mode': 'ProActive',
+                     'codemirror_mode': 'python',
                      'mimetype': 'text/x-python',
                      'file_extension': '.py'}
 
@@ -541,6 +541,10 @@ class ProActiveKernel(Kernel):
             self.__kernel_print_error_message({'ename': 'Usages', 'evalue': '\n' + self.__get_usage_connect__()})
         elif trigger == 'task':
             self.__kernel_print_error_message({'ename': 'Usages', 'evalue': '\n' + self.__get_usage_task__()})
+        elif trigger == 'pre_script':
+            self.__kernel_print_error_message({'ename': 'Usages', 'evalue': '\n' + self.__get_usage_pre_script__()})
+        elif trigger == 'post_script':
+            self.__kernel_print_error_message({'ename': 'Usages', 'evalue': '\n' + self.__get_usage_post_script__()})
         elif trigger == 'selection_script':
             self.__kernel_print_error_message({'ename': 'Usages', 'evalue': '\n' +
                                                                             self.__get_usage_selection_script__()})
@@ -566,6 +570,14 @@ class ProActiveKernel(Kernel):
     def __get_usage_task__():
         return '   #%task(name=TASK_NAME, [dep=[TASK_NAME1,TASK_NAME2,...]], [generic_info=[(KEY1,VAL1),' \
                '(KEY2,VALUE2),...]], [path=IMPLEMENTATION_FILE_PATH])\n'
+
+    @staticmethod
+    def __get_usage_pre_script__():
+        return '   #%pre_script(name=TASK_NAME, language=SCRIPT_LANGUAGE, [path=./PRE_SCRIPT_FILE.py])\n'
+
+    @staticmethod
+    def __get_usage_post_script__():
+        return '   #%post_script(name=TASK_NAME, language=SCRIPT_LANGUAGE, [path=./POST_SCRIPT_FILE.py])\n'
 
     @staticmethod
     def __get_usage_selection_script__():
@@ -603,6 +615,12 @@ class ProActiveKernel(Kernel):
             elif input_data['pragma'] == 'task':
                 self.__kernel_print_ok_message__('#%task(): creates/modifies a task\n')
                 self.__kernel_print_ok_message__('Usages:\n' + self.__get_usage_task__())
+            elif input_data['pragma'] == 'pre_script':
+                self.__kernel_print_ok_message__('#%pre_script(): sets the pre-script of a task\n')
+                self.__kernel_print_ok_message__('Usages:\n' + self.__get_usage_pre_script__())
+            elif input_data['pragma'] == 'post_script':
+                self.__kernel_print_ok_message__('#%post_script(): sets the post-script of a task\n')
+                self.__kernel_print_ok_message__('Usages:\n' + self.__get_usage_post_script__())
             elif input_data['pragma'] == 'selection_script':
                 self.__kernel_print_ok_message__('#%selection_script(): sets the selection script of a task\n')
                 self.__kernel_print_ok_message__('Usages:\n' + self.__get_usage_selection_script__())
@@ -629,6 +647,8 @@ class ProActiveKernel(Kernel):
         else:
             self.__kernel_print_ok_message__('\n#%connect(): connects to an ActiveEon server\n'
                                              + '#%task(): creates/modifies a task\n'
+                                             + "#%pre_script(): sets the pre-script of a task\n"
+                                             + "#%post_script(): sets the post-script of a task\n"
                                              + '#%selection_script(): sets the selection script of a task\n'
                                              + '#%fork_env(): sets the fork environment script\n'
                                              + '#%job(): creates/renames the job\n'

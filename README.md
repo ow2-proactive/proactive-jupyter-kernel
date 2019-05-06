@@ -249,6 +249,8 @@ Features:
 * connect: connects to an ActiveEon server 
   - OPTION: connection using a configuration file
 * task: creates a task
+* pre_script: sets the pre-script of a task
+* post_script: sets the post-script of a task
 * selection_script: sets the selection script of a task
 * fork_env: sets the fork environment script
 * job: creates/renames the job
@@ -260,10 +262,9 @@ Features:
 
 TODO:
 
-1. check how to highlight Python syntax
-2. add auto-complete
-3. re-adapt the valid_pragma method to be more robust to parameters order in pragmas (parse and, then, check regular 
+1. add auto-complete
+2. re-adapt the valid_pragma method to be more robust to parameters order in pragmas (parse and, then, check regular 
 expression of each parameter value)
-4. explain dependencies handling in the README file
-5. add some examples pictures to README
-6. add generic_info, pre/post scripts description in README file
+3. explain dependencies handling in the README file
+4. add some examples pictures to README
+5. add generic_info, pre/post scripts description in README file
