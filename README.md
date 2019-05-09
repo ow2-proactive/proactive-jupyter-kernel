@@ -1,5 +1,6 @@
 # proactive-jupyter-kernel
-ProActiveKernel for Jupyter
+The ActiveEon Jupyter Kernel adds a kernel backend for Jupyter to interface directly with the ProActive scheduler and 
+construct tasks and workflows and execute them on the fly.
 
 ## 1. Requirements:
 
