@@ -141,7 +141,7 @@ class ProActiveKernel(Kernel):
                 proactive_host = self.proactive_config['proactive_server']['host']
                 proactive_port = self.proactive_config['proactive_server']['port']
 
-                proactive_url = "http://" + proactive_host + ":" + proactive_port
+                proactive_url = "https://" + proactive_host + ":" + proactive_port
                 javaopts = []
                 # uncomment for detailed logs
                 # javaopts.append('-Dlog4j.configuration=file:'+os.path.join(os.getcwd(),'log4j.properties'))
@@ -159,7 +159,7 @@ class ProActiveKernel(Kernel):
 
         proactive_host = 'try.activeeon.com'
         proactive_port = '8080'
-        proactive_url = "http://" + proactive_host + ":" + proactive_port
+        proactive_url = "https://" + proactive_host + ":" + proactive_port
         javaopts = []
         # uncomment for detailed logs
         # javaopts.append('-Dlog4j.configuration=file:'+os.path.join(os.getcwd(),'log4j.properties'))
@@ -484,7 +484,7 @@ class ProActiveKernel(Kernel):
                     proactive_host = self.proactive_config['proactive_server']['host']
                     proactive_port = self.proactive_config['proactive_server']['port']
 
-                    proactive_url = "http://" + proactive_host + ":" + proactive_port
+                    proactive_url = "https://" + proactive_host + ":" + proactive_port
                     javaopts = []
                     # uncomment for detailed logs
                     # javaopts.append('-Dlog4j.configuration=file:'+os.path.join(os.getcwd(),'log4j.properties'))
@@ -517,7 +517,7 @@ class ProActiveKernel(Kernel):
             proactive_port = input_data['port']
             self.proactive_default_connection = False
 
-            proactive_url = "http://" + proactive_host + ":" + proactive_port
+            proactive_url = "https://" + proactive_host + ":" + proactive_port
             javaopts = []
             # uncomment for detailed logs
             # javaopts.append('-Dlog4j.configuration=file:'+os.path.join(os.getcwd(),'log4j.properties'))
