@@ -21,9 +21,11 @@ def install_my_kernel_spec(user=True, prefix=None):
         os.chmod(td, 0o755)  # Starts off as 700, not user readable
         with open(os.path.join(td, 'kernel.json'), 'w') as f:
             json.dump(kernel_json, f, sort_keys=True)
-            git_url = "https://github.com/ow2-proactive/proactive-jupyter-kernel/blob/master/proactive-jupyter-kernel/"
+            git_url = "https://raw.githubusercontent.com/ow2-proactive/proactive-jupyter-kernel/" \
+                      "master/proactive-jupyter-kernel/"
             urllib.request.urlretrieve(os.path.join(git_url, 'logo-32x32.png'), os.path.join(td, 'logo-32x32.png'))
             urllib.request.urlretrieve(os.path.join(git_url, 'logo-64x64.png'), os.path.join(td, 'logo-64x64.png'))
+            urllib.request.urlretrieve(os.path.join(git_url, 'logo-128x128.png'), os.path.join(td, 'logo-128x128.png'))
         # TODO: Copy resources once they're specified
 
         print('Installing IPython kernel spec')
