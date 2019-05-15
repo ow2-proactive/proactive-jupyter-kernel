@@ -4,42 +4,47 @@ construct tasks and workflows and execute them on the fly.
 
 ## 1. Requirements:
 
-* Python 2 or 3
+Python 2 or 3
 
 ## 2. Installation:
 
-### 2.1 Using Pypi
+### 2.1 Using PyPi
 
-1) open a terminal
+* open a terminal
 
-2) install the proactive jupyter kernel
+* install the proactive jupyter kernel
 
-    ```Bash
-    $ pip install proactive proactive-jupyter-kernel --upgrade
-    $ python -m proactive-jupyter-kernel.install
-    ```
+```bash
+$ pip install proactive proactive-jupyter-kernel --upgrade
+$ python -m proactive-jupyter-kernel.install
+```
 
 ### 2.2 Using source code
 
-1) open a terminal
+* open a terminal
 
-2) clone the repository on your local machine:
+* clone the repository on your local machine:
 
-    ```bash
-    $ git clone git@github.com:ow2-proactive/proactive-jupyter-kernel.git
-    ```
-3) install the proactive jupyter kernel:
+```bash
+$ git clone git@github.com:ow2-proactive/proactive-jupyter-kernel.git
+```
 
-    ```Bash
-    $ pip install proactive-jupyter-kernel/
-    $ python -m proactive-jupyter-kernel.install
-    ```
-    
+* install the proactive jupyter kernel:
+
+```bash
+$ pip install proactive-jupyter-kernel/
+$ python -m proactive-jupyter-kernel.install
+```
+
 ## 3. Platform
 
 You can use any jupyter platform.
 We recommend the use of jupyter lab. To launch it from your terminal after having installed it:
 
+```bash
+$ jupyter lab
+```
+or in daemon mode:
 ```bash
 $ nohup jupyter lab &>/dev/null &
 ```
@@ -65,18 +70,17 @@ To connect to another host, use the later pragma this way:
 
 ### 4.2 Using config file:
 
-For automatic sign in, create a file named 'proactive_config.ini' in your notebook's location.
+For automatic sign in, create a file named *proactive_config.ini* in your notebook location. 
 
 Fill your configuration file according to the format:
 
-```Bash
+```ini
 [proactive_server]
-host = YOUR_HOST
-port = YOUR_PORT
-
+host=YOUR_HOST
+port=YOUR_PORT
 [user]
-login = YOUR_LOGIN
-password = YOUR_PASSWORD
+login=YOUR_LOGIN
+password=YOUR_PASSWORD
 ```
 
 Save your file changes and restart the proactive kernel.
@@ -113,7 +117,7 @@ print('Hello world')
 To configure a fork environment for a task, use the `#%fork_env()` pragma. A first way to do this
 is by providing the name of the corresponding task, and the fork environment implementation after that:
 
-```python
+```text
 #%fork_env(name=TASK_NAME)
 containerName = 'activeeon/dlm3'
 dockerRunCommand =  'docker run '
@@ -128,7 +132,7 @@ containerWorkingDirectory = '-w '+workspaceContainer+' '
 preJavaHomeCmd = dockerRunCommand + dockerParameters + proActiveHomeVolume + workspaceVolume + containerWorkingDirectory + containerName
 ```
 
-A second way is by providing the name of the task, and the path of a _.py_ file containing the fork environment code:
+A second way is by providing the name of the task, and the path of a \_.py\_ file containing the fork environment code:
 
 ```python
 #%fork_env(name=TASK_NAME, path=./FORK_ENV_FILE.py)
@@ -173,7 +177,7 @@ To verify the created workflow, use the `#%draw_job()` pragma to plot it into a 
 
 Two optional parameters can be used to configure the way the kernel plot the workflow.
 
-* **inline plotting:**
+**inline plotting:**
 
 If this parameter is set to 'off', the workflow plotting is made through the [Matplotlib](https://matplotlib.org/) 
 external window. The default value is 'on'.
@@ -182,9 +186,9 @@ external window. The default value is 'on'.
 #%draw_job(inline=off)
 ```
 
-* **saving into hard disk:**
+**saving into hard disk:**
 
-To be sure the workflow is saved into a _.png_ file, this option needs to be set to 'on'. The default value is 'off'.
+To be sure the workflow is saved into a \_.png\_ file, this option needs to be set to *on*. The default value is *off*.
 
 ```python
 #%draw_job(save=on)
@@ -199,7 +203,7 @@ if it is created, by the name of the notebook if reachable or at worst by "Unnam
 
 #### 5.6 Save workflow in dot format
 
-To save the created workflow into a [GraphViz](https://www.graphviz.org/) _.dot_ format, use the `#%write_dot()` pragma:
+To save the created workflow into a [GraphViz](https://www.graphviz.org/) \_.dot\_ format, use the `#%write_dot()` pragma:
 
 ```python
 #%write_dot(name=FILE_NAME)
@@ -214,7 +218,7 @@ To submit the job to the proactive scheduler, the user has to use the `#%submit_
 #%submit_job()
 ```
 
-If the job is not created, **or** is not up-to-date, the `#%submit_job()` starts by creating a new job named as the old one.
+If the job is not created, or is not up-to-date, the `#%submit_job()` starts by creating a new job named as the old one.
 To provide a new name, use the same pragma and provide a name as parameter:
 
 ```python
@@ -232,7 +236,7 @@ To finally get the job result(s), the user has to use the `#%get_result()` pragm
 #%get_result(name=JOB_NAME)
 ```
 
-**or** by the job id:
+or by the job id:
 
 ```python
 #%get_result(id=JOB_ID)
@@ -240,32 +244,39 @@ To finally get the job result(s), the user has to use the `#%get_result()` pragm
 
 The returned values of your final tasks will be automatically printed in the notebook results.
 
-
-Current status
-----------
+#### Current status
 
 Features:
 
-* help: prints all different pragmas/features of the kernel
-* connect: connects to an ActiveEon server 
-  - OPTION: connection using a configuration file
-* task: creates a task
-* pre_script: sets the pre-script of a task
-* post_script: sets the post-script of a task
-* selection_script: sets the selection script of a task
-* fork_env: sets the fork environment script
-* job: creates/renames the job
-* draw_job: plot the workflow
-* write_dot: writes the workflow in .dot format
-* submit_job: submits the job to the scheduler
-* get_result: gets and prints the job results
+* *help*: prints all different pragmas/features of the kernel
+
+* *connect*: connects to an ActiveEon server (OPTION: connection using a configuration file)
+
+* *task*: creates a task
+
+* *pre_script*: sets the pre-script of a task
+
+* *post_script*: sets the post-script of a task
+
+* *selection_script*: sets the selection script of a task
+
+* *fork_env*: sets the fork environment script
+
+* *job*: creates/renames the job
+
+* *draw_job*: plot the workflow
+
+* *write_dot*: writes the workflow in .dot format
+
+* *submit_job*: submits the job to the scheduler
+
+* *get_result*: gets and prints the job results
 
 
-TODO:
+#### TODO
 
-1. add auto-complete
-2. re-adapt the valid_pragma method to be more robust to parameters order in pragmas (parse and, then, check regular 
-expression of each parameter value)
-3. explain dependencies handling in the README file
-4. add some examples pictures to README
-5. add generic_info, pre/post scripts description in README file
+* add auto-complete
+* re-adapt the valid_pragma method to be more robust to parameters order in pragmas (parse and, then, check regular expression of each parameter value)
+* explain dependencies handling in the README file
+* add some examples pictures to README
+* add generic_info, pre/post scripts description in README file

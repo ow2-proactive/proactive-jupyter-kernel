@@ -23,7 +23,8 @@ with open('gradle.properties') as fp:
             name, value = line.replace('\n', '').split('=', 1)
             if "SNAPSHOT" in value:
                 #dev_version = ".dev" + str(int(time.time()))
-                dev_version = "." + now.strftime("%Y.%m.%d.%H.%M")
+                #dev_version = "." + now.strftime("%Y.%m.%d.%H.%M")
+                dev_version = "." + now.strftime("%y%m%d%H%M")
                 value = value.replace("-SNAPSHOT", dev_version)
             gradle_properties[name] = value
 
@@ -40,5 +41,6 @@ setup(name='proactive-jupyter-kernel',
       url='https://github.com/ow2-proactive/proactive-jupyter-kernel',
       packages=packages,
       package_data=package_data,
-      install_requires=install_requires
+      install_requires=install_requires,
+      license="BSD 2-Clause License"
       )
