@@ -1,7 +1,6 @@
 from ipykernel.kernelbase import Kernel
 from subprocess import check_output
 import os
-import re
 import ast
 import configparser as cp
 import random
@@ -19,6 +18,7 @@ import networkx as nx
 from networkx.drawing.nx_agraph import write_dot, graphviz_layout
 
 from .images import display_data_for_image
+from .pragma import *
 
 __version__ = '0.1'
 
@@ -43,36 +43,6 @@ def notebook_path():
         except:
             pass  # There may be stale entries in the runtime directory
     return None
-
-
-class PragmaError(ValueError):
-    def __init__(self, arg):
-        self.strerror = arg
-        self.args = {arg}
-
-
-class ParsingError(ValueError):
-    def __init__(self, arg):
-        self.strerror = arg
-        self.args = {arg}
-
-
-class ParameterError(ValueError):
-    def __init__(self, arg):
-        self.strerror = arg
-        self.args = {arg}
-
-
-class ConfigError(ValueError):
-    def __init__(self, arg):
-        self.strerror = arg
-        self.args = {arg}
-
-
-class ResultError(ValueError):
-    def __init__(self, arg):
-        self.strerror = arg
-        self.args = {arg}
 
 
 class ProActiveKernel(Kernel):
@@ -113,6 +83,7 @@ class ProActiveKernel(Kernel):
         self.graph_created = False
         self.G = None
         self.labels = {}
+        self.pragma = Pragma()
 
         self.proactive_script_languages = ProactiveScriptLanguage().get_supported_languages()
 
@@ -166,140 +137,6 @@ class ProActiveKernel(Kernel):
         redirectJVMOutput = False
         self.gateway = proactive.ProActiveGateway(proactive_url, javaopts, redirectJVMOutput)
         self.proactive_default_connection = True
-
-    @staticmethod
-    def __is_valid_pragma__(data, sep_lines):
-        pattern_path_cars = r"^[a-zA-Z0-9_\/\\:\.-]*$"
-        pattern_generic = r"^( *[a-zA-Z]* *= *[a-zA-Z_]\w* *, *)*([a-zA-Z]* *= *[a-zA-Z_]\w* *)?$"
-        pattern_with_name = r"^( *name *= *[a-zA-Z_]\w*)( *, *[a-zA-Z]* *= *[a-zA-Z_]\w* *)*$"
-        pattern_with_path = pattern_with_name.strip('$)') + r"( *, *path *= *" + \
-                            pattern_path_cars.strip("^$") + r" *)?$"
-        pattern_with_name_and_language = r"^( *name *= *[a-zA-Z_]\w*)( *, *language *= *[a-zA-Z_]+)" \
-                                         r"( *, *[a-zA-Z]* *= *[a-zA-Z_]\w* *)*$"
-        pattern_with_name_language_and_path = r"^( *name *= *[a-zA-Z_]\w*)( *, *language *= *[a-zA-Z_]+)" \
-                                              r"( *, *[a-zA-Z]* *= *[a-zA-Z_]\w* *)*( *, *path *= *" + \
-                                              pattern_path_cars.strip("^$") + r" *)$"
-        pattern_help = r"^( *pragma *= *[a-zA-Z_]+ *)$"
-        pattern_connect = r"^( *host *= *" + pattern_path_cars.strip("^$") + r" *, *" \
-                          r"port *= *\d+ *, *)?(login *= *[a-zA-Z_][a-zA-Z0-9_]*) *, *(password *= *[^ ]*)$"
-        pattern_connect_with_path = r"^( *path *= *" + pattern_path_cars.strip("^$") + r" *)$"
-        pattern_task_with_name = r"^( *name *= *[a-zA-Z_]\w*)( *, *dep *= *\[ *[a-zA-Z_]\w* *( *, *[a-zA-Z_]\w*)* *\]" \
-                                 r" *)?( *, *generic_info *= *\[ *\( *\w+ *, *\w+ *\)( *, *\( *\w+ *, *\w+ *\))* *\]" \
-                                 r" *)?( *, *[a-zA-Z]* *= *[a-zA-Z_]\w* *)*$"
-        pattern_task_with_path = pattern_task_with_name.strip('$)') + r"( *, *path *= *" + \
-                                 pattern_path_cars.strip("^$") + r" *)$"
-        pattern_with_name_only = r"^( *name *= *[a-zA-Z_]\w* *)$"
-        pattern_with_id_only = r"^( *id *= *\d+ *)$"
-
-        pragmas_generic = ['draw_job']
-        pragmas_with_name = ['job', 'selection_script', 'fork_env']
-        pragmas_with_name_and_path = ['selection_script', 'fork_env']
-        pragmas_pre_post_script = ['pre_script', 'post_script']
-        pragmas_with_name_only = ['submit_job', 'write_dot']
-        pragmas_with_id_or_name_only = ['get_result']
-        pragmas_empty = ['submit_job', 'draw_job', 'help']
-
-        invalid_generic = not re.match(pattern_generic, sep_lines[1]) and data['trigger'] in pragmas_generic
-        invalid_with_name = not re.match(pattern_with_name, sep_lines[1]) and not \
-            re.match(pattern_with_path, sep_lines[1]) and data['trigger'] in pragmas_with_name
-        invalid_with_path = not re.match(pattern_with_path, sep_lines[1]) and \
-                            data['trigger'] in pragmas_with_name_and_path
-        invalid_task = not re.match(pattern_task_with_name, sep_lines[1]) and not \
-            re.match(pattern_task_with_path, sep_lines[1]) and data['trigger'] == 'task'
-        invalid_pre_post_script = not re.match(pattern_with_name_and_language, sep_lines[1]) and not \
-            re.match(pattern_with_name_language_and_path, sep_lines[1]) and data['trigger'] in pragmas_pre_post_script
-        invalid_connect = not (re.match(pattern_connect, sep_lines[1]) or
-                               re.match(pattern_connect_with_path, sep_lines[1])) and data['trigger'] == 'connect'
-        invalid_help = not re.match(pattern_help, sep_lines[1]) and data['trigger'] == 'help'
-        invalid_with_name_only = not re.match(pattern_with_name_only, sep_lines[1]) and data['trigger'] in \
-                                 pragmas_with_name_only
-        invalid_with_name_or_id = not (re.match(pattern_with_name_only, sep_lines[1]) or
-                                       re.match(pattern_with_id_only, sep_lines[1])) and data['trigger'] in \
-                                  pragmas_with_id_or_name_only
-        valid_empty = sep_lines[1] == "" and data['trigger'] in pragmas_empty
-
-        if valid_empty:
-            return
-
-        if invalid_connect or invalid_generic or invalid_with_name or invalid_with_path or invalid_with_name_only \
-                or invalid_with_name_or_id or invalid_task or invalid_pre_post_script or invalid_help:
-            raise ParsingError('Invalid parameters')
-
-    def __parse_pragma__(self, pragma):
-        pragmas = ['job',
-                   'task',
-                   'pre_script',
-                   'post_script',
-                   'selection_script',
-                   'fork_env',
-                   'connect',
-                   'write_dot',
-                   'get_result'
-                   ]
-        pragmas_empty = ['submit_job',
-                         'draw_job',
-                         'help'
-                         ]
-        pragma = pragma.strip(" #%)")
-        sep_lines = pragma.split('(', 1)
-
-        data = dict(trigger=sep_lines[0].strip(" "), name='')
-
-        if len(sep_lines) == 2:
-            self.__is_valid_pragma__(data, sep_lines)
-
-            if data['trigger'] == 'task' and 'dep' in sep_lines[1] and 'generic_info' not in sep_lines[1]:
-                draft = re.split(r'[\]\[]', sep_lines[1])
-                sep_lines = draft[0] + 'TEMP' + draft[2]
-                sep_lines = sep_lines.split(',')
-                dep_list = draft[1].split(',')
-                for line in sep_lines:
-                    params = line.split('=')
-                    data[params[0].strip(" ")] = params[1].strip(" ")
-
-                data['dep'] = dep_list
-
-            elif data['trigger'] == 'task' and 'dep' not in sep_lines[1] and 'generic_info' in sep_lines[1]:
-                draft = re.split(r'[\]\[]', sep_lines[1])
-                sep_lines = draft[0] + 'TEMP' + draft[2]
-                sep_lines = sep_lines.split(',')
-                draft_gen_info_list = draft[1].split(',')
-                gen_info_list = []
-                for index in range(0, len(draft_gen_info_list), 2):
-                    gen_info_list.append((draft_gen_info_list[index].strip('()'),
-                                          draft_gen_info_list[index + 1].strip('()')))
-
-                for line in sep_lines:
-                    params = line.split('=')
-                    data[params[0].strip(" ")] = params[1].strip(" ")
-
-                data['generic_info'] = gen_info_list
-
-            elif data['trigger'] == 'task' and 'dep' in sep_lines[1] and 'generic_info' in sep_lines[1]:
-                draft = re.split(r'[\]\[]', sep_lines[1])
-                sep_lines = draft[0] + 'TEMP' + draft[2] + 'TEMP' + draft[4]
-                sep_lines = sep_lines.split(',')
-                dep_list = draft[1].split(',')
-                draft_gen_info_list = draft[3].split(',')
-                gen_info_list = []
-                for index in range(0, len(draft_gen_info_list), 2):
-                    gen_info_list.append((draft_gen_info_list[index].strip('()'),
-                                          draft_gen_info_list[index + 1].strip('()')))
-
-                for line in sep_lines:
-                    params = line.split('=')
-                    data[params[0].strip(" ")] = params[1].strip(" ")
-
-                data['dep'] = dep_list
-                data['generic_info'] = gen_info_list
-
-            elif data['trigger'] in pragmas or (data['trigger'] in pragmas_empty and '=' in sep_lines[1]):
-                sep_lines = sep_lines[1].split(',')
-                for line in sep_lines:
-                    params = line.split('=')
-                    data[params[0].strip(" ")] = params[1].strip(" ")
-
-        return data
 
     def __kernel_print_ok_message__(self, text):
         message = dict(name='stdout', text=text)
@@ -459,8 +296,17 @@ class ProActiveKernel(Kernel):
 
         g_dot.name = self.job_name
 
+        if 'name' in input_data and input_data['name'] != '':
+            title = input_data['name']
+        elif self.job_created:
+            title = self.job_name
+        elif notebook_path() is not None:
+            title = str(notebook_path().rsplit('/', 1)[1].split('.', 1)[0])
+        else:
+            title = 'Unnamed_job'
+
         self.__kernel_print_ok_message__('Writing the dot file...\n')
-        write_dot(g_dot, './' + input_data['name'] + '.dot')
+        write_dot(g_dot, './' + title + '.dot')
         self.__kernel_print_ok_message__('\'' + input_data['name'] + '.dot\' file created.\n')
 
         return 0
@@ -537,113 +383,11 @@ class ProActiveKernel(Kernel):
 
     def __print_usage_from_pragma__(self, pragma):
         trigger = pragma.strip(" #%)").split('(', 1)[0].strip(" ")
-        if trigger == 'connect':
-            self.__kernel_print_error_message({'ename': 'Usages', 'evalue': '\n' + self.__get_usage_connect__()})
-        elif trigger == 'task':
-            self.__kernel_print_error_message({'ename': 'Usages', 'evalue': '\n' + self.__get_usage_task__()})
-        elif trigger == 'pre_script':
-            self.__kernel_print_error_message({'ename': 'Usages', 'evalue': '\n' + self.__get_usage_pre_script__()})
-        elif trigger == 'post_script':
-            self.__kernel_print_error_message({'ename': 'Usages', 'evalue': '\n' + self.__get_usage_post_script__()})
-        elif trigger == 'selection_script':
-            self.__kernel_print_error_message({'ename': 'Usages', 'evalue': '\n' +
-                                                                            self.__get_usage_selection_script__()})
-        elif trigger == 'fork_env':
-            self.__kernel_print_error_message({'ename': 'Usages', 'evalue': '\n' + self.__get_usage_fork_env__()})
-        elif trigger == 'job':
-            self.__kernel_print_error_message({'ename': 'Usages', 'evalue': '\n' + self.__get_usage_job__()})
-        elif trigger == 'draw_job':
-            self.__kernel_print_error_message({'ename': 'Usages', 'evalue': '\n' + self.__get_usage_draw_job__()})
-        elif trigger == 'write_job':
-            self.__kernel_print_error_message({'ename': 'Usages', 'evalue': '\n' + self.__get_usage_write_job__()})
-        elif trigger == 'submit_job':
-            self.__kernel_print_error_message({'ename': 'Usages', 'evalue': '\n' + self.__get_usage_submit_job__()})
-        elif trigger == 'get_result':
-            self.__kernel_print_error_message({'ename': 'Usages', 'evalue': '\n' + self.__get_usage_get_result__()})
-
-    @staticmethod
-    def __get_usage_connect__():
-        return '   #%connect([host=YOUR_HOST, port=YOUR_PORT], login=YOUR_LOGIN, password=YOUR_PASSWORD)\n' \
-               + '   #%connect(path=PATH_TO/YOUR_CONFIG_FILE.ini)\n'
-
-    @staticmethod
-    def __get_usage_task__():
-        return '   #%task(name=TASK_NAME, [dep=[TASK_NAME1,TASK_NAME2,...]], [generic_info=[(KEY1,VAL1),' \
-               '(KEY2,VALUE2),...]], [path=IMPLEMENTATION_FILE_PATH])\n'
-
-    @staticmethod
-    def __get_usage_pre_script__():
-        return '   #%pre_script(name=TASK_NAME, language=SCRIPT_LANGUAGE, [path=./PRE_SCRIPT_FILE.py])\n'
-
-    @staticmethod
-    def __get_usage_post_script__():
-        return '   #%post_script(name=TASK_NAME, language=SCRIPT_LANGUAGE, [path=./POST_SCRIPT_FILE.py])\n'
-
-    @staticmethod
-    def __get_usage_selection_script__():
-        return '   #%selection_script(name=TASK_NAME, [path=./SELECTION_CODE_FILE.py])\n'
-
-    @staticmethod
-    def __get_usage_fork_env__():
-        return '   #%fork_env(name=TASK_NAME, [path=./FORK_ENV_FILE.py])\n'
-
-    @staticmethod
-    def __get_usage_job__():
-        return '   #%job(name=JOB_NAME)\n'
-
-    @staticmethod
-    def __get_usage_draw_job__():
-        return '   #%draw_job([name=JOB_NAME], [inline=on/off], [save=on/off])\n'
-
-    @staticmethod
-    def __get_usage_write_job__():
-        return '   #%write_dot(name=FILE_NAME)\n'
-
-    @staticmethod
-    def __get_usage_submit_job__():
-        return '   #%submit_job([name=JOB_NAME])\n'
-
-    @staticmethod
-    def __get_usage_get_result__():
-        return '   #%get_result(id=JOB_ID)\n'
+        self.__kernel_print_error_message({'ename': 'Usages', 'evalue': '\n' + get_usage(trigger)})
 
     def __help__(self, input_data):
         if 'pragma' in input_data:
-            if input_data['pragma'] == 'connect':
-                self.__kernel_print_ok_message__('Pragma #%connect(): connects to an ActiveEon server\n')
-                self.__kernel_print_ok_message__('Usages:\n' + self.__get_usage_connect__())
-            elif input_data['pragma'] == 'task':
-                self.__kernel_print_ok_message__('#%task(): creates/modifies a task\n')
-                self.__kernel_print_ok_message__('Usages:\n' + self.__get_usage_task__())
-            elif input_data['pragma'] == 'pre_script':
-                self.__kernel_print_ok_message__('#%pre_script(): sets the pre-script of a task\n')
-                self.__kernel_print_ok_message__('Usages:\n' + self.__get_usage_pre_script__())
-            elif input_data['pragma'] == 'post_script':
-                self.__kernel_print_ok_message__('#%post_script(): sets the post-script of a task\n')
-                self.__kernel_print_ok_message__('Usages:\n' + self.__get_usage_post_script__())
-            elif input_data['pragma'] == 'selection_script':
-                self.__kernel_print_ok_message__('#%selection_script(): sets the selection script of a task\n')
-                self.__kernel_print_ok_message__('Usages:\n' + self.__get_usage_selection_script__())
-            elif input_data['pragma'] == 'fork_env':
-                self.__kernel_print_ok_message__('#%fork_env(): sets the fork environment script\n')
-                self.__kernel_print_ok_message__('Usages:\n' + self.__get_usage_fork_env__())
-            elif input_data['pragma'] == 'job':
-                self.__kernel_print_ok_message__('#%job(): creates/renames the job\n')
-                self.__kernel_print_ok_message__('Usages:\n' + self.__get_usage_job__())
-            elif input_data['pragma'] == 'draw_job':
-                self.__kernel_print_ok_message__('#%draw_job(): plot the workflow\n')
-                self.__kernel_print_ok_message__('Usages:\n' + self.__get_usage_draw_job__())
-            elif input_data['pragma'] == 'write_dot':
-                self.__kernel_print_ok_message__('#%write_dot(): writes the workflow in .dot format\n')
-                self.__kernel_print_ok_message__('Usages:\n' + self.__get_usage_write_job__())
-            elif input_data['pragma'] == 'submit_job':
-                self.__kernel_print_ok_message__('#%submit_job(): submits the job to the scheduler\n')
-                self.__kernel_print_ok_message__('Usages:\n' + self.__get_usage_submit_job__())
-            elif input_data['pragma'] == 'get_result':
-                self.__kernel_print_ok_message__('#%get_result(): gets and prints the job results\n')
-                self.__kernel_print_ok_message__('Usages:\n' + self.__get_usage_get_result__())
-            else:
-                raise ParameterError('Pragma \'' + input_data['pragma'] + '\' not known.')
+            self.__kernel_print_ok_message__(get_help(input_data['pragma']))
         else:
             self.__kernel_print_ok_message__('\n#%connect(): connects to an ActiveEon server\n'
                                              + '#%task(): creates/modifies a task\n'
@@ -656,6 +400,7 @@ class ProActiveKernel(Kernel):
                                              + '#%write_dot(): writes the workflow in .dot format\n'
                                              + '#%submit_job(): submits the job to the scheduler\n'
                                              + '#%get_result(): gets and prints the job results\n\n'
+                                             + 'To know the usage of a pragma use: #%help(pragma=PRAGMA_NAME)\n\n'
                                              + 'For more information, please check: https://github.com/ow2-proactive/'
                                                'proactive-jupyter-kernel/blob/master/README.md\n')
 
@@ -970,21 +715,22 @@ class ProActiveKernel(Kernel):
 
         try:
             if re.match(pattern, code):
-                pragma = code.split("\n", 1)
+                pragma_string = code.split("\n", 1)
 
-                if len(pragma) == 2:
-                    code = pragma.pop(1)
+                if len(pragma_string) == 2:
+                    code = pragma_string.pop(1)
                 else:
                     code = ''
-                pragma = pragma.pop(0)
+                pragma_string = pragma_string.pop(0)
 
                 try:
-                    pragma_info = self.__parse_pragma__(pragma)
-
+                    pragma_info = self.pragma.parse(pragma_string)
                 except ParsingError as pe:
                     errorValue = self.__kernel_print_error_message({'ename': 'Parsing error', 'evalue': pe.strerror})
-                    self.__print_usage_from_pragma__(pragma)
+                    self.__print_usage_from_pragma__(pragma_string)
                     return errorValue
+                except ParameterError as pe:
+                    return self.__kernel_print_error_message({'ename': 'Parameter error', 'evalue': pe.strerror})
 
                 if self.proactive_connected:
                     try:
