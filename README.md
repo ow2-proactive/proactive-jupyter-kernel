@@ -275,8 +275,19 @@ Features:
 
 #### TODO
 
+###### Features improvements
+* add an import pragma for libraries that are common to all tasks
+* execute in local a pragma free block
+* add job fork_env/selection_script
+* add pragma that prints all submitted jobs
+* add draw(on/off), print_result(on/off) options in submit job pragma
+* add pragmas to open scheduler, job analytics, resource manager portals
+* multiple pragmas in a block handling
 * add auto-complete
-* re-adapt the valid_pragma method to be more robust to parameters order in pragmas (parse and, then, check regular expression of each parameter value)
-* explain dependencies handling in the README file
-* add some examples pictures to README
-* add generic_info, pre/post scripts description in README file
+
+###### README file 
+* explain dependencies handling
+* add import/export description
+* add generic_info description
+* add pre/post scripts description
+* add some examples pictures
