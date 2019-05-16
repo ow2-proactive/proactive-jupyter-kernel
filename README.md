@@ -285,7 +285,7 @@ Features:
 * multiple pragmas in a block handling
 * add auto-complete
 
-###### README file 
+###### Documentation
 * explain dependencies handling
 * add import/export description
 * add generic_info description
