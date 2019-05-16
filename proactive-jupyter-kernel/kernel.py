@@ -584,14 +584,6 @@ class ProActiveKernel(Kernel):
 
             self.tasks_count += 1
 
-        if 'path' in input_data:
-            proactive_task.setTaskImplementationFromFile(input_data['path'])
-            if input_data['code'] != '':
-                self.__kernel_print_ok_message__('WARNING: The code written is ignored.\n')
-
-        else:
-            proactive_task.setTaskImplementation(input_data['code'])
-
         if 'dep' in input_data:
             self.__add_dependency__(proactive_task, input_data)
 
@@ -599,6 +591,27 @@ class ProActiveKernel(Kernel):
             self.__kernel_print_ok_message__('Adding generic information...\n')
             for gen_info in input_data['generic_info']:
                 proactive_task.addGenericInformation(gen_info[0], gen_info[1])
+
+        if 'import' in input_data:
+            self.__kernel_print_ok_message__('Adding importing variables script...\n')
+            for var_name in input_data['import']:
+                input_data['code'] = var_name + ' = variables.get("' + var_name + '")\n' + input_data['code']
+
+        if 'export' in input_data:
+            self.__kernel_print_ok_message__('Adding exporting variables script...\n')
+            for var_name in input_data['export']:
+                if var_name in input_data['code']:
+                    input_data['code'] = input_data['code'] + '\nvariables.put("' + var_name + '", ' + var_name + ')'
+                else:
+                    self.__kernel_print_ok_message__('WARNING: Undefined variable \'' + var_name +
+                                                     '\'. Export ignored.\n')
+
+        if 'path' in input_data:
+            proactive_task.setTaskImplementationFromFile(input_data['path'])
+            if input_data['code'] != '':
+                self.__kernel_print_ok_message__('WARNING: The code written is ignored.\n')
+        else:
+            proactive_task.setTaskImplementation(input_data['code'])
 
         self.__kernel_print_ok_message__('Done.\n')
         self.job_up_to_date = False
