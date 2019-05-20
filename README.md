@@ -252,6 +252,8 @@ Features:
 
 * *connect*: connects to an ActiveEon server (OPTION: connection using a configuration file)
 
+* *import*: import specified libraries to all tasks of a same script language
+
 * *task*: creates a task
 
 * *pre_script*: sets the pre-script of a task
@@ -276,7 +278,6 @@ Features:
 #### TODO
 
 ###### Features improvements
-* add an import pragma for libraries that are common to all tasks
 * execute in local a pragma free block
 * add job fork_env/selection_script
 * add pragma that prints all submitted jobs
@@ -287,6 +288,7 @@ Features:
 
 ###### Documentation
 * explain dependencies handling
+* add import pragma description
 * add import/export description
 * add generic_info description
 * add pre/post scripts description

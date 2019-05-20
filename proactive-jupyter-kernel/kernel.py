@@ -84,6 +84,7 @@ class ProActiveKernel(Kernel):
         self.G = None
         self.labels = {}
         self.pragma = Pragma()
+        self.imports = {}
 
         self.proactive_script_languages = ProactiveScriptLanguage().get_supported_languages()
 
@@ -160,6 +161,8 @@ class ProActiveKernel(Kernel):
             return self.__create_task__
         elif pragma_info['trigger'] == 'help':
             return self.__help__
+        elif pragma_info['trigger'] == 'import':
+            return self.__import__
         elif pragma_info['trigger'] == 'draw_job':
             return self.__draw_job__
         elif pragma_info['trigger'] == 'connect':
@@ -404,6 +407,21 @@ class ProActiveKernel(Kernel):
                                              + 'For more information, please check: https://github.com/ow2-proactive/'
                                                'proactive-jupyter-kernel/blob/master/README.md\n')
 
+    def __import__(self, input_data):
+        if 'language' in input_data:
+            if input_data['language'] in self.proactive_script_languages:
+                self.__kernel_print_ok_message__('Saving \'' + input_data['language'] + '\' imports ...\n')
+                self.imports[input_data['language']] = input_data['code']
+            else:
+                raise ParameterError('Language \'' + input_data['language'] +
+                                     '\' not supported!\n Supported Languages:\n' + self.script_languages)
+
+        else:
+            self.__kernel_print_ok_message__('Saving \'Python\' imports ...\n')
+            self.imports['Python'] = input_data['code']
+
+        self.__kernel_print_ok_message__('Saved.\n')
+
     def __create_pre_script_from_task__(self, input_data):
         if input_data['language'] in self.proactive_script_languages:
             pre_script = self.gateway.createPreScript(self.proactive_script_languages[input_data['language']])
@@ -605,6 +623,15 @@ class ProActiveKernel(Kernel):
                 else:
                     self.__kernel_print_ok_message__('WARNING: Undefined variable \'' + var_name +
                                                      '\'. Export ignored.\n')
+
+        if 'language' in input_data:
+            if input_data['language'] in self.imports:
+                self.__kernel_print_ok_message__('Adding \'' + input_data['language'] + '\' library imports...\n')
+                input_data['code'] = self.imports[input_data['language']] + '\n' + input_data['code']
+        else:
+            if 'Python' in self.imports:
+                self.__kernel_print_ok_message__('Adding \'Python\' library imports...\n')
+                input_data['code'] = self.imports['Python'] + '\n' + input_data['code']
 
         if 'path' in input_data:
             proactive_task.setTaskImplementationFromFile(input_data['path'])

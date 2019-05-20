@@ -11,6 +11,10 @@ def get_usage_connect():
            + '   #%connect(path=PATH_TO/YOUR_CONFIG_FILE.ini)\n'
 
 
+def get_usage_import():
+    return '   #%import([language=SCRIPT_LANGUAGE])\n'
+
+
 def get_usage_task():
     return '   #%task(name=TASK_NAME, [dep=[TASK_NAME1,TASK_NAME2,...]], [generic_info=[(KEY1,VAL1),' \
            '(KEY2,VALUE2),...]], [export=[VAR_NAME1,VAR_NAME2,...]], [import=[VAR_NAME1,VAR_NAME2,...]], ' \
@@ -57,6 +61,9 @@ def get_help(trigger):
     if trigger == 'connect':
         help_msg = 'Pragma #%connect(): connects to an ActiveEon server\n'
         help_msg += 'Usages:\n' + get_usage_connect()
+    elif trigger == 'import':
+        help_msg = '#%import(): imports specified libraries to all tasks of a same script language\n'
+        help_msg += 'Usages:\n' + get_usage_import()
     elif trigger == 'task':
         help_msg = '#%task(): creates/modifies a task\n'
         help_msg += 'Usages:\n' + get_usage_task()
@@ -98,6 +105,8 @@ def get_usage(trigger):
         return get_usage_help()
     elif trigger == 'connect':
         return get_usage_connect()
+    elif trigger == 'import':
+        return get_usage_import()
     elif trigger == 'task':
         return get_usage_task()
     elif trigger == 'pre_script':
@@ -185,6 +194,13 @@ def is_valid_connect(data):
     if 'host' in data and 'port' in data and \
             not (re.match(pattern_path_cars, data['host']) and re.match(pattern_port, data['port'])):
         raise ParameterError('Invalid host/port parameters')
+    return
+
+
+def is_valid_import(data):
+    pattern_language = r"^[a-zA-Z_]+$"
+    if 'language' in data and not re.match(pattern_language, data['language']):
+        raise ParameterError('Invalid script language')
     return
 
 
@@ -301,6 +317,8 @@ def is_valid(data):
         return is_valid_help(data)
     elif data['trigger'] == 'connect':
         return is_valid_connect(data)
+    elif data['trigger'] == 'import':
+        return is_valid_import(data)
     elif data['trigger'] == 'task':
         return is_valid_task(data)
     elif data['trigger'] == 'pre_script':
@@ -344,6 +362,7 @@ class Pragma:
 
         pragmas_generic = ['draw_job',
                            'task',
+                           'import',
                            'job',
                            'selection_script',
                            'fork_env',
@@ -354,6 +373,7 @@ class Pragma:
                            'help'
                            ]
         pragmas_empty = ['submit_job',
+                         'import',
                          'draw_job',
                          'help'
                          ]
