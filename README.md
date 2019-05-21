@@ -283,7 +283,6 @@ Features:
 
 ###### Features improvements
 * execute in local a pragma free block
-* add job fork_env/selection_script
 * add pragma that prints all submitted jobs
 * add draw(on/off), print_result(on/off) options in submit job pragma
 * add pragmas to open scheduler, job analytics, resource manager portals
