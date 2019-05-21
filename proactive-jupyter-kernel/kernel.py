@@ -403,7 +403,9 @@ class ProActiveKernel(Kernel):
                                              + "#%pre_script(): sets the pre-script of a task\n"
                                              + "#%post_script(): sets the post-script of a task\n"
                                              + '#%selection_script(): sets the selection script of a task\n'
+                                             + '#%job_selection_script(): sets the default selection script of a job\n'
                                              + '#%fork_env(): sets the fork environment script\n'
+                                             + '#%job_fork_env(): sets the default fork environment of a job\n'
                                              + '#%job(): creates/renames the job\n'
                                              + '#%draw_job(): plot the workflow\n'
                                              + '#%write_dot(): writes the workflow in .dot format\n'
