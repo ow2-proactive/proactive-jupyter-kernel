@@ -33,8 +33,16 @@ def get_usage_selection_script():
     return '   #%selection_script(name=TASK_NAME, [path=./SELECTION_CODE_FILE.py])\n'
 
 
+def get_usage_job_selection_script():
+    return '   #%job_selection_script([language=SCRIPT_LANGUAGE], [path=./SELECTION_CODE_FILE.py], [force=on/off])\n'
+
+
 def get_usage_fork_env():
     return '   #%fork_env(name=TASK_NAME, [path=./FORK_ENV_FILE.py])\n'
+
+
+def get_usage_job_fork_env():
+    return '   #%job_fork_env([language=SCRIPT_LANGUAGE], [path=./SELECTION_CODE_FILE.py], [force=on/off])\n'
 
 
 def get_usage_job():
@@ -76,9 +84,15 @@ def get_help(trigger):
     elif trigger == 'selection_script':
         help_msg = '#%selection_script(): sets the selection script of a task\n'
         help_msg += 'Usages:\n' + get_usage_selection_script()
+    elif trigger == 'job_selection_script':
+        help_msg = '#%job_selection_script(): sets the selection script of a job\n'
+        help_msg += 'Usages:\n' + get_usage_job_selection_script()
     elif trigger == 'fork_env':
         help_msg = '#%fork_env(): sets the fork environment script\n'
         help_msg += 'Usages:\n' + get_usage_fork_env()
+    elif trigger == 'job_fork_env':
+        help_msg = '#%job_fork_env(): sets the fork environment of a job\n'
+        help_msg += 'Usages:\n' + get_usage_job_fork_env()
     elif trigger == 'job':
         help_msg = '#%job(): creates/renames the job\n'
         help_msg += 'Usages:\n' + get_usage_job()
@@ -115,8 +129,12 @@ def get_usage(trigger):
         return get_usage_post_script()
     elif trigger == 'selection_script':
         return get_usage_selection_script()
+    elif trigger == 'job_selection_script':
+        return get_usage_job_selection_script()
     elif trigger == 'fork_env':
         return get_usage_fork_env()
+    elif trigger == 'job_fork_env':
+        return get_usage_job_fork_env()
     elif trigger == 'job':
         return get_usage_job()
     elif trigger == 'draw_job':
@@ -268,8 +286,25 @@ def is_valid_selection_script(data):
     return
 
 
+def is_valid_job_selection_script(data):
+    pattern_language = r"^[a-zA-Z_]+$"
+    pattern_path_cars = r"^[a-zA-Z0-9_\/\\:\.-]+$"
+    pattern_on_off = r"^on$|^off$"
+    if 'language' in data and not re.match(pattern_language, data['language']):
+        raise ParameterError('Invalid script language parameter')
+    if 'path' in data and not re.match(pattern_path_cars, data['path']):
+        raise ParameterError('Invalid path parameter')
+    if 'force' in data and not re.match(pattern_on_off, data['force']):
+        raise ParameterError('Invalid forcing parameter')
+    return
+
+
 def is_valid_fork_env(data):
     return is_valid_selection_script(data)
+
+
+def is_valid_job_fork_env(data):
+    return is_valid_job_selection_script(data)
 
 
 def is_valid_job(data):
@@ -327,8 +362,12 @@ def is_valid(data):
         return is_valid_post_script(data)
     elif data['trigger'] == 'selection_script':
         return is_valid_selection_script(data)
+    elif data['trigger'] == 'job_selection_script':
+        return is_valid_job_selection_script(data)
     elif data['trigger'] == 'fork_env':
         return is_valid_fork_env(data)
+    elif data['trigger'] == 'job_fork_env':
+        return is_valid_job_fork_env(data)
     elif data['trigger'] == 'job':
         return is_valid_job(data)
     elif data['trigger'] == 'draw_job':
@@ -365,7 +404,9 @@ class Pragma:
                            'import',
                            'job',
                            'selection_script',
+                           'job_selection_script',
                            'fork_env',
+                           'job_fork_env',
                            'pre_script',
                            'post_script',
                            'write_dot',
@@ -374,6 +415,8 @@ class Pragma:
                            ]
         pragmas_empty = ['submit_job',
                          'import',
+                         'job_selection_script',
+                         'job_fork_env',
                          'draw_job',
                          'help'
                          ]
