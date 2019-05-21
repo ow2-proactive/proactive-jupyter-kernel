@@ -85,6 +85,8 @@ class ProActiveKernel(Kernel):
         self.labels = {}
         self.pragma = Pragma()
         self.imports = {}
+        self.default_selection_script = None
+        self.default_fork_env = None
 
         self.proactive_script_languages = ProactiveScriptLanguage().get_supported_languages()
 
@@ -180,9 +182,13 @@ class ProActiveKernel(Kernel):
         elif pragma_info['trigger'] == 'post_script':
             return self.__create_post_script_from_name__
         elif pragma_info['trigger'] == 'selection_script':
-            return self.__set_selection_script_from_name__
+            return self.__create_selection_script_from_name__
+        elif pragma_info['trigger'] == 'job_selection_script':
+            return self.__create_job_selection_script__
         elif pragma_info['trigger'] == 'fork_env':
             return self.__create_fork_environment_from_name__
+        elif pragma_info['trigger'] == 'job_fork_env':
+            return self.__create_job_fork_environment__
         else:
             raise PragmaError('Directive \'' + pragma_info['trigger'] + '\' not known.')
 
@@ -223,17 +229,17 @@ class ProActiveKernel(Kernel):
 
         if 'inline' in input_data and input_data['inline'] == 'off':
             if 'save' in input_data and input_data['save'] == 'on':
-                self.__kernel_print_ok_message__('Saving the job workflow into a png file...\n')
+                self.__kernel_print_ok_message__('Saving the job workflow into a png file ...\n')
                 plt.savefig(filename)  # save as png
                 self.__kernel_print_ok_message__('\'' + filename + '\' file created.\n')
 
-            self.__kernel_print_ok_message__('Plotting...\n')
+            self.__kernel_print_ok_message__('Plotting ...\n')
             plt.show()  # display
             self.__kernel_print_ok_message__('End.\n')
 
         else:
             if 'save' in input_data and input_data['save'] == 'on':
-                self.__kernel_print_ok_message__('Saving the job workflow into a png file...\n')
+                self.__kernel_print_ok_message__('Saving the job workflow into a png file ...\n')
                 plt.savefig(filename)  # save as png
                 self.__kernel_print_ok_message__('\'' + filename + '\' file created.\n')
                 save_file = True
@@ -242,7 +248,7 @@ class ProActiveKernel(Kernel):
                 save_file = False
 
             try:
-                self.__kernel_print_ok_message__('Plotting...\n')
+                self.__kernel_print_ok_message__('Plotting ...\n')
                 data = display_data_for_image(filename, save_file)
             except ValueError as e:
                 message = {'name': 'stdout', 'text': str(e)}
@@ -254,7 +260,7 @@ class ProActiveKernel(Kernel):
 
     def __draw_job__(self, input_data):
         if not self.graph_created or not self.job_up_to_date:
-            self.__kernel_print_ok_message__('Creating the job workflow...\n')
+            self.__kernel_print_ok_message__('Creating the job workflow ...\n')
             self.G = nx.DiGraph()
 
             # nodes
@@ -308,7 +314,7 @@ class ProActiveKernel(Kernel):
         else:
             title = 'Unnamed_job'
 
-        self.__kernel_print_ok_message__('Writing the dot file...\n')
+        self.__kernel_print_ok_message__('Writing the dot file ...\n')
         write_dot(g_dot, './' + title + '.dot')
         self.__kernel_print_ok_message__('\'' + input_data['name'] + '.dot\' file created.\n')
 
@@ -397,7 +403,9 @@ class ProActiveKernel(Kernel):
                                              + "#%pre_script(): sets the pre-script of a task\n"
                                              + "#%post_script(): sets the post-script of a task\n"
                                              + '#%selection_script(): sets the selection script of a task\n'
+                                             + '#%job_selection_script(): sets the default selection script of a job\n'
                                              + '#%fork_env(): sets the fork environment script\n'
+                                             + '#%job_fork_env(): sets the default fork environment of a job\n'
                                              + '#%job(): creates/renames the job\n'
                                              + '#%draw_job(): plot the workflow\n'
                                              + '#%write_dot(): writes the workflow in .dot format\n'
@@ -408,6 +416,7 @@ class ProActiveKernel(Kernel):
                                                'proactive-jupyter-kernel/blob/master/README.md\n')
 
     def __import__(self, input_data):
+        # TODO: should we update old tasks to add new added imports?
         if 'language' in input_data:
             if input_data['language'] in self.proactive_script_languages:
                 self.__kernel_print_ok_message__('Saving \'' + input_data['language'] + '\' imports ...\n')
@@ -433,7 +442,7 @@ class ProActiveKernel(Kernel):
             if exists:
                 pre_script.setImplementationFromFile(input_data['path'])
                 if input_data['code'] != '':
-                    self.__kernel_print_ok_message__('WARNING: The code written is ignored.\n')
+                    self.__kernel_print_ok_message__('WARNING: The written code is ignored.\n')
             else:
                 raise Exception('The file \'' + input_data['path'] + '\' does not exist')
         else:
@@ -444,7 +453,7 @@ class ProActiveKernel(Kernel):
     def __create_pre_script_from_name__(self, input_data):
         for value in self.proactive_tasks:
             if value.getTaskName() == input_data['name']:
-                self.__kernel_print_ok_message__('Adding a pre-script to the proactive task...\n')
+                self.__kernel_print_ok_message__('Adding a pre-script to the proactive task ...\n')
                 input_data['task'] = value
                 self.__create_pre_script_from_task__(input_data)
                 self.__kernel_print_ok_message__('Pre-script added to \'' + input_data['name'] + '\'.\n')
@@ -463,7 +472,7 @@ class ProActiveKernel(Kernel):
             if exists:
                 post_script.setImplementationFromFile(input_data['path'])
                 if input_data['code'] != '':
-                    self.__kernel_print_ok_message__('WARNING: The code written is ignored.\n')
+                    self.__kernel_print_ok_message__('WARNING: The written code is ignored.\n')
             else:
                 raise Exception('The file \'' + input_data['path'] + '\' does not exist')
         else:
@@ -474,7 +483,7 @@ class ProActiveKernel(Kernel):
     def __create_post_script_from_name__(self, input_data):
         for value in self.proactive_tasks:
             if value.getTaskName() == input_data['name']:
-                self.__kernel_print_ok_message__('Adding a post-script to the proactive task...\n')
+                self.__kernel_print_ok_message__('Adding a post-script to the proactive task ...\n')
                 input_data['task'] = value
                 self.__create_post_script_from_task__(input_data)
                 self.__kernel_print_ok_message__('Post-script added to \'' + input_data['name'] + '\'.\n')
@@ -482,14 +491,15 @@ class ProActiveKernel(Kernel):
                 return 0
         raise Exception('The task named \'' + input_data['name'] + '\' does not exist.')
 
-    def __set_selection_script_from_task__(self, input_data):
+    def __create_selection_script_from_task__(self, input_data):
+        # TODO: add different script language handling
         proactive_selection_script = self.gateway.createDefaultSelectionScript()
         if 'path' in input_data:
             exists = os.path.isfile(input_data['path'])
             if exists:
                 proactive_selection_script.setImplementationFromFile(input_data['path'])
                 if input_data['code'] != '':
-                    self.__kernel_print_ok_message__('WARNING: The code written is ignored.\n')
+                    self.__kernel_print_ok_message__('WARNING: The written code is ignored.\n')
             else:
                 raise Exception('The file \'' + input_data['path'] + '\' does not exist')
         else:
@@ -497,25 +507,53 @@ class ProActiveKernel(Kernel):
 
         input_data['task'].setSelectionScript(proactive_selection_script)
 
-    def __set_selection_script_from_name__(self, input_data):
-        for value in self.proactive_tasks:
-            if value.getTaskName() == input_data['name']:
-                self.__kernel_print_ok_message__('Adding a selection script to the proactive task...\n')
-                input_data['task'] = value
-                self.__set_selection_script_from_task__(input_data)
+    def __create_selection_script_from_name__(self, input_data):
+        for task in self.proactive_tasks:
+            if task.getTaskName() == input_data['name']:
+                self.__kernel_print_ok_message__('Adding a selection script to the proactive task ...\n')
+                input_data['task'] = task
+                self.__create_selection_script_from_task__(input_data)
                 self.__kernel_print_ok_message__('Selection script added to \'' + input_data['name'] + '\'.\n')
                 self.job_up_to_date = False
                 return 0
         raise Exception('The task named \'' + input_data['name'] + '\' does not exist.')
 
+    def __create_job_selection_script__(self, input_data):
+        # TODO: add different script language handling
+        proactive_selection_script = self.gateway.createDefaultSelectionScript()
+        if 'path' in input_data:
+            exists = os.path.isfile(input_data['path'])
+            if exists:
+                proactive_selection_script.setImplementationFromFile(input_data['path'])
+                if input_data['code'] != '':
+                    self.__kernel_print_ok_message__('WARNING: The written code is ignored.\n')
+            else:
+                raise Exception('The file \'' + input_data['path'] + '\' does not exist')
+        else:
+            proactive_selection_script.setImplementation(input_data['code'])
+
+        self.__kernel_print_ok_message__('Saving selection script ...\n')
+        self.default_selection_script = proactive_selection_script
+
+        if 'force' in input_data and input_data['force'] == 'on':
+            self.__kernel_print_ok_message__('Updating created tasks ...\n')
+            for task in self.proactive_tasks:
+                self.__kernel_print_ok_message__('Setting the selection script of the task \'' + task.getTaskName()
+                                                 + '\' ...\n')
+                task.setSelectionScript(self.default_selection_script)
+                self.job_up_to_date = False
+
+        self.__kernel_print_ok_message__('Done.\n')
+
     def __create_fork_environment_from_task__(self, input_data):
+        # TODO: add different script language handling
         proactive_fork_env = self.gateway.createDefaultForkEnvironment()
         if 'path' in input_data:
             exists = os.path.isfile(input_data['path'])
             if exists:
                 proactive_fork_env.setImplementationFromFile(input_data['path'])
                 if input_data['code'] != '':
-                    self.__kernel_print_ok_message__('WARNING: The code written is ignored.\n')
+                    self.__kernel_print_ok_message__('WARNING: The written code is ignored.\n')
             else:
                 raise Exception('The file \'' + input_data['path'] + '\' does not exist')
         else:
@@ -524,15 +562,42 @@ class ProActiveKernel(Kernel):
         input_data['task'].setForkEnvironment(proactive_fork_env)
 
     def __create_fork_environment_from_name__(self, input_data):
-        for value in self.proactive_tasks:
-            if value.getTaskName() == input_data['name']:
-                self.__kernel_print_ok_message__('Adding a fork environment to the proactive task...\n')
-                input_data['task'] = value
+        for task in self.proactive_tasks:
+            if task.getTaskName() == input_data['name']:
+                self.__kernel_print_ok_message__('Adding a fork environment to the proactive task ...\n')
+                input_data['task'] = task
                 self.__create_fork_environment_from_task__(input_data)
                 self.__kernel_print_ok_message__('Fork environment added to \'' + input_data['name'] + '\'.\n')
                 self.job_up_to_date = False
                 return 0
         raise Exception('The task named \'' + input_data['name'] + '\' does not exist.')
+
+    def __create_job_fork_environment__(self, input_data):
+        # TODO: add different script language handling
+        proactive_fork_env = self.gateway.createDefaultForkEnvironment()
+        if 'path' in input_data:
+            exists = os.path.isfile(input_data['path'])
+            if exists:
+                proactive_fork_env.setImplementationFromFile(input_data['path'])
+                if input_data['code'] != '':
+                    self.__kernel_print_ok_message__('WARNING: The written code is ignored.\n')
+            else:
+                raise Exception('The file \'' + input_data['path'] + '\' does not exist')
+        else:
+            proactive_fork_env.setImplementation(input_data['code'])
+
+        self.__kernel_print_ok_message__('Saving the fork environment ...\n')
+        self.default_fork_env = proactive_fork_env
+
+        if 'force' in input_data and input_data['force'] == 'on':
+            self.__kernel_print_ok_message__('Updating created tasks ...\n')
+            for task in self.proactive_tasks:
+                self.__kernel_print_ok_message__('Setting the fork environment of the task \'' + task.getTaskName()
+                                                 + '\' ...\n')
+                task.setForkEnvironment(self.default_fork_env)
+                self.job_up_to_date = False
+
+        self.__kernel_print_ok_message__('Done.\n')
 
     def __get_task_from_name__(self, name):
         for task in self.proactive_tasks:
@@ -553,7 +618,7 @@ class ProActiveKernel(Kernel):
 
     def __create_task__(self, input_data):
         if input_data['name'] in self.tasks_names:
-            self.__kernel_print_ok_message__('WARNING: Task \'' + input_data['name'] + '\' exists already...\n')
+            self.__kernel_print_ok_message__('WARNING: Task \'' + input_data['name'] + '\' exists already ...\n')
             proactive_task = self.__get_task_from_name__(input_data['name'])
             proactive_task.clearDependencies()
             proactive_task.clearGenericInformation()
@@ -573,16 +638,16 @@ class ProActiveKernel(Kernel):
         else:
             if 'language' in input_data:
                 if input_data['language'] in self.proactive_script_languages:
-                    self.__kernel_print_ok_message__('Creating a proactive ' + input_data['language'] + ' task...\n')
+                    self.__kernel_print_ok_message__('Creating a proactive ' + input_data['language'] + ' task ...\n')
                     proactive_task = self.gateway.createTask(self.proactive_script_languages[input_data['language']])
                 elif input_data['language'] == 'Python':
-                    self.__kernel_print_ok_message__('Creating a proactive \'Python\' task...\n')
+                    self.__kernel_print_ok_message__('Creating a proactive \'Python\' task ...\n')
                     proactive_task = self.gateway.createPythonTask()
                 else:
                     raise ParameterError('Language \'' + input_data['language'] +
                                          '\' not supported!\n Supported Languages:\n' + self.script_languages)
             else:
-                self.__kernel_print_ok_message__('Creating a proactive \'Python\' task...\n')
+                self.__kernel_print_ok_message__('Creating a proactive \'Python\' task ...\n')
                 proactive_task = self.gateway.createPythonTask()
 
             if input_data['name'] == '':
@@ -593,8 +658,6 @@ class ProActiveKernel(Kernel):
 
             proactive_task.setTaskName(input_data['name'])
 
-            self.__kernel_print_ok_message__('Adding a selection script to the proactive task...\n')
-            self.__set_selection_script_from_task__({'code': 'selected = True', 'task': proactive_task})
             self.__kernel_print_ok_message__('Task \'' + input_data['name'] + '\' created.\n')
 
             self.proactive_tasks.append(proactive_task)
@@ -602,21 +665,32 @@ class ProActiveKernel(Kernel):
 
             self.tasks_count += 1
 
+        if self.default_selection_script is not None:
+            self.__kernel_print_ok_message__('Adding job selection script to the proactive task ...\n')
+            proactive_task.setSelectionScript(self.default_selection_script)
+        elif proactive_task.getSelectionScript() is None:
+            self.__kernel_print_ok_message__('Adding default selection script to the proactive task ...\n')
+            self.__create_selection_script_from_task__({'code': 'selected = True', 'task': proactive_task})
+
+        if self.default_fork_env is not None:
+            self.__kernel_print_ok_message__('Adding job fork environment to the proactive task ...\n')
+            proactive_task.setForkEnvironment(self.default_fork_env)
+
         if 'dep' in input_data:
             self.__add_dependency__(proactive_task, input_data)
 
         if 'generic_info' in input_data:
-            self.__kernel_print_ok_message__('Adding generic information...\n')
+            self.__kernel_print_ok_message__('Adding generic information ...\n')
             for gen_info in input_data['generic_info']:
                 proactive_task.addGenericInformation(gen_info[0], gen_info[1])
 
         if 'import' in input_data:
-            self.__kernel_print_ok_message__('Adding importing variables script...\n')
+            self.__kernel_print_ok_message__('Adding importing variables script ...\n')
             for var_name in input_data['import']:
                 input_data['code'] = var_name + ' = variables.get("' + var_name + '")\n' + input_data['code']
 
         if 'export' in input_data:
-            self.__kernel_print_ok_message__('Adding exporting variables script...\n')
+            self.__kernel_print_ok_message__('Adding exporting variables script ...\n')
             for var_name in input_data['export']:
                 if var_name in input_data['code']:
                     input_data['code'] = input_data['code'] + '\nvariables.put("' + var_name + '", ' + var_name + ')'
@@ -626,17 +700,17 @@ class ProActiveKernel(Kernel):
 
         if 'language' in input_data:
             if input_data['language'] in self.imports:
-                self.__kernel_print_ok_message__('Adding \'' + input_data['language'] + '\' library imports...\n')
+                self.__kernel_print_ok_message__('Adding \'' + input_data['language'] + '\' library imports ...\n')
                 input_data['code'] = self.imports[input_data['language']] + '\n' + input_data['code']
         else:
             if 'Python' in self.imports:
-                self.__kernel_print_ok_message__('Adding \'Python\' library imports...\n')
+                self.__kernel_print_ok_message__('Adding \'Python\' library imports ...\n')
                 input_data['code'] = self.imports['Python'] + '\n' + input_data['code']
 
         if 'path' in input_data:
             proactive_task.setTaskImplementationFromFile(input_data['path'])
             if input_data['code'] != '':
-                self.__kernel_print_ok_message__('WARNING: The code written is ignored.\n')
+                self.__kernel_print_ok_message__('WARNING: The written code is ignored.\n')
         else:
             proactive_task.setTaskImplementation(input_data['code'])
 
@@ -654,7 +728,7 @@ class ProActiveKernel(Kernel):
         if self.job_created:
             self.__kernel_print_ok_message__('Re-creating the proactive job due to tasks changes ...\n')
         else:
-            self.__kernel_print_ok_message__('Creating a proactive job...\n')
+            self.__kernel_print_ok_message__('Creating a proactive job ...\n')
 
         self.proactive_job = self.gateway.createJob()
         self.__set_job_name__(input_data['name'])
@@ -668,6 +742,7 @@ class ProActiveKernel(Kernel):
         self.proactive_job.setInputFolder(os.getcwd())
         self.proactive_job.setOutputFolder(os.getcwd())
 
+        self.__kernel_print_ok_message__('Done.\n')
         self.job_created = True
         self.job_up_to_date = True
 
@@ -683,13 +758,13 @@ class ProActiveKernel(Kernel):
 
         if 'id' in input_data:
             job_id = int(input_data['id'])
-            self.__kernel_print_ok_message__('Getting job ' + str(job_id) + ' output...\n')
+            self.__kernel_print_ok_message__('Getting job ' + str(job_id) + ' output ...\n')
 
         elif 'name' in input_data and input_data['name'] != '':
             if input_data['name'] not in self.submitted_jobs_ids:
                 raise ResultError("The job named \'" + input_data['name'] + "\' does not exist.")
             job_id = self.submitted_jobs_ids[input_data['name']]
-            self.__kernel_print_ok_message__('Getting job \'' + input_data['name'] + '\' output...\n')
+            self.__kernel_print_ok_message__('Getting job \'' + input_data['name'] + '\' output ...\n')
 
         try:
             job_result = self.gateway.getJobResult(job_id)
@@ -721,7 +796,7 @@ class ProActiveKernel(Kernel):
         else:
             input_data['name'] = self.job_name
 
-        self.__kernel_print_ok_message__('Submitting the job to the proactive scheduler...\n')
+        self.__kernel_print_ok_message__('Submitting the job to the proactive scheduler ...\n')
 
         self.submitted_jobs_names.append(self.job_name)
         self.submitted_jobs_ids[self.job_name] = self.gateway.submitJob(self.proactive_job, debug=False)

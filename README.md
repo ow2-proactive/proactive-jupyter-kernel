@@ -262,7 +262,11 @@ Features:
 
 * *selection_script*: sets the selection script of a task
 
+* *job_selection_script*: sets the default selection script of a job
+
 * *fork_env*: sets the fork environment script
+
+* *job_fork_env*: sets the default fork environment of a job
 
 * *job*: creates/renames the job
 
@@ -279,11 +283,11 @@ Features:
 
 ###### Features improvements
 * execute in local a pragma free block
-* add job fork_env/selection_script
 * add pragma that prints all submitted jobs
 * add draw(on/off), print_result(on/off) options in submit job pragma
 * add pragmas to open scheduler, job analytics, resource manager portals
 * multiple pragmas in a block handling
+* apply selection_script and fork_env to a list of names (tasks)
 * add auto-complete
 
 ###### Documentation
@@ -292,4 +296,6 @@ Features:
 * add import/export description
 * add generic_info description
 * add pre/post scripts description
+* add job_selection_script description
+* add job_fork_env description
 * add some examples pictures
