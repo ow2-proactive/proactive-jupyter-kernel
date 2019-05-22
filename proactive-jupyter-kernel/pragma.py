@@ -191,7 +191,7 @@ def extract_params(params, data):
 
 
 def is_valid_help(data):
-    pattern_pragma_name = r"^[a-z]+$"
+    pattern_pragma_name = r"^[a-z_]+$"
     if 'pragma' in data and not re.match(pattern_pragma_name, data['pragma']):
         raise ParameterError('Invalid pragma parameter')
     return
