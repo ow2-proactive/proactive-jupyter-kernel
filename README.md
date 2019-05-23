@@ -278,12 +278,14 @@ Features:
 
 * *get_result*: gets and prints the job results
 
+* *submitted_jobs*: gets and prints the ids and names of the submitted jobs
+
 
 #### TODO
 
 ###### Features improvements
 * execute in local a pragma free block
-* add pragma that prints all submitted jobs
+* add options import_as_json/export_as_json
 * add draw(on/off), print_result(on/off) options in submit job pragma
 * add pragmas to open scheduler, job analytics, resource manager portals
 * multiple pragmas in a block handling
@@ -298,4 +300,5 @@ Features:
 * add pre/post scripts description
 * add job_selection_script description
 * add job_fork_env description
+* add submitted_jobs description
 * add some examples pictures

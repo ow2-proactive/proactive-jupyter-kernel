@@ -71,7 +71,7 @@ class ProActiveKernel(Kernel):
         self.job_created = False
         self.job_up_to_date = False
         self.job_name = None
-        self.submitted_jobs_names = []
+        self.submitted_jobs_names = {}
         self.submitted_jobs_ids = {}
         self.tasks_names = []
         self.tasks_count = 0
@@ -173,6 +173,8 @@ class ProActiveKernel(Kernel):
             return self.__submit_job__
         elif pragma_info['trigger'] == 'get_result':
             return self.__get_result__
+        elif pragma_info['trigger'] == 'submitted_jobs':
+            return self.__submitted_jobs__
         elif pragma_info['trigger'] == 'job':
             return self.__create_job__
         elif pragma_info['trigger'] == 'write_dot':
@@ -798,12 +800,18 @@ class ProActiveKernel(Kernel):
 
         self.__kernel_print_ok_message__('Submitting the job to the proactive scheduler ...\n')
 
-        self.submitted_jobs_names.append(self.job_name)
-        self.submitted_jobs_ids[self.job_name] = self.gateway.submitJob(self.proactive_job, debug=False)
+        temp_id = self.gateway.submitJob(self.proactive_job, debug=False)
+        self.submitted_jobs_names[temp_id] = self.job_name
+        self.submitted_jobs_ids[self.job_name] = temp_id
 
-        self.__kernel_print_ok_message__('job_id: ' + str(self.submitted_jobs_ids[self.job_name]) + '\n')
+        self.__kernel_print_ok_message__('job_id: ' + str(temp_id) + '\n')
 
         return 0
+
+    def __submitted_jobs__(self, input_data):
+        for job_id in self.submitted_jobs_names:
+            self.__kernel_print_ok_message__('Id: ' + str(job_id) + ' , Name: ' + self.submitted_jobs_names[job_id]
+                                             + '\n')
 
     def do_execute(self, code, silent, store_history=True, user_expressions=None, allow_stdin=False):
         self.silent = silent
