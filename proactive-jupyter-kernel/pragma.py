@@ -65,6 +65,10 @@ def get_usage_get_result():
     return '   #%get_result(id=JOB_ID)\n'
 
 
+def get_usage_submitted_jobs():
+    return '   #%submitted_jobs()\n'
+
+
 def get_help(trigger):
     if trigger == 'connect':
         help_msg = 'Pragma #%connect(): connects to an ActiveEon server\n'
@@ -108,6 +112,9 @@ def get_help(trigger):
     elif trigger == 'get_result':
         help_msg = '#%get_result(): gets and prints the job results\n'
         help_msg += 'Usages:\n' + get_usage_get_result()
+    elif trigger == 'submitted_jobs':
+        help_msg = '#%submitted_jobs(): gets and prints the ids and names of the submitted jobs\n'
+        help_msg += 'Usages:\n' + get_usage_submitted_jobs()
     else:
         raise ParameterError('Pragma \'' + trigger + '\' not known.')
 
@@ -145,6 +152,8 @@ def get_usage(trigger):
         return get_usage_submit_job()
     elif trigger == 'get_result':
         return get_usage_get_result()
+    elif trigger == 'submitted_jobs':
+        return get_usage_submitted_jobs()
     return None
 
 
@@ -347,6 +356,10 @@ def is_valid_get_result(data):
     raise ParameterError('Invalid parameters')
 
 
+def is_valid_submitted_jobs(data):
+    pass
+
+
 def is_valid(data):
     if data['trigger'] == 'help':
         return is_valid_help(data)
@@ -378,6 +391,8 @@ def is_valid(data):
         return is_valid_submit_job(data)
     elif data['trigger'] == 'get_result':
         return is_valid_get_result(data)
+    elif data['trigger'] == 'submitted_jobs':
+        return is_valid_submitted_jobs(data)
     return None
 
 
@@ -411,14 +426,16 @@ class Pragma:
                            'post_script',
                            'write_dot',
                            'submit_job',
-                           'help'
+                           'help',
+                           'submitted_jobs'
                            ]
         pragmas_empty = ['submit_job',
                          'import',
                          'job_selection_script',
                          'job_fork_env',
                          'draw_job',
-                         'help'
+                         'help',
+                         'submitted_jobs'
                          ]
 
         invalid_generic = not re.match(pattern_generic, params) and self.trigger in pragmas_generic
