@@ -280,6 +280,10 @@ Features:
 
 * *submitted_jobs*: gets and prints the ids and names of the submitted jobs
 
+* *plot_resource_manager*: opens the ActiveEon resource manager portal
+
+* *plot_scheduling_portal*: opens the ActiveEon scheduling portal
+
 
 #### TODO
 
@@ -287,7 +291,6 @@ Features:
 * execute in local a pragma free block
 * add options import_as_json/export_as_json
 * add draw(on/off), print_result(on/off) options in submit job pragma
-* add pragmas to open scheduler, job analytics, resource manager portals
 * multiple pragmas in a block handling
 * apply selection_script and fork_env to a list of names (tasks)
 * add auto-complete
@@ -302,3 +305,6 @@ Features:
 * add job_fork_env description
 * add submitted_jobs description
 * add some examples pictures
+* add plot_resource_manager description
+* add plot_scheduling_portal description
+

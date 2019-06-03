@@ -65,8 +65,16 @@ def get_usage_get_result():
     return '   #%get_result(id=JOB_ID)\n'
 
 
-def get_usage_submitted_jobs():
-    return '   #%submitted_jobs()\n'
+def get_usage_list_submitted_jobs():
+    return '   #%list_submitted_jobs()\n'
+
+
+def get_usage_show_resource_manager():
+    return '   #%show_resource_manager()\n'
+
+
+def get_usage_show_scheduling_portal():
+    return '   #%show_scheduling_portal()\n'
 
 
 def get_help(trigger):
@@ -112,9 +120,15 @@ def get_help(trigger):
     elif trigger == 'get_result':
         help_msg = '#%get_result(): gets and prints the job results\n'
         help_msg += 'Usages:\n' + get_usage_get_result()
-    elif trigger == 'submitted_jobs':
-        help_msg = '#%submitted_jobs(): gets and prints the ids and names of the submitted jobs\n'
-        help_msg += 'Usages:\n' + get_usage_submitted_jobs()
+    elif trigger == 'list_submitted_jobs':
+        help_msg = '#%list_submitted_jobs(): gets and prints the ids and names of the submitted jobs\n'
+        help_msg += 'Usages:\n' + get_usage_list_submitted_jobs()
+    elif trigger == 'show_resource_manager':
+        help_msg = '#%show_resource_manager(): opens the ActiveEon resource manager portal\n'
+        help_msg += 'Usages:\n' + get_usage_show_resource_manager()
+    elif trigger == 'show_scheduling_portal':
+        help_msg = '#%show_scheduling_portal(): opens the ActiveEon scheduling portal\n'
+        help_msg += 'Usages:\n' + get_usage_show_scheduling_portal()
     else:
         raise ParameterError('Pragma \'' + trigger + '\' not known.')
 
@@ -152,8 +166,12 @@ def get_usage(trigger):
         return get_usage_submit_job()
     elif trigger == 'get_result':
         return get_usage_get_result()
-    elif trigger == 'submitted_jobs':
-        return get_usage_submitted_jobs()
+    elif trigger == 'list_submitted_jobs':
+        return get_usage_list_submitted_jobs()
+    elif trigger == 'show_resource_manager':
+        return get_usage_show_resource_manager()
+    elif trigger == 'show_scheduling_portal':
+        return get_usage_show_scheduling_portal()
     return None
 
 
@@ -356,8 +374,34 @@ def is_valid_get_result(data):
     raise ParameterError('Invalid parameters')
 
 
-def is_valid_submitted_jobs(data):
+def is_valid_list_submitted_jobs(data):
     pass
+
+
+def is_valid_show_resource_manager(data):
+    pattern_dimension = r"^\d+$"
+    pattern_path_cars = r"^[a-zA-Z0-9_\/\\:\.-]+$"
+    if ('width' in data and 'height' not in data) or ('width' not in data and 'height' in data):
+        raise ParsingError('Missing one of height/width parameters')
+    if 'width' in data and 'height' in data and \
+            not (re.match(pattern_dimension, data['width']) and re.match(pattern_dimension, data['height'])):
+        raise ParameterError('Invalid height/width parameters')
+    if 'host' in data and not re.match(pattern_path_cars, data['host']):
+        raise ParameterError('Invalid host parameter')
+    return
+
+
+def is_valid_show_scheduling_portal(data):
+    pattern_dimension = r"^\d+$"
+    pattern_path_cars = r"^[a-zA-Z0-9_\/\\:\.-]+$"
+    if ('width' in data and 'height' not in data) or ('width' not in data and 'height' in data):
+        raise ParsingError('Missing one of height/width parameters')
+    if 'width' in data and 'height' in data and \
+            not (re.match(pattern_dimension, data['width']) and re.match(pattern_dimension, data['height'])):
+        raise ParameterError('Invalid height/port parameters')
+    if 'host' in data and not re.match(pattern_path_cars, data['host']):
+        raise ParameterError('Invalid host parameter')
+    return
 
 
 def is_valid(data):
@@ -391,8 +435,12 @@ def is_valid(data):
         return is_valid_submit_job(data)
     elif data['trigger'] == 'get_result':
         return is_valid_get_result(data)
-    elif data['trigger'] == 'submitted_jobs':
-        return is_valid_submitted_jobs(data)
+    elif data['trigger'] == 'list_submitted_jobs':
+        return is_valid_list_submitted_jobs(data)
+    elif data['trigger'] == 'show_resource_manager':
+        return is_valid_show_resource_manager(data)
+    elif data['trigger'] == 'show_scheduling_portal':
+        return is_valid_show_scheduling_portal(data)
     return None
 
 
@@ -427,7 +475,9 @@ class Pragma:
                            'write_dot',
                            'submit_job',
                            'help',
-                           'submitted_jobs'
+                           'list_submitted_jobs',
+                           'show_resource_manager',
+                           'show_scheduling_portal'
                            ]
         pragmas_empty = ['submit_job',
                          'import',
@@ -435,7 +485,9 @@ class Pragma:
                          'job_fork_env',
                          'draw_job',
                          'help',
-                         'submitted_jobs'
+                         'list_submitted_jobs',
+                         'show_resource_manager',
+                         'show_scheduling_portal'
                          ]
 
         invalid_generic = not re.match(pattern_generic, params) and self.trigger in pragmas_generic

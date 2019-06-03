@@ -17,6 +17,8 @@ import matplotlib.pyplot as plt
 import networkx as nx
 from networkx.drawing.nx_agraph import write_dot, graphviz_layout
 
+from IPython.display import IFrame
+
 from .images import display_data_for_image
 from .pragma import *
 
@@ -133,6 +135,11 @@ class ProActiveKernel(Kernel):
 
         proactive_host = 'try.activeeon.com'
         proactive_port = '8080'
+
+        self.proactive_config['proactive_server'] = {}
+        self.proactive_config['proactive_server']['host'] = proactive_host
+        self.proactive_config['proactive_server']['port'] = proactive_port
+
         proactive_url = "http://" + proactive_host + ":" + proactive_port
         javaopts = []
         # uncomment for detailed logs
@@ -173,8 +180,8 @@ class ProActiveKernel(Kernel):
             return self.__submit_job__
         elif pragma_info['trigger'] == 'get_result':
             return self.__get_result__
-        elif pragma_info['trigger'] == 'submitted_jobs':
-            return self.__submitted_jobs__
+        elif pragma_info['trigger'] == 'list_submitted_jobs':
+            return self.__list_submitted_jobs__
         elif pragma_info['trigger'] == 'job':
             return self.__create_job__
         elif pragma_info['trigger'] == 'write_dot':
@@ -191,10 +198,46 @@ class ProActiveKernel(Kernel):
             return self.__create_fork_environment_from_name__
         elif pragma_info['trigger'] == 'job_fork_env':
             return self.__create_job_fork_environment__
+        elif pragma_info['trigger'] == 'show_resource_manager':
+            return self.__show_resource_manager__
+        elif pragma_info['trigger'] == 'show_scheduling_portal':
+            return self.__show_scheduling_portal__
         else:
             raise PragmaError('Directive \'' + pragma_info['trigger'] + '\' not known.')
 
-    def draw_graph(self, input_data):
+    def __show_resource_manager__(self, input_data):
+        if 'host' in input_data:
+            url = os.path.join('https://', input_data['host'], 'rm')
+        else:
+            url = os.path.join('https://', self.proactive_config['proactive_server']['host'], 'rm')
+
+        if 'width' in input_data and 'height' in input_data:
+            data = IFrame(url, width=input_data['width'], height=input_data['height'])
+        else:
+            data = IFrame(url, width=1200, height=750)
+
+        content = {'data': {'text/html': data._repr_html_()},
+                   'metadata': {}
+                   }
+        self.send_response(self.iopub_socket, 'display_data', content)
+
+    def __show_scheduling_portal__(self, input_data):
+        if 'host' in input_data:
+            url = os.path.join('https://', input_data['host'], 'scheduler')
+        else:
+            url = os.path.join('https://', self.proactive_config['proactive_server']['host'], 'scheduler')
+
+        if 'width' in input_data and 'height' in input_data:
+            data = IFrame(url, width=input_data['width'], height=input_data['height'])
+        else:
+            data = IFrame(url, width=1200, height=750)
+
+        content = {'data': {'text/html': data._repr_html_()},
+                   'metadata': {}
+                   }
+        self.send_response(self.iopub_socket, 'display_data', content)
+
+    def __draw_graph__(self, input_data):
         pos = graphviz_layout(self.G, prog='dot')
 
         # nodes
@@ -285,7 +328,7 @@ class ProActiveKernel(Kernel):
             self.graph_created = True
             self.__kernel_print_ok_message__('Workflow created.\n')
 
-        self.draw_graph(input_data)
+        self.__draw_graph__(input_data)
 
         return 0
 
@@ -374,6 +417,10 @@ class ProActiveKernel(Kernel):
             proactive_port = input_data['port']
             self.proactive_default_connection = False
 
+            self.proactive_config['proactive_server'] = {}
+            self.proactive_config['proactive_server']['host'] = proactive_host
+            self.proactive_config['proactive_server']['port'] = proactive_port
+
             proactive_url = "http://" + proactive_host + ":" + proactive_port
             javaopts = []
             # uncomment for detailed logs
@@ -409,10 +456,12 @@ class ProActiveKernel(Kernel):
                                              + '#%fork_env(): sets the fork environment script\n'
                                              + '#%job_fork_env(): sets the default fork environment of a job\n'
                                              + '#%job(): creates/renames the job\n'
-                                             + '#%draw_job(): plot the workflow\n'
+                                             + '#%draw_job(): plots the workflow\n'
                                              + '#%write_dot(): writes the workflow in .dot format\n'
                                              + '#%submit_job(): submits the job to the scheduler\n'
-                                             + '#%get_result(): gets and prints the job results\n\n'
+                                             + '#%get_result(): gets and prints the job results\n'
+                                             + '#%show_resource_manager(): opens the ActiveEon resource manager portal\n'
+                                             + '#%show_scheduling_portal(): opens the ActiveEon scheduling portal\n\n'
                                              + 'To know the usage of a pragma use: #%help(pragma=PRAGMA_NAME)\n\n'
                                              + 'For more information, please check: https://github.com/ow2-proactive/'
                                                'proactive-jupyter-kernel/blob/master/README.md\n')
@@ -609,6 +658,8 @@ class ProActiveKernel(Kernel):
 
     def __add_dependency__(self, proactive_task, input_data):
         for task_name in input_data['dep']:
+            if proactive_task.getTaskName() == task_name:
+                continue
             task = self.__get_task_from_name__(task_name)
             if task is not None and task not in proactive_task.getDependencies():
                 proactive_task.addDependency(task)
@@ -808,7 +859,7 @@ class ProActiveKernel(Kernel):
 
         return 0
 
-    def __submitted_jobs__(self, input_data):
+    def __list_submitted_jobs__(self, input_data):
         for job_id in self.submitted_jobs_names:
             self.__kernel_print_ok_message__('Id: ' + str(job_id) + ' , Name: ' + self.submitted_jobs_names[job_id]
                                              + '\n')
@@ -873,6 +924,9 @@ class ProActiveKernel(Kernel):
                     return self.__kernel_print_error_message({'ename': 'Pragma error', 'evalue':
                         'Directive \'' + pragma_info['trigger']
                         + '\' not known.'})
+
+            #TODO: compile python code even when creating a task
+
             if 'language' in pragma_info and pragma_info['language'] == 'Python':
                 try:
                     ast.parse(code)
@@ -890,6 +944,9 @@ class ProActiveKernel(Kernel):
                 if self.proactive_default_connection and pragma_info['trigger'] not in ['connect', 'help']:
                     self.__kernel_print_ok_message__('WARNING: Proactive is connected by default on \''
                                                      + self.gateway.base_url + '\'.\n')
+
+                #TODO: use more functions to reduce do_execute size
+
                 try:
                     exitcode = func(pragma_info)
                 except ConfigError as ce:
