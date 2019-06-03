@@ -278,11 +278,11 @@ Features:
 
 * *get_result*: gets and prints the job results
 
-* *submitted_jobs*: gets and prints the ids and names of the submitted jobs
+* *list_submitted_jobs*: gets and prints the ids and names of the submitted jobs
 
-* *plot_resource_manager*: opens the ActiveEon resource manager portal
+* *show_resource_manager*: opens the ActiveEon resource manager portal
 
-* *plot_scheduling_portal*: opens the ActiveEon scheduling portal
+* *show_scheduling_portal*: opens the ActiveEon scheduling portal
 
 
 #### TODO
@@ -303,8 +303,8 @@ Features:
 * add pre/post scripts description
 * add job_selection_script description
 * add job_fork_env description
-* add submitted_jobs description
+* add list_submitted_jobs description
 * add some examples pictures
-* add plot_resource_manager description
-* add plot_scheduling_portal description
+* add show_resource_manager description
+* add show_scheduling_portal description
 
