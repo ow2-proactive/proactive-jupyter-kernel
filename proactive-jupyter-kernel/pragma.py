@@ -392,16 +392,7 @@ def is_valid_show_resource_manager(data):
 
 
 def is_valid_show_scheduling_portal(data):
-    pattern_dimension = r"^\d+$"
-    pattern_path_cars = r"^[a-zA-Z0-9_\/\\:\.-]+$"
-    if ('width' in data and 'height' not in data) or ('width' not in data and 'height' in data):
-        raise ParsingError('Missing one of height/width parameters')
-    if 'width' in data and 'height' in data and \
-            not (re.match(pattern_dimension, data['width']) and re.match(pattern_dimension, data['height'])):
-        raise ParameterError('Invalid height/port parameters')
-    if 'host' in data and not re.match(pattern_path_cars, data['host']):
-        raise ParameterError('Invalid host parameter')
-    return
+    return is_valid_show_resource_manager(data)
 
 
 def is_valid(data):

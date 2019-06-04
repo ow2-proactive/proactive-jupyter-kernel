@@ -205,11 +205,13 @@ class ProActiveKernel(Kernel):
         else:
             raise PragmaError('Directive \'' + pragma_info['trigger'] + '\' not known.')
 
-    def __show_resource_manager__(self, input_data):
+    def __show_portal__(self, input_data):
+        if 'portal' not in input_data:
+            input_data['portal'] = ""
         if 'host' in input_data:
-            url = os.path.join('https://', input_data['host'], 'rm')
+            url = os.path.join('https://', input_data['host'], input_data['portal'])
         else:
-            url = os.path.join('https://', self.proactive_config['proactive_server']['host'], 'rm')
+            url = os.path.join('https://', self.proactive_config['proactive_server']['host'], input_data['portal'])
 
         if 'width' in input_data and 'height' in input_data:
             data = IFrame(url, width=input_data['width'], height=input_data['height'])
@@ -220,22 +222,14 @@ class ProActiveKernel(Kernel):
                    'metadata': {}
                    }
         self.send_response(self.iopub_socket, 'display_data', content)
+
+    def __show_resource_manager__(self, input_data):
+        input_data['portal'] = 'rm'
+        self.__show_portal__(input_data)
 
     def __show_scheduling_portal__(self, input_data):
-        if 'host' in input_data:
-            url = os.path.join('https://', input_data['host'], 'scheduler')
-        else:
-            url = os.path.join('https://', self.proactive_config['proactive_server']['host'], 'scheduler')
-
-        if 'width' in input_data and 'height' in input_data:
-            data = IFrame(url, width=input_data['width'], height=input_data['height'])
-        else:
-            data = IFrame(url, width=1200, height=750)
-
-        content = {'data': {'text/html': data._repr_html_()},
-                   'metadata': {}
-                   }
-        self.send_response(self.iopub_socket, 'display_data', content)
+        input_data['portal'] = 'scheduler'
+        self.__show_portal__(input_data)
 
     def __draw_graph__(self, input_data):
         pos = graphviz_layout(self.G, prog='dot')
