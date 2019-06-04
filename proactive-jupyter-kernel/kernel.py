@@ -866,22 +866,19 @@ class ProActiveKernel(Kernel):
 
         interrupted = False
 
-        if interrupted:
-            return {'status': 'abort', 'execution_count': self.execution_count}
-
-        if self.proactive_failed_connection:
-            self.__kernel_print_error_message({'ename': 'Proactive connexion error',
-                                               'evalue': 'Please, reconfigure proactive connection and restart kernel'})
-
-            return self.__kernel_print_error_message({'ename': 'Error', 'evalue': self.error_message})
-
-        pattern = r"^#%"
-
-        func = self.__create_task__
-
-        pragma_info = {'name': '', 'trigger': 'task'}
-
         try:
+            if self.proactive_failed_connection:
+                self.__kernel_print_error_message({'ename': 'Proactive connexion error',
+                                                   'evalue': 'Please, reconfigure proactive connection and restart kernel'})
+
+                return self.__kernel_print_error_message({'ename': 'Error', 'evalue': self.error_message})
+
+            pattern = r"^#%"
+
+            func = self.__create_task__
+
+            pragma_info = {'name': '', 'trigger': 'task'}
+
             if re.match(pattern, code):
                 pragma_string = code.split("\n", 1)
 
@@ -956,8 +953,15 @@ class ProActiveKernel(Kernel):
             except Exception as e:
                 return self.__kernel_print_error_message({'ename': 'Proactive error', 'evalue': str(e)})
 
+        except KeyboardInterrupt:
+            self.__kernel_print_ok_message__('Interrupted!')
+            interrupted = True
+            exitcode = 134
         except Exception as e:
             exitcode = e
+
+        if interrupted:
+            return {'status': 'abort', 'execution_count': self.execution_count}
 
         if exitcode:
             error_content = self.__kernel_print_error_message({'ename': 'Error', 'evalue': str(exitcode)})
