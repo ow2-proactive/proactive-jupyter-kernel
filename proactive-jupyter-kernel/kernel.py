@@ -745,6 +745,7 @@ class ProActiveKernel(Kernel):
                     self.__kernel_print_ok_message__('WARNING: Undefined variable \'' + var_name +
                                                      '\'. Export ignored.\n')
 
+        # TODO: check how to import/export variables when a file path is provided
         if 'language' in input_data:
             if input_data['language'] in self.imports:
                 self.__kernel_print_ok_message__('Adding \'' + input_data['language'] + '\' library imports ...\n')

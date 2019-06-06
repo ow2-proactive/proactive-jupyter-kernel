@@ -18,7 +18,7 @@ def get_usage_import():
 def get_usage_task():
     return '   #%task(name=TASK_NAME, [dep=[TASK_NAME1,TASK_NAME2,...]], [generic_info=[(KEY1,VAL1),' \
            '(KEY2,VALUE2),...]], [export=[VAR_NAME1,VAR_NAME2,...]], [import=[VAR_NAME1,VAR_NAME2,...]], ' \
-           '[path=IMPLEMENTATION_FILE_PATH])\n'
+           '[path=IMPLEMENTATION_FILE_PATH], [language=SCRIPT_LANGUAGE])\n'
 
 
 def get_usage_pre_script():
@@ -42,7 +42,7 @@ def get_usage_fork_env():
 
 
 def get_usage_job_fork_env():
-    return '   #%job_fork_env([language=SCRIPT_LANGUAGE], [path=./SELECTION_CODE_FILE.py], [force=on/off])\n'
+    return '   #%job_fork_env([language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py], [force=on/off])\n'
 
 
 def get_usage_job():
@@ -70,11 +70,11 @@ def get_usage_list_submitted_jobs():
 
 
 def get_usage_show_resource_manager():
-    return '   #%show_resource_manager()\n'
+    return '   #%show_resource_manager([height=HEIGHT_VALUE, width=WIDTH_VALUE])\n'
 
 
 def get_usage_show_scheduling_portal():
-    return '   #%show_scheduling_portal()\n'
+    return '   #%show_scheduling_portal([height=HEIGHT_VALUE, width=WIDTH_VALUE])\n'
 
 
 def get_help(trigger):
