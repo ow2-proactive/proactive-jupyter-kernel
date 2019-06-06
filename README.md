@@ -1,6 +1,6 @@
 # proactive-jupyter-kernel
-The ActiveEon Jupyter Kernel adds a kernel backend for Jupyter to interface directly with the ProActive scheduler and 
-construct tasks and workflows and execute them on the fly.
+The ActiveEon Jupyter Kernel adds a kernel backend to Jupyter to interface directly with the ProActive scheduler and 
+construct tasks and workflows to execute them on the fly.
 
 ## 1. Requirements:
 
@@ -112,12 +112,11 @@ General usage:
 #%task(name=TASK_NAME, [language=SCRIPT_LANGUAGE], [dep=[TASK_NAME1,TASK_NAME2,...]], [generic_info=[(KEY1,VAL1), (KEY2,VALUE2),...]], [export=[VAR_NAME1,VAR_NAME2,...]], [import=[VAR_NAME1,VAR_NAME2,...]], [path=IMPLEMENTATION_FILE_PATH])\n'
 ```
 
-As seen in the general usage, users can also provide more information about the task by using the `#%task()` pragma's 
-options:
+As seen in the general usage, users can also provide more information about the task by using the pragma's options:
 
 ##### 5.1.1 Language
 
-`language` parameter is needed when the task script is not written in native Python, the default language.
+The `language` parameter is needed when the task script is not written in native Python, the default language.
 The handled programming languages are:
 
 * Linux_Bash
@@ -133,7 +132,7 @@ The handled programming languages are:
 * PowerShell
 * R
 
-Example of usage for a task written in `Linux_Bash`:
+Example of usage when the task is written in `Linux_Bash`:
 
 ```bash
 #%task(name=myTask, language=Linux_Bash)
@@ -152,8 +151,9 @@ print('Hello world')
 
 ##### 5.1.3 Generic information
 
-To specify the advanced ProActive scheduler variables values (check XXX for more details), the parameter 
-`generic_info` is provided. The value should be a tuples `(key,value)` list of all the names and values of the 
+To specify the values of the advanced ProActive variables 
+"[generic_information](https://doc.activeeon.com/latest/user/ProActiveUserGuide.html#_generic_information)",
+ the parameter `generic_info` is provided. The value should be a tuples `(key,value)` list of all the names and values of the 
 ProActive parameters. Example:
 
 ```python
@@ -165,7 +165,7 @@ print('Hello world')
 
 The `export` and `import` parameters make possible variables propagation between the different tasks of a workflow. 
 If `myTask1` variables `var1` and `var2` are needed in `myTask2`, the `myTask1` pragma should include and `export` with 
-a list of these variable names and `myTask2` pragma an `import` with a list including these names too. Example:
+a list of these variable names and the `myTask2` pragma an `import` with a list including the same names. Example:
 
 `myTask1` implementation bloc would be:
 ```python
@@ -192,15 +192,18 @@ Example:
 #### 5.2 Imports libraries
 
 Since each created ProActive task will be executed as an independent process, to facilitate the transition from native 
-language kernels to the ProActive one, a pragma that allows the user to add just once the libraries that are common to 
-all created tasks that are implemented in a same script language. This pragma is used in this manner 
-`#%import([language=SCRIPT_LANGUAGE])`. If the language is not specified, Python is considered by default. Example:
+language kernels to the ProActive one we included the pragma `#%import()`. This pragma allows the user to add just in 
+one bloc of his notebook, libraries that are common to all created tasks implemented in a same script language. 
+
+The pragma is used in this general manner: `#%import([language=SCRIPT_LANGUAGE])`. Example:
 
 ```python
 #%import(language=Python)
 import os
 import pandas
 ```
+
+Notice that if the language is not specified, Python is considered by default.
 
 #### 5.3 Adding a fork environment
 
@@ -247,7 +250,9 @@ A second way is by providing the name of the task, and the path of a .py file co
 #### 5.5 Adding job fork environment and/or selection script
 
 If the selection scripts and/or the fork environments are the same for all job tasks, we can add them just once using 
-the `job_selection_script` and/or the `job_fork_env` pragmas. Usage:
+the `job_selection_script` and/or the `job_fork_env` pragmas. 
+
+Usage:
 
 For a job selection script use:
 
