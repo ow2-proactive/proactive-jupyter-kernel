@@ -62,7 +62,7 @@ Once you receive your login and password, connect using the `#%connect()` pragma
 #%connect(login=YOUR_LOGIN, password=YOUR_PASSWORD)
 ```
 
-To connect to another host, use the later pragma this way:
+To connect to another host, please use the later pragma this way:
 
 ```python
 #%connect(host=YOUR_HOST, port=YOUR_PORT, login=YOUR_LOGIN, password=YOUR_PASSWORD)
@@ -98,7 +98,7 @@ You can also force the current Kernel to connect using any .ini config file thro
 
 #### 5.1 Creating a Python task
 
-To create a task, use the pragma `#%task()` followed by the task implementation script wrote into a notebook block code.
+To create a task, please use the pragma `#%task()` followed by the task implementation script wrote into a notebook block code.
 To use this pragma, at least, a task name has to be provided. Example:
 
 ```python
@@ -141,7 +141,7 @@ echo 'Hello, World!'
 
 ##### 5.1.2 Dependencies
 
-One of the most important notions in workflows is the dependencies between tasks. To specify this information, use the 
+One of the most important notions in workflows is the dependencies between tasks. To specify this information, please use the 
 `dep` parameter. The value should be a list of all the tasks on which the new task depends. Example:
 
 ```python
@@ -191,9 +191,13 @@ Example:
 
 #### 5.2 Imports libraries
 
-Since each created ProActive task will be executed as an independent process, to facilitate the transition from native 
-language kernels to the ProActive one we included the pragma `#%import()`. This pragma allows the user to add just in 
-one bloc of his notebook, libraries that are common to all created tasks implemented in a same script language. 
+The main difference between Proactive kernel and a native language one resides in the memory access during the 
+execution of the different blocs.  While in a common native language kernel the whole script code (all the notebook 
+blocs) is executed locally in the same shared memory zone, the ProActive kernel each created task will be executed as 
+an independent process.
+To facilitate the transition from native language kernels to the ProActive one we included the pragma `#%import()`. 
+This pragma gives the ability to the user to add, just once in the notebook, libraries that are common to all created 
+tasks implemented in a same native script language. 
 
 The pragma is used in this general manner: `#%import([language=SCRIPT_LANGUAGE])`. Example:
 
@@ -207,7 +211,7 @@ Notice that if the language is not specified, Python is considered by default.
 
 #### 5.3 Adding a fork environment
 
-To configure a fork environment for a task, use the `#%fork_env()` pragma. A first way to do this
+To configure a fork environment for a task, please use the `#%fork_env()` pragma. A first way to do this
 is by providing the name of the corresponding task, and the fork environment implementation after that:
 
 ```text
@@ -233,7 +237,7 @@ A second way is by providing the name of the task, and the path of a \_.py\_ fil
 
 #### 5.4 Adding a selection script
 
-To add a selection script to a task, use the `#%selection_script()` pragma. A first way to do it,
+To add a selection script to a task, please use the `#%selection_script()` pragma. A first way to do it,
 provide the name of the corresponding task, and the selection code implementation after that:
 
 ```python
@@ -254,13 +258,13 @@ the `job_selection_script` and/or the `job_fork_env` pragmas.
 
 Usage:
 
-For a job selection script use:
+For a job selection script please use:
 
 ```python
 #%job_selection_script([language=SCRIPT_LANGUAGE], [path=./SELECTION_CODE_FILE.py], [force=on/off])
 ```
 
-For a job fork environment use:
+For a job fork environment please use:
 
 ```python
 #%job_fork_env([language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py], [force=on/off])
@@ -270,16 +274,16 @@ The `force` parameter says if the pragma has to overwrite the task selection scr
 
 #### 5.6 Adding pre and/or post scripts
 
-Sometimes, specified scripts has to be executed before and/or after a particular task. To add those scripts both 
-`pre_script` and `post_script` exist.
+Sometimes, specified scripts has to be executed before and/or after a particular task. To do that, the solution provides
+ `pre_script` and `post_script` pragmas.
 
-To add a pre-script to a task, use:
+To add a pre-script to a task, please use:
 
 ```python
 #%pre_script(name=TASK_NAME, language=SCRIPT_LANGUAGE, [path=./PRE_SCRIPT_FILE.py])
 ```
 
-To add a post-script to a task, use:
+To add a post-script to a task, please use:
 
 ```python
 #%post_script(name=TASK_NAME, language=SCRIPT_LANGUAGE, [path=./POST_SCRIPT_FILE.py])
@@ -287,7 +291,7 @@ To add a post-script to a task, use:
 
 #### 5.7 Create a job
 
-To create a job, use the `#%job()` pragma:
+To create a job, please use the `#%job()` pragma:
 
 ```python
 #%job(name=JOB_NAME)
@@ -300,7 +304,7 @@ performed when the job is submitted (check section 5.7 for more information).**
 
 #### 5.8 Plot job
 
-To verify the created workflow, use the `#%draw_job()` pragma to plot it into a separate window:
+To verify the created workflow, please use the `#%draw_job()` pragma to plot it into a separate window:
 
 ```python
 #%draw_job()
@@ -334,7 +338,7 @@ if it is created, by the name of the notebook if reachable or at worst by "Unnam
 
 #### 5.9 Save workflow in dot format
 
-To save the created workflow into a [GraphViz](https://www.graphviz.org/) \_.dot\_ format, use the `#%write_dot()` pragma:
+To save the created workflow into a [GraphViz](https://www.graphviz.org/) \_.dot\_ format, please use the `#%write_dot()` pragma:
 
 ```python
 #%write_dot(name=FILE_NAME)
@@ -350,7 +354,7 @@ To submit the job to the proactive scheduler, the user has to use the `#%submit_
 ```
 
 If the job is not created, or is not up-to-date, the `#%submit_job()` starts by creating a new job named as the old one.
-To provide a new name, use the same pragma and provide a name as parameter:
+To provide a new name, please use the same pragma and provide a name as parameter:
 
 ```python
 #%submit_job(name=JOB_NAME)
