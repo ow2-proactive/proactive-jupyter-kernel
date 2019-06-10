@@ -388,22 +388,28 @@ The returned values of your final tasks will be automatically printed.
 
 #### 5.13 Showing ActiveEon portals
 
-Finally, to have the hand on more parameters and features, the user should use ActiveEon portals. 
-The two main ones are the _Resource Manager_ and the _Scheduling Portal_.
+Finally, to have the hand on more parameters and features, the user should use ActiveEon Studio portals.
+The main ones are the _Resource Manager_, the _Scheduling Portal_ and the _Workflow Automation_.
 
-To show the resource manager portal related to the host you are connected to, just tape:
+To show the resource manager portal related to the host you are connected to, just run:
 
 ```python
 #%show_resource_manager([height=HEIGHT_VALUE, width=WIDTH_VALUE])
 ```
 
-And for the related scheduling portal:
+for the related scheduling portal:
 
 ```python
 #%show_scheduling_portal([height=HEIGHT_VALUE, width=WIDTH_VALUE])
 ```
 
-Notice that the parameters `height` and `width` allow the user to adjust the size of the window inside the notebook.
+and for the related workflow automation:
+
+```python
+#%show_workflow_automation([height=HEIGHT_VALUE, width=WIDTH_VALUE])
+```
+
+NOTE: The parameters `height` and `width` allow the user to adjust the size of the window inside the notebook.
 
 #### Current status
 

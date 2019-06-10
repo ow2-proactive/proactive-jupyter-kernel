@@ -202,6 +202,8 @@ class ProActiveKernel(Kernel):
             return self.__show_resource_manager__
         elif pragma_info['trigger'] == 'show_scheduling_portal':
             return self.__show_scheduling_portal__
+        elif pragma_info['trigger'] == 'show_workflow_automation':
+            return self.__show_workflow_automation__
         else:
             raise PragmaError('Directive \'' + pragma_info['trigger'] + '\' not known.')
 
@@ -229,6 +231,10 @@ class ProActiveKernel(Kernel):
 
     def __show_scheduling_portal__(self, input_data):
         input_data['portal'] = 'scheduler'
+        self.__show_portal__(input_data)
+
+    def __show_workflow_automation__(self, input_data):
+        input_data['portal'] = 'automation-dashboard/#/portal/workflow-automation'
         self.__show_portal__(input_data)
 
     def __draw_graph__(self, input_data):
@@ -455,7 +461,8 @@ class ProActiveKernel(Kernel):
                                              + '#%submit_job(): submits the job to the scheduler\n'
                                              + '#%get_result(): gets and prints the job results\n'
                                              + '#%show_resource_manager(): opens the ActiveEon resource manager portal\n'
-                                             + '#%show_scheduling_portal(): opens the ActiveEon scheduling portal\n\n'
+                                             + '#%show_scheduling_portal(): opens the ActiveEon scheduling portal\n'
+                                             + '#%show_workflow_automation(): opens the ActiveEon workflow automation portal\n\n'
                                              + 'To know the usage of a pragma use: #%help(pragma=PRAGMA_NAME)\n\n'
                                              + 'For more information, please check: https://github.com/ow2-proactive/'
                                                'proactive-jupyter-kernel/blob/master/README.md\n')
