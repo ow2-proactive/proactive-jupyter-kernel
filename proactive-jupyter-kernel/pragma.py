@@ -77,6 +77,10 @@ def get_usage_show_scheduling_portal():
     return '   #%show_scheduling_portal([height=HEIGHT_VALUE, width=WIDTH_VALUE])\n'
 
 
+def get_usage_show_workflow_automation():
+    return '   #%show_workflow_automation([height=HEIGHT_VALUE, width=WIDTH_VALUE])\n'
+
+
 def get_help(trigger):
     if trigger == 'connect':
         help_msg = 'Pragma #%connect(): connects to an ActiveEon server\n'
@@ -129,6 +133,9 @@ def get_help(trigger):
     elif trigger == 'show_scheduling_portal':
         help_msg = '#%show_scheduling_portal(): opens the ActiveEon scheduling portal\n'
         help_msg += 'Usages:\n' + get_usage_show_scheduling_portal()
+    elif trigger == 'show_workflow_automation':
+        help_msg = '#%show_workflow_automation(): opens the ActiveEon workflow automation portal\n'
+        help_msg += 'Usages:\n' + get_usage_show_workflow_automation()
     else:
         raise ParameterError('Pragma \'' + trigger + '\' not known.')
 
@@ -172,6 +179,8 @@ def get_usage(trigger):
         return get_usage_show_resource_manager()
     elif trigger == 'show_scheduling_portal':
         return get_usage_show_scheduling_portal()
+    elif trigger == 'show_workflow_automation':
+        return get_usage_show_workflow_automation()
     return None
 
 
@@ -395,6 +404,10 @@ def is_valid_show_scheduling_portal(data):
     return is_valid_show_resource_manager(data)
 
 
+def is_valid_show_workflow_automation(data):
+    return is_valid_show_resource_manager(data)
+
+
 def is_valid(data):
     if data['trigger'] == 'help':
         return is_valid_help(data)
@@ -432,6 +445,8 @@ def is_valid(data):
         return is_valid_show_resource_manager(data)
     elif data['trigger'] == 'show_scheduling_portal':
         return is_valid_show_scheduling_portal(data)
+    elif data['trigger'] == 'show_workflow_automation':
+        return is_valid_show_workflow_automation(data)
     return None
 
 
@@ -468,7 +483,8 @@ class Pragma:
                            'help',
                            'list_submitted_jobs',
                            'show_resource_manager',
-                           'show_scheduling_portal'
+                           'show_scheduling_portal',
+                           'show_workflow_automation'
                            ]
         pragmas_empty = ['submit_job',
                          'import',
@@ -478,7 +494,8 @@ class Pragma:
                          'help',
                          'list_submitted_jobs',
                          'show_resource_manager',
-                         'show_scheduling_portal'
+                         'show_scheduling_portal',
+                         'show_workflow_automation'
                          ]
 
         invalid_generic = not re.match(pattern_generic, params) and self.trigger in pragmas_generic
