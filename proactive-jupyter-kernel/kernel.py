@@ -77,7 +77,7 @@ class ProActiveKernel(Kernel):
         self.submitted_jobs_ids = {}
         self.tasks_names = []
         self.tasks_count = 0
-        self.proactive_config = None
+        self.proactive_config = {}
         self.proactive_connected = False
         self.proactive_default_connection = False
         self.proactive_failed_connection = False
