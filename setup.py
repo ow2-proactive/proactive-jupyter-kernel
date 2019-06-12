@@ -13,7 +13,7 @@ package_data = \
 
 install_requires = \
     ['pexpect>=4.0', 'proactive', 'jupyter_client', 'IPython', 'traitlets', 'ipykernel', 'notebook', 'configparser',
-     'matplotlib', 'networkx', 'pygraphviz']
+     'matplotlib', 'networkx', 'pygraphviz', 'tornado==5.1.1']
 
 now = datetime.datetime.now()
 
