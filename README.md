@@ -389,7 +389,7 @@ The returned values of your final tasks will be automatically printed.
 #### 5.13 Showing ActiveEon portals
 
 Finally, to have the hand on more parameters and features, the user should use ActiveEon Studio portals.
-The main ones are the _Resource Manager_, the _Scheduling Portal_ and the _Workflow Automation_.
+The main ones are the \_Resource Manager\_, the \_Scheduling Portal\_ and the \_Workflow Automation\_.
 
 To show the resource manager portal related to the host you are connected to, just run:
 

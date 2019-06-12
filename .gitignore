@@ -4,4 +4,6 @@ test/
 scripts/.ipynb_checkpoints
 proactive-jupyter-kernel/__pycache__
 dist
+build
 MANIFEST
+*.egg-info
