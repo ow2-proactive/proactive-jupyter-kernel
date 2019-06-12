@@ -4,6 +4,7 @@ import os
 import ast
 import configparser as cp
 import random
+import tempfile
 import proactive
 
 from notebook import notebookapp
@@ -794,8 +795,12 @@ class ProActiveKernel(Kernel):
         for task in self.proactive_tasks:
             self.proactive_job.addTask(task)
 
-        self.proactive_job.setInputFolder(os.getcwd())
-        self.proactive_job.setOutputFolder(os.getcwd())
+        # TODO:
+        #  if input_data['input_folder'] is None, use the `tmpdir` variable
+        #  same for input_data['output_folder']
+        tmpdir = tempfile.mkdtemp(dir=tempfile.gettempdir())
+        self.proactive_job.setInputFolder(tmpdir)
+        self.proactive_job.setOutputFolder(tmpdir)
 
         self.__kernel_print_ok_message__('Done.\n')
         self.job_created = True
