@@ -448,7 +448,9 @@ class ProActiveKernel(Kernel):
         if 'pragma' in input_data:
             self.__kernel_print_ok_message__(get_help(input_data['pragma']))
         else:
+            # TODO: automatize the help output and relate it more to pragma.py
             self.__kernel_print_ok_message__('\n#%connect(): connects to an ActiveEon server\n'
+                                             + '#%import(): import specified libraries to all tasks of a same script language\n'
                                              + '#%task(): creates/modifies a task\n'
                                              + "#%pre_script(): sets the pre-script of a task\n"
                                              + "#%post_script(): sets the post-script of a task\n"
@@ -461,6 +463,7 @@ class ProActiveKernel(Kernel):
                                              + '#%write_dot(): writes the workflow in .dot format\n'
                                              + '#%submit_job(): submits the job to the scheduler\n'
                                              + '#%get_result(): gets and prints the job results\n'
+                                             + '#%list_submitted_jobs(): gets and prints the ids and names of the submitted jobs\n'
                                              + '#%show_resource_manager(): opens the ActiveEon resource manager portal\n'
                                              + '#%show_scheduling_portal(): opens the ActiveEon scheduling portal\n'
                                              + '#%show_workflow_automation(): opens the ActiveEon workflow automation portal\n\n'
@@ -929,7 +932,7 @@ class ProActiveKernel(Kernel):
                         'Directive \'' + pragma_info['trigger']
                         + '\' not known.'})
 
-            #TODO: compile python code even when creating a task
+            # TODO: compile python code even when creating a task
 
             if 'language' in pragma_info and pragma_info['language'] == 'Python':
                 try:
@@ -949,7 +952,7 @@ class ProActiveKernel(Kernel):
                     self.__kernel_print_ok_message__('WARNING: Proactive is connected by default on \''
                                                      + self.gateway.base_url + '\'.\n')
 
-                #TODO: use more functions to reduce do_execute size
+                # TODO: use more functions to reduce do_execute size
 
                 try:
                     exitcode = func(pragma_info)
