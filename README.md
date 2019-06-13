@@ -44,7 +44,7 @@ $ python -m proactive-jupyter-kernel.install
 ## 2. Platform
 
 You can use any jupyter platform.
-We recommend to use https://jupyterlab.readthedocs.io/en/stable/[jupyter lab]. To launch it from your terminal after
+We recommend to use [jupyter lab](https://jupyterlab.readthedocs.io/en/stable/). To launch it from your terminal after
 having installed it:
 
 ```bash
