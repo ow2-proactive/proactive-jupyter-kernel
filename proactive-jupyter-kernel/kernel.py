@@ -768,16 +768,13 @@ class ProActiveKernel(Kernel):
             if isAPythonTask:
                 input_data['code'] = input_data['code'] + '\ntry:'
             for var_name in input_data['export']:
-                # if var_name in input_data['code']:
                 if isAPythonTask:
                     input_data['code'] = input_data['code'] + '\n' + \
                                          '\tvariables.put("' + var_name + '", ' + var_name + ')'
                 else:
                     input_data['code'] = input_data['code'] + '\nvariables.put("' + var_name + '", ' + var_name + ')'
                 self.exported_vars[input_data['name']].append(var_name)
-                # else:
-                #     self.__kernel_print_ok_message__('WARNING: Undefined variable \'' + var_name +
-                #                                      '\'. Export ignored.\n')
+
             if isAPythonTask:
                 input_data['code'] = input_data['code'] + \
                                      '\nexcept Exception:' \
