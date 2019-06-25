@@ -91,6 +91,8 @@ class ProActiveKernel(Kernel):
         self.default_selection_script = None
         self.default_fork_env = None
 
+        self.exported_vars = {}
+
         self.proactive_script_languages = ProactiveScriptLanguage().get_supported_languages()
 
         self.script_languages = ''
@@ -675,11 +677,20 @@ class ProActiveKernel(Kernel):
                                                                                   'dependence ignored.\n')
 
     def __create_task__(self, input_data):
+        # Verifying if imported variables have been exported in other tasks
+        if 'import' in input_data:
+            for var_name in input_data['import']:
+                for task_name in self.exported_vars:
+                    if var_name not in self.exported_vars[task_name]:
+                        raise ParameterError('The variable \'' + var_name + '\' can\'t be imported.')
+
         if input_data['name'] in self.tasks_names:
             self.__kernel_print_ok_message__('WARNING: Task \'' + input_data['name'] + '\' exists already ...\n')
             proactive_task = self.__get_task_from_name__(input_data['name'])
             proactive_task.clearDependencies()
             proactive_task.clearGenericInformation()
+            if input_data['name'] in self.exported_vars:
+                del self.exported_vars[input_data['name']]
 
             if 'language' in input_data:
                 if input_data['language'] in self.proactive_script_languages:
@@ -742,6 +753,8 @@ class ProActiveKernel(Kernel):
             for gen_info in input_data['generic_info']:
                 proactive_task.addGenericInformation(gen_info[0], gen_info[1])
 
+        # TODO: check how to import/export variables when a file path is provided
+
         if 'import' in input_data:
             self.__kernel_print_ok_message__('Adding importing variables script ...\n')
             for var_name in input_data['import']:
@@ -749,14 +762,27 @@ class ProActiveKernel(Kernel):
 
         if 'export' in input_data:
             self.__kernel_print_ok_message__('Adding exporting variables script ...\n')
+            self.exported_vars[input_data['name']] = []
+            isAPythonTask = 'language' not in input_data \
+                            or ('language' in input_data and input_data['language'] == 'Python')
+            if isAPythonTask:
+                input_data['code'] = input_data['code'] + '\ntry:'
             for var_name in input_data['export']:
-                if var_name in input_data['code']:
-                    input_data['code'] = input_data['code'] + '\nvariables.put("' + var_name + '", ' + var_name + ')'
+                # if var_name in input_data['code']:
+                if isAPythonTask:
+                    input_data['code'] = input_data['code'] + '\n' + \
+                                         '\tvariables.put("' + var_name + '", ' + var_name + ')'
                 else:
-                    self.__kernel_print_ok_message__('WARNING: Undefined variable \'' + var_name +
-                                                     '\'. Export ignored.\n')
+                    input_data['code'] = input_data['code'] + '\nvariables.put("' + var_name + '", ' + var_name + ')'
+                self.exported_vars[input_data['name']].append(var_name)
+                # else:
+                #     self.__kernel_print_ok_message__('WARNING: Undefined variable \'' + var_name +
+                #                                      '\'. Export ignored.\n')
+            if isAPythonTask:
+                input_data['code'] = input_data['code'] + \
+                                     '\nexcept Exception:' \
+                                     '\n\tprint("WARNING: Some exported variables are undefined. Please check.")'
 
-        # TODO: check how to import/export variables when a file path is provided
         if 'language' in input_data:
             if input_data['language'] in self.imports:
                 self.__kernel_print_ok_message__('Adding \'' + input_data['language'] + '\' library imports ...\n')
