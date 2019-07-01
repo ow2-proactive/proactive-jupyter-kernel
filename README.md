@@ -57,9 +57,25 @@ $ nohup jupyter lab &>/dev/null &
 
 When opened, click on the ProActive icon to open a notebook based on the ProActive kernel.
 
-## 3. Connection
+## 3. Help
 
-### 3.1 Using connect()
+As a quick start, we recommend the user to run the `#%help()` pragma using the following script:
+
+```python
+#%help()
+```
+
+This script gives a brief description of all the different pragmas that the ProActive Kernel provides.
+
+To get a more detailed description of a needed pragma, the user can run the following script:
+
+```python
+#%help(pragma=PRAGMA_NAME)
+```
+
+## 4. Connection
+
+### 4.1 Using connect()
 
 If you are trying ProActive for the first time, sign up on the [try platform](https://try.activeeon.com/signup.html).
 Once you receive your login and password, connect to the trial platform using the `#%connect()` pragma:
@@ -74,7 +90,7 @@ To connect to another ProActive server host, use the later pragma this way:
 #%connect(host=YOUR_HOST, port=YOUR_PORT, login=YOUR_LOGIN, password=YOUR_PASSWORD)
 ```
 
-### 3.2 Using a configuration file:
+### 4.2 Using a configuration file:
 
 For automatic sign in, create a file named *proactive_config.ini* in your notebook working directory.
 
@@ -100,9 +116,9 @@ You can also force the current kernel to connect using any _.ini_ config file th
 (For more information about this format please check
 [configParser](https://docs.python.org/3/library/configparser.html))
 
-## 4. Usage
+## 5. Usage
 
-#### 4.1 Creating a Python task
+#### 5.1 Creating a Python task
 
 To create a new task, use the pragma `#%task()` followed by the task implementation script written into a notebook
 block code.
@@ -122,7 +138,7 @@ General usage:
 Users can also provide more information about the task using the pragma's options. In the following, we give more
 details about the possible options:
 
-##### 4.1.1 Language
+##### 5.1.1 Language
 
 The `language` parameter is needed when the task script is not written in native Python. If not provided, Python will be
  selected as the default language.
@@ -148,7 +164,7 @@ Here is an example that shows a task implementation written in `Linux_Bash`:
 echo 'Hello, World!'
 ```
 
-##### 4.1.2 Dependencies
+##### 5.1.2 Dependencies
 
 One of the most important notions in workflows is the dependencies between tasks. To specify this information, use the
 `dep` parameter. Its value should be a list of all tasks on which the new task depends. Example:
@@ -158,7 +174,7 @@ One of the most important notions in workflows is the dependencies between tasks
 print('Hello world')
 ```
 
-##### 4.1.3 Generic information
+##### 5.1.3 Generic information
 
 To specify the values of some advanced ProActive variables called
 [generic_information](https://doc.activeeon.com/latest/user/ProActiveUserGuide.html#_generic_information), you should
@@ -170,7 +186,7 @@ and adequate values of the Generic Information. Example:
 print('Hello world')
 ```
 
-##### 4.1.4 Export/import variables
+##### 5.1.4 Export/import variables
 
 The `export` and `import` parameters ensure variables propagation between the different tasks of a workflow.
 If `myTask1` variables `var1` and `var2` are needed in `myTask2`, both pragmas have to specify this information as
@@ -194,7 +210,7 @@ and `myTask2` implementation block would be:
 print(var1 + " from " + var2)
 ```
 
-##### 4.1.5 Implementation file
+##### 5.1.5 Implementation file
 
 It is also possible to use an external implementation file to define the task implementation. To do so, the option `path`
  should be used.
@@ -205,7 +221,7 @@ Example:
 #%task(name=myTask,path=PATH_TO/IMPLEMENTATION_FILE.py)
 ```
 
-#### 4.2 Importing libraries
+#### 5.2 Importing libraries
 
 The main difference between the ProActive and 'native language' kernels resides in the way the memory is accessed
 during blocks execution. In a common native language kernel, the whole script code (all the notebook blocks) is
@@ -228,7 +244,7 @@ import pandas
 
 NOTE: If the language is not specified, Python is considered as default language.
 
-#### 4.3 Adding a fork environment
+#### 5.3 Adding a fork environment
 
 To configure a fork environment for a task, use the `#%fork_env()` pragma. To do so, you have to provide the name of the
 corresponding task and the fork environment implementation.
@@ -256,7 +272,7 @@ Or, you can provide the task name and the path of a _.py_ file containing the fo
 #%fork_env(name=TASK_NAME, path=PATH_TO/FORK_ENV_FILE.py)
 ```
 
-#### 4.4 Adding a selection script
+#### 5.4 Adding a selection script
 
 To add a selection script to a task, use the `#%selection_script()` pragma. To do so, you have to provide the name of
 the corresponding task and the selection code implementation.
@@ -274,7 +290,7 @@ Or, you can provide the task name and the path of a _.py_ file containing the se
 #%selection_script(name=TASK_NAME, path=PATH_TO/SELECTION_CODE_FILE.py)
 ```
 
-#### 4.5 Adding job fork environment and/or selection script
+#### 5.5 Adding job fork environment and/or selection script
 
 If the selection scripts and/or the fork environments are the same for all job tasks, we can add them just once using
 the `job_selection_script` and/or the `job_fork_env` pragmas.
@@ -296,7 +312,7 @@ For a job fork environment, use:
 The `force` parameter defines whether the pragma has to overwrite the task selection scripts or the fork environment
 already set.
 
-#### 4.6 Adding pre and/or post scripts
+#### 5.6 Adding pre and/or post scripts
 
 Sometimes, specific scripts has to be executed before and/or after a particular task. To do that, the solution provides
  `pre_script` and `post_script` pragmas.
@@ -313,7 +329,7 @@ To add a post-script to a task, use:
 #%post_script(name=TASK_NAME, language=SCRIPT_LANGUAGE, [path=./POST_SCRIPT_FILE.py])
 ```
 
-#### 4.7 Create a job
+#### 5.7 Create a job
 
 To create a job, use the `#%job()` pragma:
 
@@ -328,7 +344,7 @@ NOTE: It is not necessary to create and assign a name explicitly to the job. If 
 implicitly performed when the job is submitted (check section <<Submit your job to the scheduler>> for more
 information).
 
-#### 4.8 Visualize job
+#### 5.8 Visualize job
 
 To visualize the created workflow, use the `#%draw_job()` pragma to plot the workflow graph that represents the job
 into a separate window:
@@ -370,7 +386,7 @@ General usage:
 #%draw_job([name=JOB_NAME], [inline=off], [save=on])
 ```
 
-#### 4.9 Export the workflow in dot format
+#### 5.9 Export the workflow in dot format
 
 To export the created workflow into a [GraphViz](https://www.graphviz.org/) _.dot_ format, use the `#%write_dot()` pragma:
 
@@ -379,7 +395,7 @@ To export the created workflow into a [GraphViz](https://www.graphviz.org/) _.do
 ```
 
 
-#### 4.10 Submit your job to the scheduler
+#### 5.10 Submit your job to the scheduler
 
 To submit the job to the ProActive Scheduler, the user has to use the `#%submit_job()` pragma:
 
@@ -396,7 +412,7 @@ To provide a new name, use the same pragma and provide a name as parameter:
 
 If the job's name is not set, the ProActive kernel uses the current notebook name, if possible, or gives a random one.
 
-#### 4.11 List all submitted jobs
+#### 5.11 List all submitted jobs
 
 To get all submitted job IDs and names, use `list_submitted_jobs` pragma this way:
 
@@ -404,7 +420,7 @@ To get all submitted job IDs and names, use `list_submitted_jobs` pragma this wa
 #%list_submitted_jobs()
 ```
 
-#### 4.12 Print results
+#### 5.12 Print results
 
 To get the job result(s), the user has to use the `#%get_result()` pragma by providing the job name:
 
@@ -420,7 +436,7 @@ Or, by the job ID:
 
 The returned values of your final tasks will be automatically printed.
 
-### 5. Display and use ActiveEon Portals directly in Jupyter
+### 6. Display and use ActiveEon Portals directly in Jupyter
 
 Finally, to have the hand on more parameters and features, the user should use ActiveEon Studio portals.
 The main ones are the _Resource Manager_, the _Scheduling Portal_ and the _Workflow Automation_.
