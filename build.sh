@@ -7,4 +7,7 @@ rm -rf proactive_jupyter_kernel.egg-info/
 #rm MANIFEST
 python setup.py sdist --formats=zip
 python setup.py bdist_wheel
+
+pip install twine
+
 twine check dist/*
