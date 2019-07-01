@@ -676,13 +676,18 @@ class ProActiveKernel(Kernel):
                 self.__kernel_print_ok_message__('WARNING: Task \'' + task_name + '\' does not exist, '
                                                                                   'dependence ignored.\n')
 
+    def __isExported__(self, var_name):
+        for task_name in self.exported_vars:
+            if var_name in self.exported_vars[task_name]:
+                return True
+        return False
+
     def __create_task__(self, input_data):
         # Verifying if imported variables have been exported in other tasks
         if 'import' in input_data:
             for var_name in input_data['import']:
-                for task_name in self.exported_vars:
-                    if var_name not in self.exported_vars[task_name]:
-                        raise ParameterError('The variable \'' + var_name + '\' can\'t be imported.')
+                if not self.__isExported__(var_name):
+                    raise ParameterError('The variable \'' + var_name + '\' can\'t be imported.')
 
         if input_data['name'] in self.tasks_names:
             self.__kernel_print_ok_message__('WARNING: Task \'' + input_data['name'] + '\' exists already ...\n')
