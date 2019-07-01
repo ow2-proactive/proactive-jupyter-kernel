@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # https://github.com/pypa/warehouse/issues/5890#issuecomment-494868157
-# pip install -U twine wheel setuptools
+pip install -U twine wheel setuptools
+
 rm -rf dist/
 rm -rf build/
 rm -rf proactive_jupyter_kernel.egg-info/
