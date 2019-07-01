@@ -30,7 +30,10 @@ with open('gradle.properties') as fp:
             gradle_properties[name] = value
 
 with open("README.md", "r") as fh:
-    long_description = fh.read()
+    try:
+        long_description = fh.read()
+    except (OSError, IOError):
+        long_description = "Not available"
 
 setup(name='proactive-jupyter-kernel',
       version=gradle_properties["version"],
