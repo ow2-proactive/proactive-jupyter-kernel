@@ -80,7 +80,7 @@ class ProActiveKernel(Kernel):
         self.tasks_count = 0
         self.proactive_config = {}
         self.proactive_connected = False
-        self.proactive_default_connection = False
+        self.proactive_default_connection = True
         self.proactive_failed_connection = False
         self.error_message = ''
         self.graph_created = False
@@ -136,20 +136,7 @@ class ProActiveKernel(Kernel):
                         self.proactive_connected = True
                 return
 
-        proactive_host = 'try.activeeon.com'
-        proactive_port = '8080'
-
         self.proactive_config['proactive_server'] = {}
-        self.proactive_config['proactive_server']['host'] = proactive_host
-        self.proactive_config['proactive_server']['port'] = proactive_port
-
-        proactive_url = "http://" + proactive_host + ":" + proactive_port
-        javaopts = []
-        # uncomment for detailed logs
-        # javaopts.append('-Dlog4j.configuration=file:'+os.path.join(os.getcwd(),'log4j.properties'))
-        redirectJVMOutput = False
-        self.gateway = proactive.ProActiveGateway(proactive_url, javaopts, redirectJVMOutput)
-        self.proactive_default_connection = True
 
     def __kernel_print_ok_message__(self, text):
         message = dict(name='stdout', text=text)
@@ -404,6 +391,7 @@ class ProActiveKernel(Kernel):
                                                      + '\'!\n')
 
                     self.proactive_connected = True
+                    self.proactive_default_connection = False
 
                     return 0
 
@@ -415,21 +403,27 @@ class ProActiveKernel(Kernel):
             else:
                 raise ConfigError(input_data['path'] + ': No such a file.\n')
 
-        if 'host' in input_data and 'port' in input_data:
-            proactive_host = input_data['host']
-            proactive_port = input_data['port']
+        if 'host' in input_data:
+            self.proactive_config['proactive_server']['host'] = input_data['host']
             self.proactive_default_connection = False
+        else:
+            self.proactive_config['proactive_server']['host'] = 'try.activeeon.com'
+            self.proactive_default_connection = True
 
-            self.proactive_config['proactive_server'] = {}
-            self.proactive_config['proactive_server']['host'] = proactive_host
-            self.proactive_config['proactive_server']['port'] = proactive_port
+        if 'port' in input_data:
+            self.proactive_config['proactive_server']['port'] = input_data['port']
+            self.proactive_default_connection = False
+        else:
+            self.proactive_config['proactive_server']['port'] = '8080'
 
-            proactive_url = "http://" + proactive_host + ":" + proactive_port
-            javaopts = []
-            # uncomment for detailed logs
-            # javaopts.append('-Dlog4j.configuration=file:'+os.path.join(os.getcwd(),'log4j.properties'))
-            redirectJVMOutput = False
-            self.gateway = proactive.ProActiveGateway(proactive_url, javaopts, redirectJVMOutput)
+        proactive_url = "http://" + self.proactive_config['proactive_server']['host'] + ":" + \
+                        self.proactive_config['proactive_server']['port']
+
+        javaopts = []
+        # uncomment for detailed logs
+        # javaopts.append('-Dlog4j.configuration=file:'+os.path.join(os.getcwd(),'log4j.properties'))
+        redirectJVMOutput = False
+        self.gateway = proactive.ProActiveGateway(proactive_url, javaopts, redirectJVMOutput)
 
         self.__kernel_print_ok_message__('Connecting to server ...\n')
 
