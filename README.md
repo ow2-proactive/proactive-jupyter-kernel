@@ -87,8 +87,10 @@ Once you receive your login and password, connect to the trial platform using th
 To connect to another ProActive server host, use the later pragma this way:
 
 ```python
-#%connect(host=YOUR_HOST, port=YOUR_PORT, login=YOUR_LOGIN, password=YOUR_PASSWORD)
+#%connect(host=YOUR_HOST, [port=YOUR_PORT], login=YOUR_LOGIN, password=YOUR_PASSWORD)
 ```
+
+Notice that the `port` parameter is optional. The default connexion port is `8080`.
 
 ### 4.2 Using a configuration file:
 
