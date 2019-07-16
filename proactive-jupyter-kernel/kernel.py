@@ -143,9 +143,8 @@ class ProActiveKernel(Kernel):
         self.send_response(self.iopub_socket, 'stream', message)
 
     def __kernel_print_error_message(self, error_data):
-        error_content = {'execution_count': self.execution_count,
-                         'ename': error_data['ename'], 'evalue': error_data['evalue'],
-                         'traceback': []}
+        error_content = {'execution_count': self.execution_count, 'ename': error_data['ename'],
+                         'evalue': error_data['evalue'], 'traceback': [], 'status': u'error'}
         self.send_response(self.iopub_socket, 'error', error_content)
         return error_content
 
