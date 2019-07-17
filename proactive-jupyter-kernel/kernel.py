@@ -143,9 +143,12 @@ class ProActiveKernel(Kernel):
         self.send_response(self.iopub_socket, 'stream', message)
 
     def __kernel_print_error_message(self, error_data):
-        error_content = {'execution_count': self.execution_count, 'ename': error_data['ename'],
-                         'evalue': error_data['evalue'], 'traceback': [], 'status': u'error'}
+        error_content = {'ename': error_data['ename'],
+                         'evalue': error_data['evalue'],
+                         'traceback': []}
         self.send_response(self.iopub_socket, 'error', error_content)
+        error_content['execution_count'] = self.execution_count
+        error_content['status'] = 'error'
         return error_content
 
     def __get_unique_task_name__(self):
