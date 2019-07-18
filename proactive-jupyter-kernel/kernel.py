@@ -362,6 +362,7 @@ class ProActiveKernel(Kernel):
             self.__kernel_print_ok_message__('WARNING: Proactive is already connected.\n')
             self.__kernel_print_ok_message__('Disconnecting from server: ' + self.gateway.base_url + ' ...\n')
             self.gateway.disconnect()
+            self.gateway.terminate()
             self.proactive_connected = False
 
         if 'path' in input_data:
