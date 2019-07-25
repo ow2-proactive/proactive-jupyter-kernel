@@ -230,6 +230,17 @@ class ProActiveKernel(Kernel):
         input_data['portal'] = 'automation-dashboard/#/portal/workflow-automation'
         self.__show_portal__(input_data)
 
+    def __get_saving_file_name__(self, input_data):
+        if 'name' in input_data and input_data['name'] != '':
+            title = input_data['name']
+        elif self.job_created:
+            title = self.job_name
+        elif notebook_path() is not None:
+            title = str(notebook_path().rsplit('/', 1)[1].split('.', 1)[0])
+        else:
+            title = 'Unnamed_job'
+        return title
+
     def __draw_graph__(self, input_data):
         pos = graphviz_layout(self.G, prog='dot')
 
@@ -253,14 +264,7 @@ class ProActiveKernel(Kernel):
 
         plt.axis('off')
 
-        if 'name' in input_data and input_data['name'] != '':
-            title = input_data['name']
-        elif self.job_created:
-            title = self.job_name
-        elif notebook_path() is not None:
-            title = str(notebook_path().rsplit('/', 1)[1].split('.', 1)[0])
-        else:
-            title = 'Unnamed_job'
+        title = self.__get_saving_file_name__(input_data)
 
         plt.title(title)
         filename = './' + title + '.png'
@@ -343,14 +347,7 @@ class ProActiveKernel(Kernel):
 
         g_dot.name = self.job_name
 
-        if 'name' in input_data and input_data['name'] != '':
-            title = input_data['name']
-        elif self.job_created:
-            title = self.job_name
-        elif notebook_path() is not None:
-            title = str(notebook_path().rsplit('/', 1)[1].split('.', 1)[0])
-        else:
-            title = 'Unnamed_job'
+        title = self.__get_saving_file_name__(input_data)
 
         self.__kernel_print_ok_message__('Writing the dot file ...\n')
         write_dot(g_dot, './' + title + '.dot')
@@ -361,14 +358,7 @@ class ProActiveKernel(Kernel):
     def __create_export_xml__(self, input_data):
         self.__kernel_print_ok_message__('Exporting the job workflow (xml format) ...\n')
 
-        if 'name' in input_data and input_data['name'] != '':
-            title = input_data['name']
-        elif self.job_created:
-            title = self.job_name
-        elif notebook_path() is not None:
-            title = str(notebook_path().rsplit('/', 1)[1].split('.', 1)[0])
-        else:
-            title = 'Unnamed_job'
+        title = self.__get_saving_file_name__(input_data)
 
         filename = './' + title + '.xml'
         self.gateway.saveJob2XML(self.proactive_job, filename, debug=False)
