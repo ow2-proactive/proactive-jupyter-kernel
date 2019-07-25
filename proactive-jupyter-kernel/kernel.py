@@ -101,7 +101,6 @@ class ProActiveKernel(Kernel):
 
         try:
             self.__start_proactive__()
-
         except Exception as e:
             self.proactive_failed_connection = True
             self.error_message = str(e)
@@ -176,6 +175,8 @@ class ProActiveKernel(Kernel):
             return self.__list_submitted_jobs__
         elif pragma_info['trigger'] == 'job':
             return self.__create_job__
+        elif pragma_info['trigger'] == 'export_xml':
+            return self.__create_export_xml__
         elif pragma_info['trigger'] == 'write_dot':
             return self.__write_dot__
         elif pragma_info['trigger'] == 'pre_script':
@@ -353,7 +354,26 @@ class ProActiveKernel(Kernel):
 
         self.__kernel_print_ok_message__('Writing the dot file ...\n')
         write_dot(g_dot, './' + title + '.dot')
-        self.__kernel_print_ok_message__('\'' + input_data['name'] + '.dot\' file created.\n')
+        self.__kernel_print_ok_message__('\'' + title + '.dot\' file created.\n')
+
+        return 0
+
+    def __create_export_xml__(self, input_data):
+        self.__kernel_print_ok_message__('Exporting the job workflow (xml format) ...\n')
+
+        if 'name' in input_data and input_data['name'] != '':
+            title = input_data['name']
+        elif self.job_created:
+            title = self.job_name
+        elif notebook_path() is not None:
+            title = str(notebook_path().rsplit('/', 1)[1].split('.', 1)[0])
+        else:
+            title = 'Unnamed_job'
+
+        filename = './' + title + '.xml'
+        self.gateway.saveJob2XML(self.proactive_job, filename, debug=False)
+
+        self.__kernel_print_ok_message__('\'' + title + '.xml\' file created.\n')
 
         return 0
 
@@ -463,6 +483,7 @@ class ProActiveKernel(Kernel):
                                              + '#%submit_job(): submits the job to the scheduler\n'
                                              + '#%get_result(): gets and prints the job results\n'
                                              + '#%list_submitted_jobs(): gets and prints the ids and names of the submitted jobs\n'
+                                             + '#%export_xml(): exports the workflow in .xml format\n'
                                              + '#%show_resource_manager(): opens the ActiveEon resource manager portal\n'
                                              + '#%show_scheduling_portal(): opens the ActiveEon scheduling portal\n'
                                              + '#%show_workflow_automation(): opens the ActiveEon workflow automation portal\n\n'

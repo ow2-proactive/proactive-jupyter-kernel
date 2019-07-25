@@ -69,6 +69,10 @@ def get_usage_list_submitted_jobs():
     return '   #%list_submitted_jobs()\n'
 
 
+def get_usage_export_xml():
+    return '   #%export_xml([name=FILE_NAME])\n'
+
+
 def get_usage_show_resource_manager():
     return '   #%show_resource_manager([height=HEIGHT_VALUE, width=WIDTH_VALUE])\n'
 
@@ -127,6 +131,9 @@ def get_help(trigger):
     elif trigger == 'list_submitted_jobs':
         help_msg = '#%list_submitted_jobs(): gets and prints the ids and names of the submitted jobs\n'
         help_msg += 'Usages:\n' + get_usage_list_submitted_jobs()
+    elif trigger == 'export_xml':
+        help_msg = '#%export_xml(): exports the job in xml format\n'
+        help_msg += 'Usages:\n' + get_usage_export_xml()
     elif trigger == 'show_resource_manager':
         help_msg = '#%show_resource_manager(): opens the ActiveEon resource manager portal\n'
         help_msg += 'Usages:\n' + get_usage_show_resource_manager()
@@ -175,6 +182,8 @@ def get_usage(trigger):
         return get_usage_get_result()
     elif trigger == 'list_submitted_jobs':
         return get_usage_list_submitted_jobs()
+    elif trigger == 'export_xml':
+        return get_usage_export_xml()
     elif trigger == 'show_resource_manager':
         return get_usage_show_resource_manager()
     elif trigger == 'show_scheduling_portal':
@@ -386,6 +395,10 @@ def is_valid_list_submitted_jobs(data):
     pass
 
 
+def is_valid_export_xml(data):
+    return is_valid_write_dot(data)
+
+
 def is_valid_show_resource_manager(data):
     pattern_dimension = r"^\d+$"
     pattern_path_cars = r"^[a-zA-Z0-9_\/\\:\.-]+$"
@@ -440,6 +453,8 @@ def is_valid(data):
         return is_valid_get_result(data)
     elif data['trigger'] == 'list_submitted_jobs':
         return is_valid_list_submitted_jobs(data)
+    elif data['trigger'] == 'export_xml':
+        return is_valid_export_xml(data)
     elif data['trigger'] == 'show_resource_manager':
         return is_valid_show_resource_manager(data)
     elif data['trigger'] == 'show_scheduling_portal':
@@ -481,6 +496,7 @@ class Pragma:
                            'submit_job',
                            'help',
                            'list_submitted_jobs',
+                           'export_xml',
                            'show_resource_manager',
                            'show_scheduling_portal',
                            'show_workflow_automation'
@@ -492,6 +508,7 @@ class Pragma:
                          'draw_job',
                          'help',
                          'list_submitted_jobs',
+                         'export_xml',
                          'show_resource_manager',
                          'show_scheduling_portal',
                          'show_workflow_automation'
