@@ -343,7 +343,7 @@ If the job has already been created, the call of this pragma would just rename t
 provided name.
 
 NOTE: It is not necessary to create and assign a name explicitly to the job. If not done by the user, this step is
-implicitly performed when the job is submitted (check section <<Submit your job to the scheduler>> for more
+implicitly performed when the job is submitted (check section [Submit your job to the scheduler](#510-submit-your-job-to-the-scheduler) for more
 information).
 
 #### 5.8 Visualize job
@@ -422,7 +422,22 @@ To get all submitted job IDs and names, use `list_submitted_jobs` pragma this wa
 #%list_submitted_jobs()
 ```
 
-#### 5.12 Print results
+#### 5.12 Export the workflow in xml format
+
+To export the created workflow in _.xml_ format, use the `#%export_xml()` pragma:
+
+```python
+#%export_xml([name=FILENAME])
+```
+
+Notice that the _.xml_ file will be saved under one of the following names:
+
+1. The parameter `name` 's value, if provided
+2. The job's name, if created
+3. The notebook's name, if the kernel can retrieve it
+4. `Unnamed_job`, otherwise.
+
+#### 5.13 Print results
 
 To get the job result(s), the user has to use the `#%get_result()` pragma by providing the job name:
 
@@ -502,6 +517,8 @@ Features:
 * *get_result*: gets and prints the job results
 
 * *list_submitted_jobs*: gets and prints the ids and names of the submitted jobs
+
+* *export_xml*: exports the workflow in .xml format
 
 * *show_resource_manager*: opens the ActiveEon resource manager portal
 
