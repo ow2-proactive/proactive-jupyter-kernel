@@ -817,8 +817,10 @@ class ProActiveKernel(Kernel):
 
         return 0
 
-    def __clean_related_dependencies__(self, proactive_task):
-        pass
+    def __clean_related_dependencies__(self, removed_task):
+        for task in self.proactive_tasks:
+            if removed_task in task.getDependencies():
+                task.removeDependency(removed_task)
 
     def __delete_task__(self, input_data):
         if input_data['name'] in self.tasks_names:
@@ -830,10 +832,13 @@ class ProActiveKernel(Kernel):
             self.proactive_job.removeTask()
             self.job_up_to_date = False
 
-        self.__clean_related_dependencies__(proactive_task)
-
         self.proactive_tasks.remove(proactive_task)
         self.tasks_names.remove(input_data['name'])
+
+        self.__clean_related_dependencies__(proactive_task)
+
+        if input_data['name'] in self.exported_vars:
+            del self.exported_vars[input_data['name']]
 
         return
 
