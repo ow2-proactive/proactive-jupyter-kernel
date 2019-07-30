@@ -21,6 +21,10 @@ def get_usage_task():
            '[path=IMPLEMENTATION_FILE_PATH], [language=SCRIPT_LANGUAGE])\n'
 
 
+def get_usage_delete_task():
+    return '   #%delete_task(name=TASK_NAME)\n'
+
+
 def get_usage_pre_script():
     return '   #%pre_script(name=TASK_NAME, language=SCRIPT_LANGUAGE, [path=./PRE_SCRIPT_FILE.py])\n'
 
@@ -95,6 +99,9 @@ def get_help(trigger):
     elif trigger == 'task':
         help_msg = '#%task(): creates/modifies a task\n'
         help_msg += 'Usages:\n' + get_usage_task()
+    elif trigger == 'delete_task':
+        help_msg = '#%delete_task(): remove a task from the workflow\n'
+        help_msg += 'Usages:\n' + get_usage_task()
     elif trigger == 'pre_script':
         help_msg = '#%pre_script(): sets the pre-script of a task\n'
         help_msg += 'Usages:\n' + get_usage_pre_script()
@@ -158,6 +165,8 @@ def get_usage(trigger):
         return get_usage_import()
     elif trigger == 'task':
         return get_usage_task()
+    elif trigger == 'delete_task':
+        return get_usage_delete_task()
     elif trigger == 'pre_script':
         return get_usage_pre_script()
     elif trigger == 'post_script':
@@ -303,6 +312,13 @@ def is_valid_task(data):
     return
 
 
+def is_valid_delete_task(data):
+    pattern_name = r"^[a-zA-Z_]\w*$"
+    if 'name' not in data or not re.match(pattern_name, data['name']):
+        raise ParameterError('Invalid name parameter')
+    return
+
+
 def is_valid_pre_script(data):
     pattern_name = r"^[a-zA-Z_]\w*$"
     pattern_language = r"^[a-zA-Z_]+$"
@@ -429,6 +445,8 @@ def is_valid(data):
         return is_valid_import(data)
     elif data['trigger'] == 'task':
         return is_valid_task(data)
+    elif data['trigger'] == 'delete_task':
+        return is_valid_delete_task(data)
     elif data['trigger'] == 'pre_script':
         return is_valid_pre_script(data)
     elif data['trigger'] == 'post_script':
@@ -484,6 +502,7 @@ class Pragma:
 
         pragmas_generic = ['draw_job',
                            'task',
+                           'delete_task',
                            'import',
                            'job',
                            'selection_script',

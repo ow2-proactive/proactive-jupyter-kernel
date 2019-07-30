@@ -171,6 +171,8 @@ class ProActiveKernel(Kernel):
             return self.__submit_job__
         elif pragma_info['trigger'] == 'get_result':
             return self.__get_result__
+        if pragma_info['trigger'] == 'delete_task':
+            return self.__delete_task__
         elif pragma_info['trigger'] == 'list_submitted_jobs':
             return self.__list_submitted_jobs__
         elif pragma_info['trigger'] == 'job':
@@ -461,6 +463,7 @@ class ProActiveKernel(Kernel):
             self.__kernel_print_ok_message__('\n#%connect(): connects to an ActiveEon server\n'
                                              + '#%import(): import specified libraries to all tasks of a same script language\n'
                                              + '#%task(): creates/modifies a task\n'
+                                             + '#%delete_task(): removes a task from the workflow\n'
                                              + "#%pre_script(): sets the pre-script of a task\n"
                                              + "#%post_script(): sets the post-script of a task\n"
                                              + '#%selection_script(): sets the selection script of a task\n'
@@ -813,6 +816,26 @@ class ProActiveKernel(Kernel):
         self.job_up_to_date = False
 
         return 0
+
+    def __clean_related_dependencies__(self, proactive_task):
+        pass
+
+    def __delete_task__(self, input_data):
+        if input_data['name'] in self.tasks_names:
+            proactive_task = self.__get_task_from_name__(input_data['name'])
+        else:
+            raise ParameterError('Task \'' + self.script_languages + '\' does not exist.')
+
+        if self.job_created:
+            self.proactive_job.removeTask()
+            self.job_up_to_date = False
+
+        self.__clean_related_dependencies__(proactive_task)
+
+        self.proactive_tasks.remove(proactive_task)
+        self.tasks_names.remove(input_data['name'])
+
+        return
 
     def __create_job__(self, input_data):
         if self.job_created and self.job_up_to_date:
