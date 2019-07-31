@@ -830,7 +830,6 @@ class ProActiveKernel(Kernel):
 
         if self.job_created:
             self.proactive_job.removeTask()
-            self.job_up_to_date = False
 
         self.proactive_tasks.remove(proactive_task)
         self.tasks_names.remove(input_data['name'])
@@ -839,6 +838,8 @@ class ProActiveKernel(Kernel):
 
         if input_data['name'] in self.exported_vars:
             del self.exported_vars[input_data['name']]
+
+        self.job_up_to_date = False
 
         return
 
