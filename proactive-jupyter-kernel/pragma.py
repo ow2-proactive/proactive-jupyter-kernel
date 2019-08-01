@@ -101,7 +101,7 @@ def get_help(trigger):
         help_msg += 'Usages:\n' + get_usage_task()
     elif trigger == 'delete_task':
         help_msg = '#%delete_task(): remove a task from the workflow\n'
-        help_msg += 'Usages:\n' + get_usage_task()
+        help_msg += 'Usages:\n' + get_usage_delete_task()
     elif trigger == 'pre_script':
         help_msg = '#%pre_script(): sets the pre-script of a task\n'
         help_msg += 'Usages:\n' + get_usage_pre_script()

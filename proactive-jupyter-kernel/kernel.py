@@ -306,6 +306,7 @@ class ProActiveKernel(Kernel):
         if not self.graph_created or not self.job_up_to_date:
             self.__kernel_print_ok_message__('Creating the job workflow ...\n')
             self.G = nx.DiGraph()
+            self.labels.clear()
 
             # nodes
             nodes_ids = [i for i in range(len(self.proactive_tasks))]
@@ -674,6 +675,14 @@ class ProActiveKernel(Kernel):
                 return task
         return None
 
+    def __print_all_dependencies(self):
+        for son_task in self.proactive_tasks:
+            self.__kernel_print_ok_message__('Task \'' + son_task.getTaskName() + '\':\n')
+            dependencies = son_task.getDependencies()
+            for parent_task in dependencies:
+                self.__kernel_print_ok_message__('   ' + parent_task.getTaskName() +
+                                                 ' -> ' + son_task.getTaskName() + '\n')
+
     def __add_dependency__(self, proactive_task, input_data):
         for task_name in input_data['dep']:
             if proactive_task.getTaskName() == task_name:
@@ -824,18 +833,22 @@ class ProActiveKernel(Kernel):
 
     def __delete_task__(self, input_data):
         if input_data['name'] in self.tasks_names:
-            proactive_task = self.__get_task_from_name__(input_data['name'])
+            task_to_remove = self.__get_task_from_name__(input_data['name'])
         else:
             raise ParameterError('Task \'' + self.script_languages + '\' does not exist.')
 
         if self.job_created:
-            self.proactive_job.removeTask()
+            self.__kernel_print_ok_message__('Deleting task from the job.\n')
+            self.proactive_job.removeTask(task_to_remove)
 
-        self.proactive_tasks.remove(proactive_task)
+        self.__kernel_print_ok_message__('Deleting task from the tasks list.\n')
+        self.proactive_tasks.remove(task_to_remove)
         self.tasks_names.remove(input_data['name'])
 
-        self.__clean_related_dependencies__(proactive_task)
+        self.__kernel_print_ok_message__('Cleaning dependencies.\n')
+        self.__clean_related_dependencies__(task_to_remove)
 
+        self.__kernel_print_ok_message__('Cleaning exported vars list.\n')
         if input_data['name'] in self.exported_vars:
             del self.exported_vars[input_data['name']]
 
