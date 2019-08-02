@@ -171,6 +171,8 @@ class ProActiveKernel(Kernel):
             return self.__submit_job__
         elif pragma_info['trigger'] == 'get_result':
             return self.__get_result__
+        if pragma_info['trigger'] == 'delete_task':
+            return self.__delete_task__
         elif pragma_info['trigger'] == 'list_submitted_jobs':
             return self.__list_submitted_jobs__
         elif pragma_info['trigger'] == 'job':
@@ -304,6 +306,7 @@ class ProActiveKernel(Kernel):
         if not self.graph_created or not self.job_up_to_date:
             self.__kernel_print_ok_message__('Creating the job workflow ...\n')
             self.G = nx.DiGraph()
+            self.labels.clear()
 
             # nodes
             nodes_ids = [i for i in range(len(self.proactive_tasks))]
@@ -461,6 +464,7 @@ class ProActiveKernel(Kernel):
             self.__kernel_print_ok_message__('\n#%connect(): connects to an ActiveEon server\n'
                                              + '#%import(): import specified libraries to all tasks of a same script language\n'
                                              + '#%task(): creates/modifies a task\n'
+                                             + '#%delete_task(): removes a task from the workflow\n'
                                              + "#%pre_script(): sets the pre-script of a task\n"
                                              + "#%post_script(): sets the post-script of a task\n"
                                              + '#%selection_script(): sets the selection script of a task\n'
@@ -671,6 +675,14 @@ class ProActiveKernel(Kernel):
                 return task
         return None
 
+    def __print_all_dependencies(self):
+        for son_task in self.proactive_tasks:
+            self.__kernel_print_ok_message__('Task \'' + son_task.getTaskName() + '\':\n')
+            dependencies = son_task.getDependencies()
+            for parent_task in dependencies:
+                self.__kernel_print_ok_message__('   ' + parent_task.getTaskName() +
+                                                 ' -> ' + son_task.getTaskName() + '\n')
+
     def __add_dependency__(self, proactive_task, input_data):
         for task_name in input_data['dep']:
             if proactive_task.getTaskName() == task_name:
@@ -813,6 +825,36 @@ class ProActiveKernel(Kernel):
         self.job_up_to_date = False
 
         return 0
+
+    def __clean_related_dependencies__(self, removed_task):
+        for task in self.proactive_tasks:
+            if removed_task in task.getDependencies():
+                task.removeDependency(removed_task)
+
+    def __delete_task__(self, input_data):
+        if input_data['name'] in self.tasks_names:
+            task_to_remove = self.__get_task_from_name__(input_data['name'])
+        else:
+            raise ParameterError('Task \'' + self.script_languages + '\' does not exist.')
+
+        if self.job_created:
+            self.__kernel_print_ok_message__('Deleting task from the job.\n')
+            self.proactive_job.removeTask(task_to_remove)
+
+        self.__kernel_print_ok_message__('Deleting task from the tasks list.\n')
+        self.proactive_tasks.remove(task_to_remove)
+        self.tasks_names.remove(input_data['name'])
+
+        self.__kernel_print_ok_message__('Cleaning dependencies.\n')
+        self.__clean_related_dependencies__(task_to_remove)
+
+        self.__kernel_print_ok_message__('Cleaning exported vars list.\n')
+        if input_data['name'] in self.exported_vars:
+            del self.exported_vars[input_data['name']]
+
+        self.job_up_to_date = False
+
+        return
 
     def __create_job__(self, input_data):
         if self.job_created and self.job_up_to_date:
