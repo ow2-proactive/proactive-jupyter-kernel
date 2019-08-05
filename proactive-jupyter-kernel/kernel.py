@@ -1067,6 +1067,7 @@ class ProActiveKernel(Kernel):
                     'payload': [], 'user_expressions': {}}
 
     def do_shutdown(self, restart):
-        self.gateway.disconnect()
-        self.gateway.terminate()
+        if self.gateway is not None:
+            self.gateway.disconnect()
+            self.gateway.terminate()
         return {'status': 'ok', 'restart': restart}
