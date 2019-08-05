@@ -331,6 +331,14 @@ To add a post-script to a task, use:
 #%post_script(name=TASK_NAME, language=SCRIPT_LANGUAGE, [path=./POST_SCRIPT_FILE.py])
 ```
 
+#### 5.7 Deleting a task
+
+To delete a task from the workflow, the user should run the pragma `#%delete_task()` in the following way:
+
+```python
+#%delete_task(name=TASK_NAME)
+```
+
 #### 5.7 Create a job
 
 To create a job, use the `#%job()` pragma:
@@ -505,6 +513,8 @@ Features:
 * *fork_env*: sets the fork environment script
 
 * *job_fork_env*: sets the default fork environment of a job
+
+* *delete_task*: deletes a task from the workflow
 
 * *job*: creates/renames the job
 
