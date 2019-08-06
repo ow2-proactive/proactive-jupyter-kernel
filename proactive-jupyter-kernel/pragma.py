@@ -69,6 +69,26 @@ def get_usage_get_result():
     return '   #%get_result(id=JOB_ID)\n'
 
 
+# TODO: to complete
+def get_usage_get_job_result():
+    return '   #%get_job_result([id=JOB_ID], [name=JOB_NAME])\n'
+
+
+# TODO: to complete
+def get_usage_get_task_result():
+    return '   #%get_task_result(name=TASK_NAME)\n'
+
+
+# TODO: to complete
+def get_usage_print_job_output():
+    return '   #%print_job_output([id=JOB_ID], [name=JOB_NAME])\n'
+
+
+# TODO: to complete
+def get_usage_print_task_output():
+    return '   #%print_task_output(name=TASK_NAME)\n'
+
+
 def get_usage_list_submitted_jobs():
     return '   #%list_submitted_jobs()\n'
 
