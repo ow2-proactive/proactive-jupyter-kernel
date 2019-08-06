@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # https://github.com/pypa/warehouse/issues/5890#issuecomment-494868157
 pip install -U pip
-pip install -U twine wheel setuptools
+pip install -U twine==1.13.0 wheel setuptools
 
 rm -rf dist/
 rm -rf build/
