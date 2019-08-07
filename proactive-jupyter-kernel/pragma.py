@@ -57,7 +57,7 @@ def get_usage_draw_job():
     return '   #%draw_job([name=JOB_NAME], [inline=on/off], [save=on/off])\n'
 
 
-def get_usage_write_job():
+def get_usage_write_dot():
     return '   #%write_dot(name=FILE_NAME)\n'
 
 
@@ -128,7 +128,7 @@ def get_help(trigger):
         help_msg += 'Usages:\n' + get_usage_draw_job()
     elif trigger == 'write_dot':
         help_msg = '#%write_dot(): writes the workflow in .dot format\n'
-        help_msg += 'Usages:\n' + get_usage_write_job()
+        help_msg += 'Usages:\n' + get_usage_write_dot()
     elif trigger == 'submit_job':
         help_msg = '#%submit_job(): submits the job to the scheduler\n'
         help_msg += 'Usages:\n' + get_usage_submit_job()
@@ -184,7 +184,7 @@ def get_usage(trigger):
     elif trigger == 'draw_job':
         return get_usage_draw_job()
     elif trigger == 'write_dot':
-        return get_usage_write_job()
+        return get_usage_write_dot()
     elif trigger == 'submit_job':
         return get_usage_submit_job()
     elif trigger == 'get_result':

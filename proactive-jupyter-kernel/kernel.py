@@ -171,7 +171,7 @@ class ProActiveKernel(Kernel):
             return self.__submit_job__
         elif pragma_info['trigger'] == 'get_result':
             return self.__get_result__
-        if pragma_info['trigger'] == 'delete_task':
+        elif pragma_info['trigger'] == 'delete_task':
             return self.__delete_task__
         elif pragma_info['trigger'] == 'list_submitted_jobs':
             return self.__list_submitted_jobs__
