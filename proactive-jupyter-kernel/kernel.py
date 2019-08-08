@@ -361,11 +361,38 @@ class ProActiveKernel(Kernel):
 
         return 0
 
+    @staticmethod
+    def __extract_dependencies_from_edges__(node, edges):
+        dependencies = []
+        for dependency in edges:
+            if dependency[1] == node:
+                dependencies.append(dependency[0])
+        return dependencies
+
+    @staticmethod
+    def __extract_task_inputs_from_graph_data__(node, edges):
+        input_map = {'trigger': 'task', 'name': node}
+        dependencies = ProActiveKernel.__extract_dependencies_from_edges__(node, edges)
+        if len(dependencies):
+            input_map['dep'] = dependencies
+        return input_map
+
+    @staticmethod
+    def __extract_tasks_inputs_from_graph__(nodes_list, edges_list):
+        inputs_list = []
+        for node in nodes_list:
+            inputs_list.append(ProActiveKernel.__extract_task_inputs_from_graph_data__(node, edges_list))
+        return inputs_list
+
     def __import_dot__(self, input_data):
         if os.path.isfile(input_data['path']):
             Gtmp = pgv.AGraph(input_data['path'])
             nodes = Gtmp.nodes()
             edges = Gtmp.edges()
+
+            inputs_data = ProActiveKernel.__extract_tasks_inputs_from_graph__(nodes, edges)
+            for temp_input_data in inputs_data:
+                self.__create_task__(temp_input_data)
 
         else:
             raise ConfigError(input_data['path'] + ': No such a file.\n')
