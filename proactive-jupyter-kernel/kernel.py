@@ -371,7 +371,7 @@ class ProActiveKernel(Kernel):
 
     @staticmethod
     def __extract_task_inputs_from_graph_data__(node, edges):
-        input_map = {'trigger': 'task', 'name': node}
+        input_map = {'trigger': 'task', 'name': node, 'code': ''}
         dependencies = ProActiveKernel.__extract_dependencies_from_edges__(node, edges)
         if len(dependencies):
             input_map['dep'] = dependencies
