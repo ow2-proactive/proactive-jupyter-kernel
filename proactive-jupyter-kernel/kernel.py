@@ -16,6 +16,7 @@ from proactive.model.ProactiveScriptLanguage import *
 
 import matplotlib.pyplot as plt
 import networkx as nx
+import pygraphviz as pgv
 from networkx.drawing.nx_agraph import write_dot, graphviz_layout
 
 from IPython.display import IFrame
@@ -181,6 +182,8 @@ class ProActiveKernel(Kernel):
             return self.__create_export_xml__
         elif pragma_info['trigger'] == 'write_dot':
             return self.__write_dot__
+        elif pragma_info['trigger'] == 'import_dot':
+            return self.__import_dot__
         elif pragma_info['trigger'] == 'pre_script':
             return self.__create_pre_script_from_name__
         elif pragma_info['trigger'] == 'post_script':
@@ -358,6 +361,44 @@ class ProActiveKernel(Kernel):
 
         return 0
 
+    @staticmethod
+    def __extract_dependencies_from_edges__(node, edges):
+        dependencies = []
+        for dependency in edges:
+            if dependency[1] == node:
+                dependencies.append(dependency[0])
+        return dependencies
+
+    @staticmethod
+    def __extract_task_inputs_from_graph_data__(node, edges):
+        input_map = {'trigger': 'task', 'name': node, 'code': ''}
+        dependencies = ProActiveKernel.__extract_dependencies_from_edges__(node, edges)
+        if len(dependencies):
+            input_map['dep'] = dependencies
+        return input_map
+
+    @staticmethod
+    def __extract_tasks_inputs_from_graph__(nodes_list, edges_list):
+        inputs_list = []
+        for node in nodes_list:
+            inputs_list.append(ProActiveKernel.__extract_task_inputs_from_graph_data__(node, edges_list))
+        return inputs_list
+
+    def __import_dot__(self, input_data):
+        if os.path.isfile(input_data['path']):
+            Gtmp = pgv.AGraph(input_data['path'])
+            nodes = Gtmp.nodes()
+            edges = Gtmp.edges()
+
+            inputs_data = ProActiveKernel.__extract_tasks_inputs_from_graph__(nodes, edges)
+            for temp_input_data in inputs_data:
+                self.__create_task__(temp_input_data)
+
+        else:
+            raise ConfigError(input_data['path'] + ': No such file.\n')
+
+        return 0
+
     def __create_export_xml__(self, input_data):
         self.__kernel_print_ok_message__('Exporting the job workflow (xml format) ...\n')
 
@@ -417,7 +458,7 @@ class ProActiveKernel(Kernel):
                     raise ConfigError(str(e))
 
             else:
-                raise ConfigError(input_data['path'] + ': No such a file.\n')
+                raise ConfigError(input_data['path'] + ': No such file.\n')
 
         if 'host' in input_data:
             self.proactive_config['proactive_server']['host'] = input_data['host']
@@ -474,6 +515,7 @@ class ProActiveKernel(Kernel):
                                              + '#%job(): creates/renames the job\n'
                                              + '#%draw_job(): plots the workflow\n'
                                              + '#%write_dot(): writes the workflow in .dot format\n'
+                                             + '#%import_dot(): imports the workflow from a .dot file\n'
                                              + '#%submit_job(): submits the job to the scheduler\n'
                                              + '#%get_result(): gets and prints the job results\n'
                                              + '#%list_submitted_jobs(): gets and prints the ids and names of the submitted jobs\n'

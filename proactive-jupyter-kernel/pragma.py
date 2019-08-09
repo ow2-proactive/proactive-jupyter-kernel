@@ -61,6 +61,10 @@ def get_usage_write_dot():
     return '   #%write_dot(name=FILE_NAME)\n'
 
 
+def get_usage_import_dot():
+    return '   #%import_dot(path=PATH_TO/FILE_NAME.dot)\n'
+
+
 def get_usage_submit_job():
     return '   #%submit_job([name=JOB_NAME])\n'
 
@@ -129,6 +133,9 @@ def get_help(trigger):
     elif trigger == 'write_dot':
         help_msg = '#%write_dot(): writes the workflow in .dot format\n'
         help_msg += 'Usages:\n' + get_usage_write_dot()
+    elif trigger == 'import_dot':
+        help_msg = '#%import_dot(): imports the workflow from a .dot file\n'
+        help_msg += 'Usages:\n' + get_usage_import_dot()
     elif trigger == 'submit_job':
         help_msg = '#%submit_job(): submits the job to the scheduler\n'
         help_msg += 'Usages:\n' + get_usage_submit_job()
@@ -185,6 +192,8 @@ def get_usage(trigger):
         return get_usage_draw_job()
     elif trigger == 'write_dot':
         return get_usage_write_dot()
+    elif trigger == 'import_dot':
+        return get_usage_import_dot()
     elif trigger == 'submit_job':
         return get_usage_submit_job()
     elif trigger == 'get_result':
@@ -393,6 +402,13 @@ def is_valid_write_dot(data):
     return
 
 
+def is_valid_import_dot(data):
+    pattern_path_cars = r"^[a-zA-Z0-9_\/\\:\.-]+$"
+    if 'path' not in data or not re.match(pattern_path_cars, data['path']):
+        raise ParameterError('Invalid path parameter')
+    return
+
+
 def is_valid_submit_job(data):
     return is_valid_write_dot(data)
 
@@ -465,6 +481,8 @@ def is_valid(data):
         return is_valid_draw_job(data)
     elif data['trigger'] == 'write_dot':
         return is_valid_write_dot(data)
+    elif data['trigger'] == 'import_dot':
+        return is_valid_import_dot(data)
     elif data['trigger'] == 'submit_job':
         return is_valid_submit_job(data)
     elif data['trigger'] == 'get_result':
@@ -512,6 +530,7 @@ class Pragma:
                            'pre_script',
                            'post_script',
                            'write_dot',
+                           'import_dot',
                            'submit_job',
                            'help',
                            'list_submitted_jobs',
