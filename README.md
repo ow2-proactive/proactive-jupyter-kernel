@@ -404,8 +404,19 @@ To export the created workflow into a [GraphViz](https://www.graphviz.org/) _.do
 #%write_dot(name=FILE_NAME)
 ```
 
+#### 5.10 Import a workflow from a dot file
 
-#### 5.10 Submit your job to the scheduler
+To create a workflow according to a [GraphViz](https://www.graphviz.org/) _.dot_ file, use the pragma `#%import_dot()`:
+
+```python
+#%import_dot(path=PATH_TO/FILE_NAME.dot)
+```
+
+By default, the workflow will contain _Python_ tasks with empty implementation scripts. If you want to modify or add 
+any information to a specific task, use, as explained in [Creating a Task](#51-creating-a-python-task), the `#%task()` 
+pragma.
+
+#### 5.11 Submit your job to the scheduler
 
 To submit the job to the ProActive Scheduler, the user has to use the `#%submit_job()` pragma:
 
@@ -422,7 +433,7 @@ To provide a new name, use the same pragma and provide a name as parameter:
 
 If the job's name is not set, the ProActive kernel uses the current notebook name, if possible, or gives a random one.
 
-#### 5.11 List all submitted jobs
+#### 5.12 List all submitted jobs
 
 To get all submitted job IDs and names, use `list_submitted_jobs` pragma this way:
 
@@ -430,7 +441,7 @@ To get all submitted job IDs and names, use `list_submitted_jobs` pragma this wa
 #%list_submitted_jobs()
 ```
 
-#### 5.12 Export the workflow in xml format
+#### 5.13 Export the workflow in xml format
 
 To export the created workflow in _.xml_ format, use the `#%export_xml()` pragma:
 
@@ -445,7 +456,7 @@ Notice that the _.xml_ file will be saved under one of the following names:
 3. The notebook's name, if the kernel can retrieve it
 4. `Unnamed_job`, otherwise.
 
-#### 5.13 Print results
+#### 5.14 Print results
 
 To get the job result(s), the user has to use the `#%get_result()` pragma by providing the job name:
 
@@ -521,6 +532,8 @@ Features:
 * *draw_job*: plot the workflow
 
 * *write_dot*: writes the workflow in .dot format
+
+* *import_dot*: imports the workflow from a .dot file
 
 * *submit_job*: submits the job to the scheduler
 
