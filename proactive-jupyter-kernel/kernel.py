@@ -395,7 +395,7 @@ class ProActiveKernel(Kernel):
                 self.__create_task__(temp_input_data)
 
         else:
-            raise ConfigError(input_data['path'] + ': No such a file.\n')
+            raise ConfigError(input_data['path'] + ': No such file.\n')
 
         return 0
 
@@ -458,7 +458,7 @@ class ProActiveKernel(Kernel):
                     raise ConfigError(str(e))
 
             else:
-                raise ConfigError(input_data['path'] + ': No such a file.\n')
+                raise ConfigError(input_data['path'] + ': No such file.\n')
 
         if 'host' in input_data:
             self.proactive_config['proactive_server']['host'] = input_data['host']
