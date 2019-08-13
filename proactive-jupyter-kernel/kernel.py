@@ -95,6 +95,9 @@ class ProActiveKernel(Kernel):
         self.default_fork_env = None
         self.multiblock_task_config = False
 
+        self.previous_task_history = {}
+        self.is_previous_pragma_task = False
+
         self.exported_vars = {}
 
         self.proactive_script_languages = ProactiveScriptLanguage().get_supported_languages()
@@ -866,6 +869,9 @@ class ProActiveKernel(Kernel):
         else:
             proactive_task.setTaskImplementation(input_data['code'])
 
+        self.previous_task_history = input_data
+        self.is_previous_pragma_task = True
+
         self.__kernel_print_ok_message__('Done.\n')
         self.job_up_to_date = False
 
@@ -997,52 +1003,59 @@ class ProActiveKernel(Kernel):
             self.__kernel_print_ok_message__('Id: ' + str(job_id) + ' , Name: ' + self.submitted_jobs_names[job_id]
                                              + '\n')
 
-    def __execute_pragma_bloc__(self, code):
-        func = self.__create_task__
-        pragma_info = {'name': '', 'trigger': 'task'}
+    @staticmethod
+    def __merge_scripts__(code1, code2):
+        _code = code1.split('\ntry:\n\tvariables.put')
+        if len(_code) == 2:
+            _code = _code[0] + '\n' + code2 + '\ntry:\n\tvariables.put' + _code[1]
+        else:
+            _code = _code[0] + '\n' + code2
+        return _code
 
-        if re.match(self.pattern_pragma, code):
-            pragma_string = code.split("\n", 1)
+    def __preprocess_pragma_block__(self, pragma_info):
+        pragma_string = pragma_info['code'].split("\n", 1)
 
-            if len(pragma_string) == 2:
-                code = pragma_string.pop(1)
-            else:
-                code = ''
-            pragma_string = pragma_string.pop(0)
+        if len(pragma_string) == 2:
+            pragma_info['code'] = pragma_string.pop(1)
+        else:
+            pragma_info['code'] = ''
+        pragma_string = pragma_string[0]
 
+        try:
+            pragma_info.update(self.pragma.parse(pragma_string))
+        except ParsingError as pe:
+            errorValue = self.__kernel_print_error_message({'ename': 'Parsing error', 'evalue': pe.strerror})
+            self.__print_usage_from_pragma__(pragma_string)
+            return errorValue
+        except ParameterError as pe:
+            return self.__kernel_print_error_message({'ename': 'Parameter error', 'evalue': pe.strerror})
+
+        if self.proactive_connected:
             try:
-                pragma_info = self.pragma.parse(pragma_string)
-            except ParsingError as pe:
-                errorValue = self.__kernel_print_error_message({'ename': 'Parsing error', 'evalue': pe.strerror})
-                self.__print_usage_from_pragma__(pragma_string)
-                return errorValue
-            except ParameterError as pe:
-                return self.__kernel_print_error_message({'ename': 'Parameter error', 'evalue': pe.strerror})
+                pragma_info['func'] = self.__trigger_pragma__(pragma_info)
+            except PragmaError as pe:
+                return self.__kernel_print_error_message({'ename': 'Pragma error', 'evalue': pe.strerror})
 
-            if self.proactive_connected:
-                try:
-                    func = self.__trigger_pragma__(pragma_info)
-                except PragmaError as pe:
-                    return self.__kernel_print_error_message({'ename': 'Pragma error', 'evalue': pe.strerror})
+        elif pragma_info['trigger'] == 'connect':
+            pragma_info['func'] = self.__connect__
+        elif pragma_info['trigger'] == 'help':
+            pragma_info['func'] = self.__help__
+        elif pragma_info['trigger'] in ['task', 'selection_script', 'fork_env', 'job', 'submit_job',
+                                        'draw_job']:
+            return self.__kernel_print_error_message({'ename': 'Proactive error',
+                                                      'evalue': 'Use #%connect() to connect to server first.'})
+        else:
+            return self.__kernel_print_error_message({'ename': 'Pragma error', 'evalue':
+                'Directive \'' + pragma_info['trigger']
+                + '\' not known.'})
+        return pragma_info
 
-            elif pragma_info['trigger'] == 'connect':
-                func = self.__connect__
-            elif pragma_info['trigger'] == 'help':
-                func = self.__help__
-            elif pragma_info['trigger'] in ['task', 'selection_script', 'fork_env', 'job', 'submit_job',
-                                            'draw_job']:
-                return self.__kernel_print_error_message({'ename': 'Proactive error',
-                                                          'evalue': 'Use #%connect() to connect to server first.'})
-            else:
-                return self.__kernel_print_error_message({'ename': 'Pragma error', 'evalue':
-                    'Directive \'' + pragma_info['trigger']
-                    + '\' not known.'})
+    def __process_pragma_block__(self, pragma_info):
 
         # TODO: compile python code even when creating a task
-
         if 'language' in pragma_info and pragma_info['language'] == 'Python':
             try:
-                ast.parse(code)
+                ast.parse(pragma_info['code'])
             except SyntaxError as e:
                 return self.__kernel_print_error_message({'ename': 'Syntax error', 'evalue': str(e)})
 
@@ -1052,8 +1065,6 @@ class ProActiveKernel(Kernel):
                                                           'evalue': 'Use \'#%connect()\' to '
                                                                     'connect to proactive server first.'})
 
-            pragma_info['code'] = code
-
             if self.proactive_default_connection and pragma_info['trigger'] not in ['connect', 'help']:
                 self.__kernel_print_ok_message__('WARNING: Proactive is connected by default on \''
                                                  + self.gateway.base_url + '\'.\n')
@@ -1061,7 +1072,7 @@ class ProActiveKernel(Kernel):
             # TODO: use more functions to reduce do_execute size
 
             try:
-                exitcode = func(pragma_info)
+                exitcode = pragma_info['func'](pragma_info)
             except ConfigError as ce:
                 return self.__kernel_print_error_message({'ename': 'Proactive config error', 'evalue': ce.strerror})
             except ParameterError as pe:
@@ -1075,6 +1086,43 @@ class ProActiveKernel(Kernel):
         except Exception as e:
             return self.__kernel_print_error_message({'ename': 'Proactive error', 'evalue': str(e)})
 
+        return exitcode
+
+    def __execute_block__(self, code):
+        pragma_info = {'name': '', 'trigger': 'task', 'code': code, 'func': self.__create_task__}
+
+        if re.match(self.pattern_pragma, code):
+            pragma_info = self.__preprocess_pragma_block__(pragma_info)
+            if 'execution_count' in pragma_info:
+                return pragma_info
+
+        return self.__process_pragma_block__(pragma_info)
+
+    def __execute_multiblock__(self, code):
+        pragma_info = {'name': '', 'trigger': 'task', 'code': code, 'func': self.__create_task__}
+
+        if re.match(self.pattern_pragma, code):
+            pragma_info = self.__preprocess_pragma_block__(pragma_info)
+            if 'execution_count' in pragma_info:
+                return pragma_info
+            if pragma_info['trigger'] != 'task':
+                self.is_previous_pragma_task = False
+            exitcode = self.__process_pragma_block__(pragma_info)
+        else:
+            if self.is_previous_pragma_task:
+                self.__kernel_print_ok_message__('Adding current script to task \'' +
+                                                 self.previous_task_history['name'] + '\'.\n')
+                updated_code = ProActiveKernel.__merge_scripts__(self.previous_task_history['code'],
+                                                                 pragma_info['code'])
+                pragma_info.update(self.previous_task_history)
+                pragma_info['code'] = updated_code
+                proactive_task = self.__get_task_from_name__(pragma_info['name'])
+                proactive_task.setTaskImplementation(pragma_info['code'])
+                self.previous_task_history.update(pragma_info)
+                exitcode = 0
+            else:
+                return self.__kernel_print_error_message({'ename': 'Pragma error',
+                                                          'evalue': 'Blocks should be started by pragmas.'})
         return exitcode
 
     def do_execute(self, code, silent, store_history=True, user_expressions=None, allow_stdin=False):
@@ -1091,14 +1139,16 @@ class ProActiveKernel(Kernel):
 
             return self.__kernel_print_error_message({'ename': 'Error', 'evalue': self.error_message})
 
+        self.multiblock_task_config = True
+
         try:
             if self.multiblock_task_config:
-                #TODO: multiblock handling
-                exitcode = 0
+                exitcode = self.__execute_multiblock__(code)
             else:
-                exitcode = self.__execute_pragma_bloc__(code)
-                if exitcode:
-                    return exitcode
+                exitcode = self.__execute_block__(code)
+
+            if exitcode:
+                return exitcode
 
         except KeyboardInterrupt:
             interrupted = True
