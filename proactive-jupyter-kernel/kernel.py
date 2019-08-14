@@ -886,7 +886,7 @@ class ProActiveKernel(Kernel):
         if input_data['name'] in self.tasks_names:
             task_to_remove = self.__get_task_from_name__(input_data['name'])
         else:
-            raise ParameterError('Task \'' + self.script_languages + '\' does not exist.')
+            raise ParameterError('Task \'' + input_data['name'] + '\' does not exist.')
 
         if self.job_created:
             self.__kernel_print_ok_message__('Deleting task from the job.\n')
@@ -1040,8 +1040,7 @@ class ProActiveKernel(Kernel):
             pragma_info['func'] = self.__connect__
         elif pragma_info['trigger'] == 'help':
             pragma_info['func'] = self.__help__
-        elif pragma_info['trigger'] in ['task', 'selection_script', 'fork_env', 'job', 'submit_job',
-                                        'draw_job']:
+        elif pragma_info['trigger'] in Pragma.pragmas_connected_mode:
             return self.__kernel_print_error_message({'ename': 'Proactive error',
                                                       'evalue': 'Use #%connect() to connect to server first.'})
         else:

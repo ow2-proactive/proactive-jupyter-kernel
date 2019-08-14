@@ -503,6 +503,62 @@ def is_valid(data):
 class Pragma:
     pattern = r"\w+"
 
+    pragmas_generic = ['draw_job',
+                       'task',
+                       'delete_task',
+                       'import',
+                       'job',
+                       'selection_script',
+                       'job_selection_script',
+                       'fork_env',
+                       'job_fork_env',
+                       'pre_script',
+                       'post_script',
+                       'write_dot',
+                       'import_dot',
+                       'submit_job',
+                       'help',
+                       'list_submitted_jobs',
+                       'export_xml',
+                       'show_resource_manager',
+                       'show_scheduling_portal',
+                       'show_workflow_automation'
+                       ]
+
+    pragmas_empty = ['submit_job',
+                     'import',
+                     'job_selection_script',
+                     'job_fork_env',
+                     'draw_job',
+                     'help',
+                     'list_submitted_jobs',
+                     'export_xml',
+                     'show_resource_manager',
+                     'show_scheduling_portal',
+                     'show_workflow_automation'
+                     ]
+
+    pragmas_connected_mode = ['draw_job',
+                              'task',
+                              'delete_task',
+                              'import',
+                              'job',
+                              'selection_script',
+                              'job_selection_script',
+                              'fork_env',
+                              'job_fork_env',
+                              'pre_script',
+                              'post_script',
+                              'write_dot',
+                              'import_dot',
+                              'submit_job',
+                              'list_submitted_jobs',
+                              'export_xml',
+                              'show_resource_manager',
+                              'show_scheduling_portal',
+                              'show_workflow_automation'
+                              ]
+
     def __init__(self):
         self.trigger = 'task'
 
@@ -518,44 +574,10 @@ class Pragma:
         pattern_generic = r"^( *" + pattern_l + r" *= *" + pattern_r + r")( *, *" + pattern_l + r" *= *" + \
                           pattern_r + r" *)*$"
 
-        pragmas_generic = ['draw_job',
-                           'task',
-                           'delete_task',
-                           'import',
-                           'job',
-                           'selection_script',
-                           'job_selection_script',
-                           'fork_env',
-                           'job_fork_env',
-                           'pre_script',
-                           'post_script',
-                           'write_dot',
-                           'import_dot',
-                           'submit_job',
-                           'help',
-                           'list_submitted_jobs',
-                           'export_xml',
-                           'show_resource_manager',
-                           'show_scheduling_portal',
-                           'show_workflow_automation'
-                           ]
-        pragmas_empty = ['submit_job',
-                         'import',
-                         'job_selection_script',
-                         'job_fork_env',
-                         'draw_job',
-                         'help',
-                         'list_submitted_jobs',
-                         'export_xml',
-                         'show_resource_manager',
-                         'show_scheduling_portal',
-                         'show_workflow_automation'
-                         ]
-
-        invalid_generic = not re.match(pattern_generic, params) and self.trigger in pragmas_generic
+        invalid_generic = not re.match(pattern_generic, params) and self.trigger in Pragma.pragmas_generic
         invalid_connect = not (re.match(pattern_connect, params) or
                                re.match(pattern_connect_with_path, params)) and self.trigger == 'connect'
-        valid_empty = params == "" and self.trigger in pragmas_empty
+        valid_empty = params == "" and self.trigger in Pragma.pragmas_empty
 
         if valid_empty:
             return
