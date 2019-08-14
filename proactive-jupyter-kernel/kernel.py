@@ -178,6 +178,8 @@ class ProActiveKernel(Kernel):
             return self.__submit_job__
         elif pragma_info['trigger'] == 'get_result':
             return self.__get_result__
+        elif pragma_info['trigger'] == 'configure':
+            return self.__configure__
         elif pragma_info['trigger'] == 'delete_task':
             return self.__delete_task__
         elif pragma_info['trigger'] == 'list_submitted_jobs':
@@ -210,6 +212,18 @@ class ProActiveKernel(Kernel):
             return self.__show_workflow_automation__
         else:
             raise PragmaError('Directive \'' + pragma_info['trigger'] + '\' not known.')
+
+    def __configure__(self, input_data):
+        if 'task' in input_data:
+            self.__kernel_print_ok_message__('Switching to ' + input_data['task'] + ' mode...\n')
+            if input_data['task'] == 'multiblock':
+                self.multiblock_task_config = True
+            else:
+                self.multiblock_task_config = False
+            self.__kernel_print_ok_message__('Done.')
+        else:
+            raise ParameterError('Task parameter \'' + input_data['task'] +
+                                 '\' not supported!\n Supported values:\n\t-block\n\t-multiblock')
 
     def __show_portal__(self, input_data):
         if 'portal' not in input_data:
@@ -510,6 +524,7 @@ class ProActiveKernel(Kernel):
             # TODO: automatize the help output and relate it more to pragma.py
             self.__kernel_print_ok_message__('\n#%connect(): connects to an ActiveEon server\n'
                                              + '#%import(): import specified libraries to all tasks of a same script language\n'
+                                             + '#%configure(): configures the ProActive kernel\'s behavior\n'
                                              + '#%task(): creates/modifies a task\n'
                                              + '#%delete_task(): removes a task from the workflow\n'
                                              + "#%pre_script(): sets the pre-script of a task\n"
@@ -889,19 +904,20 @@ class ProActiveKernel(Kernel):
             raise ParameterError('Task \'' + input_data['name'] + '\' does not exist.')
 
         if self.job_created:
-            self.__kernel_print_ok_message__('Deleting task from the job.\n')
+            self.__kernel_print_ok_message__('Deleting task from the job...\n')
             self.proactive_job.removeTask(task_to_remove)
 
-        self.__kernel_print_ok_message__('Deleting task from the tasks list.\n')
+        self.__kernel_print_ok_message__('Deleting task from the tasks list...\n')
         self.proactive_tasks.remove(task_to_remove)
         self.tasks_names.remove(input_data['name'])
 
-        self.__kernel_print_ok_message__('Cleaning dependencies.\n')
+        self.__kernel_print_ok_message__('Cleaning dependencies...\n')
         self.__clean_related_dependencies__(task_to_remove)
 
-        self.__kernel_print_ok_message__('Cleaning exported vars list.\n')
         if input_data['name'] in self.exported_vars:
             del self.exported_vars[input_data['name']]
+
+        self.__kernel_print_ok_message__('Done.\n')
 
         self.job_up_to_date = False
 
@@ -1040,6 +1056,8 @@ class ProActiveKernel(Kernel):
             pragma_info['func'] = self.__connect__
         elif pragma_info['trigger'] == 'help':
             pragma_info['func'] = self.__help__
+        elif pragma_info['trigger'] == 'configure':
+            pragma_info['func'] = self.__configure__
         elif pragma_info['trigger'] in Pragma.pragmas_connected_mode:
             return self.__kernel_print_error_message({'ename': 'Proactive error',
                                                       'evalue': 'Use #%connect() to connect to server first.'})
@@ -1059,12 +1077,12 @@ class ProActiveKernel(Kernel):
                 return self.__kernel_print_error_message({'ename': 'Syntax error', 'evalue': str(e)})
 
         try:
-            if not self.proactive_connected and pragma_info['trigger'] not in ['connect', 'help']:
+            if not self.proactive_connected and pragma_info['trigger'] not in Pragma.pragmas_not_connected_mode:
                 return self.__kernel_print_error_message({'ename': 'Proactive error',
                                                           'evalue': 'Use \'#%connect()\' to '
                                                                     'connect to proactive server first.'})
 
-            if self.proactive_default_connection and pragma_info['trigger'] not in ['connect', 'help']:
+            if self.proactive_default_connection and pragma_info['trigger'] not in Pragma.pragmas_not_connected_mode:
                 self.__kernel_print_ok_message__('WARNING: Proactive is connected by default on \''
                                                  + self.gateway.base_url + '\'.\n')
 
@@ -1118,6 +1136,7 @@ class ProActiveKernel(Kernel):
                 proactive_task = self.__get_task_from_name__(pragma_info['name'])
                 proactive_task.setTaskImplementation(pragma_info['code'])
                 self.previous_task_history.update(pragma_info)
+                self.__kernel_print_ok_message__('Done.\n')
                 exitcode = 0
             else:
                 return self.__kernel_print_error_message({'ename': 'Pragma error',
@@ -1137,8 +1156,6 @@ class ProActiveKernel(Kernel):
                                                'evalue': 'Please, reconfigure proactive connection and restart kernel'})
 
             return self.__kernel_print_error_message({'ename': 'Error', 'evalue': self.error_message})
-
-        self.multiblock_task_config = True
 
         try:
             if self.multiblock_task_config:
