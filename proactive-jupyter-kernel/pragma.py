@@ -11,6 +11,10 @@ def get_usage_connect():
            + '   #%connect(path=PATH_TO/YOUR_CONFIG_FILE.ini)\n'
 
 
+def get_usage_configure():
+    return '   #%configure(task=block/multiblock)\n'
+
+
 def get_usage_import():
     return '   #%import([language=SCRIPT_LANGUAGE])\n'
 
@@ -100,6 +104,9 @@ def get_help(trigger):
     elif trigger == 'import':
         help_msg = '#%import(): imports specified libraries to all tasks of a same script language\n'
         help_msg += 'Usages:\n' + get_usage_import()
+    elif trigger == 'configure':
+        help_msg = '#%configure(): configures the ProActive kernel\'s behavior\n'
+        help_msg += 'Usages:\n' + get_usage_configure()
     elif trigger == 'task':
         help_msg = '#%task(): creates/modifies a task\n'
         help_msg += 'Usages:\n' + get_usage_task()
@@ -170,6 +177,8 @@ def get_usage(trigger):
         return get_usage_connect()
     elif trigger == 'import':
         return get_usage_import()
+    elif trigger == 'configure':
+        return get_usage_configure()
     elif trigger == 'task':
         return get_usage_task()
     elif trigger == 'delete_task':
@@ -281,6 +290,13 @@ def is_valid_import(data):
     pattern_language = r"^[a-zA-Z_]+$"
     if 'language' in data and not re.match(pattern_language, data['language']):
         raise ParameterError('Invalid script language')
+    return
+
+
+def is_valid_configure(data):
+    pattern_block_multiblock = r"^block$|^multiblock$"
+    if 'task' not in data or not re.match(pattern_block_multiblock, data['task']):
+        raise ParameterError('Invalid task parameter')
     return
 
 
@@ -459,6 +475,8 @@ def is_valid(data):
         return is_valid_connect(data)
     elif data['trigger'] == 'import':
         return is_valid_import(data)
+    elif data['trigger'] == 'configure':
+        return is_valid_configure(data)
     elif data['trigger'] == 'task':
         return is_valid_task(data)
     elif data['trigger'] == 'delete_task':
@@ -504,6 +522,7 @@ class Pragma:
     pattern = r"\w+"
 
     pragmas_generic = ['draw_job',
+                       'configure',
                        'task',
                        'delete_task',
                        'import',
@@ -558,6 +577,11 @@ class Pragma:
                               'show_scheduling_portal',
                               'show_workflow_automation'
                               ]
+
+    pragmas_not_connected_mode = ['connect',
+                                  'help',
+                                  'configure'
+                                  ]
 
     def __init__(self):
         self.trigger = 'task'
