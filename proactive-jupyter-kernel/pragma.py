@@ -11,6 +11,10 @@ def get_usage_connect():
            + '   #%connect(path=PATH_TO/YOUR_CONFIG_FILE.ini)\n'
 
 
+def get_usage_configure():
+    return '   #%configure(task=block/multiblock)\n'
+
+
 def get_usage_import():
     return '   #%import([language=SCRIPT_LANGUAGE])\n'
 
@@ -57,8 +61,12 @@ def get_usage_draw_job():
     return '   #%draw_job([name=JOB_NAME], [inline=on/off], [save=on/off])\n'
 
 
-def get_usage_write_job():
+def get_usage_write_dot():
     return '   #%write_dot(name=FILE_NAME)\n'
+
+
+def get_usage_import_dot():
+    return '   #%import_dot(path=PATH_TO/FILE_NAME.dot)\n'
 
 
 def get_usage_submit_job():
@@ -108,6 +116,9 @@ def get_help(trigger):
     elif trigger == 'import':
         help_msg = '#%import(): imports specified libraries to all tasks of a same script language\n'
         help_msg += 'Usages:\n' + get_usage_import()
+    elif trigger == 'configure':
+        help_msg = '#%configure(): configures the ProActive kernel\'s behavior\n'
+        help_msg += 'Usages:\n' + get_usage_configure()
     elif trigger == 'task':
         help_msg = '#%task(): creates/modifies a task\n'
         help_msg += 'Usages:\n' + get_usage_task()
@@ -140,7 +151,10 @@ def get_help(trigger):
         help_msg += 'Usages:\n' + get_usage_draw_job()
     elif trigger == 'write_dot':
         help_msg = '#%write_dot(): writes the workflow in .dot format\n'
-        help_msg += 'Usages:\n' + get_usage_write_job()
+        help_msg += 'Usages:\n' + get_usage_write_dot()
+    elif trigger == 'import_dot':
+        help_msg = '#%import_dot(): imports the workflow from a .dot file\n'
+        help_msg += 'Usages:\n' + get_usage_import_dot()
     elif trigger == 'submit_job':
         help_msg = '#%submit_job(): submits the job to the scheduler\n'
         help_msg += 'Usages:\n' + get_usage_submit_job()
@@ -184,6 +198,8 @@ def get_usage(trigger):
         return get_usage_connect()
     elif trigger == 'import':
         return get_usage_import()
+    elif trigger == 'configure':
+        return get_usage_configure()
     elif trigger == 'task':
         return get_usage_task()
     elif trigger == 'delete_task':
@@ -205,7 +221,9 @@ def get_usage(trigger):
     elif trigger == 'draw_job':
         return get_usage_draw_job()
     elif trigger == 'write_dot':
-        return get_usage_write_job()
+        return get_usage_write_dot()
+    elif trigger == 'import_dot':
+        return get_usage_import_dot()
     elif trigger == 'submit_job':
         return get_usage_submit_job()
     elif trigger == 'get_job_result':
@@ -299,6 +317,13 @@ def is_valid_import(data):
     pattern_language = r"^[a-zA-Z_]+$"
     if 'language' in data and not re.match(pattern_language, data['language']):
         raise ParameterError('Invalid script language')
+    return
+
+
+def is_valid_configure(data):
+    pattern_block_multiblock = r"^block$|^multiblock$"
+    if 'task' not in data or not re.match(pattern_block_multiblock, data['task']):
+        raise ParameterError('Invalid task parameter')
     return
 
 
@@ -420,6 +445,13 @@ def is_valid_write_dot(data):
     return
 
 
+def is_valid_import_dot(data):
+    pattern_path_cars = r"^[a-zA-Z0-9_\/\\:\.-]+$"
+    if 'path' not in data or not re.match(pattern_path_cars, data['path']):
+        raise ParameterError('Invalid path parameter')
+    return
+
+
 def is_valid_submit_job(data):
     return is_valid_write_dot(data)
 
@@ -493,6 +525,8 @@ def is_valid(data):
         return is_valid_connect(data)
     elif data['trigger'] == 'import':
         return is_valid_import(data)
+    elif data['trigger'] == 'configure':
+        return is_valid_configure(data)
     elif data['trigger'] == 'task':
         return is_valid_task(data)
     elif data['trigger'] == 'delete_task':
@@ -515,6 +549,8 @@ def is_valid(data):
         return is_valid_draw_job(data)
     elif data['trigger'] == 'write_dot':
         return is_valid_write_dot(data)
+    elif data['trigger'] == 'import_dot':
+        return is_valid_import_dot(data)
     elif data['trigger'] == 'submit_job':
         return is_valid_submit_job(data)
     elif data['trigger'] == 'get_job_result':
@@ -541,6 +577,72 @@ def is_valid(data):
 class Pragma:
     pattern = r"\w+"
 
+    pragmas_generic = ['draw_job',
+                       'configure',
+                       'task',
+                       'delete_task',
+                       'import',
+                       'job',
+                       'selection_script',
+                       'job_selection_script',
+                       'fork_env',
+                       'job_fork_env',
+                       'pre_script',
+                       'post_script',
+                       'write_dot',
+                       'import_dot',
+                       'submit_job',
+                       'help',
+                       'get_job_result',
+                       'get_task_result',
+                       'print_job_output',
+                       'print_task_output',
+                       'list_submitted_jobs',
+                       'export_xml',
+                       'show_resource_manager',
+                       'show_scheduling_portal',
+                       'show_workflow_automation'
+                       ]
+
+    pragmas_empty = ['submit_job',
+                     'import',
+                     'job_selection_script',
+                     'job_fork_env',
+                     'draw_job',
+                     'help',
+                     'list_submitted_jobs',
+                     'export_xml',
+                     'show_resource_manager',
+                     'show_scheduling_portal',
+                     'show_workflow_automation'
+                     ]
+
+    pragmas_connected_mode = ['draw_job',
+                              'task',
+                              'delete_task',
+                              'import',
+                              'job',
+                              'selection_script',
+                              'job_selection_script',
+                              'fork_env',
+                              'job_fork_env',
+                              'pre_script',
+                              'post_script',
+                              'write_dot',
+                              'import_dot',
+                              'submit_job',
+                              'list_submitted_jobs',
+                              'export_xml',
+                              'show_resource_manager',
+                              'show_scheduling_portal',
+                              'show_workflow_automation'
+                              ]
+
+    pragmas_not_connected_mode = ['connect',
+                                  'help',
+                                  'configure'
+                                  ]
+
     def __init__(self):
         self.trigger = 'task'
 
@@ -556,47 +658,10 @@ class Pragma:
         pattern_generic = r"^( *" + pattern_l + r" *= *" + pattern_r + r")( *, *" + pattern_l + r" *= *" + \
                           pattern_r + r" *)*$"
 
-        pragmas_generic = ['draw_job',
-                           'task',
-                           'delete_task',
-                           'import',
-                           'job',
-                           'selection_script',
-                           'job_selection_script',
-                           'fork_env',
-                           'job_fork_env',
-                           'pre_script',
-                           'post_script',
-                           'write_dot',
-                           'submit_job',
-                           'help',
-                           'get_job_result',
-                           'get_task_result',
-                           'print_job_output',
-                           'print_task_output',
-                           'list_submitted_jobs',
-                           'export_xml',
-                           'show_resource_manager',
-                           'show_scheduling_portal',
-                           'show_workflow_automation'
-                           ]
-        pragmas_empty = ['submit_job',
-                         'import',
-                         'job_selection_script',
-                         'job_fork_env',
-                         'draw_job',
-                         'help',
-                         'list_submitted_jobs',
-                         'export_xml',
-                         'show_resource_manager',
-                         'show_scheduling_portal',
-                         'show_workflow_automation'
-                         ]
-
-        invalid_generic = not re.match(pattern_generic, params) and self.trigger in pragmas_generic
+        invalid_generic = not re.match(pattern_generic, params) and self.trigger in Pragma.pragmas_generic
         invalid_connect = not (re.match(pattern_connect, params) or
                                re.match(pattern_connect_with_path, params)) and self.trigger == 'connect'
-        valid_empty = params == "" and self.trigger in pragmas_empty
+        valid_empty = params == "" and self.trigger in Pragma.pragmas_empty
 
         if valid_empty:
             return
