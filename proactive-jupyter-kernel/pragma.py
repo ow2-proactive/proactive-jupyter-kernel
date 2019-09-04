@@ -65,28 +65,20 @@ def get_usage_submit_job():
     return '   #%submit_job([name=JOB_NAME])\n'
 
 
-def get_usage_get_result():
-    return '   #%get_result(id=JOB_ID)\n'
-
-
-# TODO: to complete
 def get_usage_get_job_result():
-    return '   #%get_job_result([id=JOB_ID], [name=JOB_NAME])\n'
+    return '   #%get_job_result([job_id=JOB_ID], [job_name=JOB_NAME])\n'
 
 
-# TODO: to complete
 def get_usage_get_task_result():
-    return '   #%get_task_result(name=TASK_NAME)\n'
+    return '   #%get_task_result([job_id=JOB_ID], [job_name=JOB_NAME], task_name=TASK_NAME)\n'
 
 
-# TODO: to complete
 def get_usage_print_job_output():
-    return '   #%print_job_output([id=JOB_ID], [name=JOB_NAME])\n'
+    return '   #%print_job_output([job_id=JOB_ID], [job_name=JOB_NAME])\n'
 
 
-# TODO: to complete
 def get_usage_print_task_output():
-    return '   #%print_task_output(name=TASK_NAME)\n'
+    return '   #%print_task_output([job_id=JOB_ID], [job_name=JOB_NAME], task_name=TASK_NAME)\n'
 
 
 def get_usage_list_submitted_jobs():
@@ -152,9 +144,18 @@ def get_help(trigger):
     elif trigger == 'submit_job':
         help_msg = '#%submit_job(): submits the job to the scheduler\n'
         help_msg += 'Usages:\n' + get_usage_submit_job()
-    elif trigger == 'get_result':
-        help_msg = '#%get_result(): gets and prints the job results\n'
-        help_msg += 'Usages:\n' + get_usage_get_result()
+    elif trigger == 'get_job_result':
+        help_msg = '#%get_job_result(): gets and prints the job results\n'
+        help_msg += 'Usages:\n' + get_usage_get_job_result()
+    elif trigger == 'get_task_result':
+        help_msg = '#%get_task_result(): gets and prints the results of a given task\n'
+        help_msg += 'Usages:\n' + get_usage_get_task_result()
+    elif trigger == 'print_job_output':
+        help_msg = '#%print_job_output(): gets and prints the job outputs\n'
+        help_msg += 'Usages:\n' + get_usage_print_job_output()
+    elif trigger == 'print_task_output':
+        help_msg = '#%print_task_output(): gets and prints the outputs of a given task\n'
+        help_msg += 'Usages:\n' + get_usage_print_task_output()
     elif trigger == 'list_submitted_jobs':
         help_msg = '#%list_submitted_jobs(): gets and prints the ids and names of the submitted jobs\n'
         help_msg += 'Usages:\n' + get_usage_list_submitted_jobs()
@@ -207,8 +208,14 @@ def get_usage(trigger):
         return get_usage_write_job()
     elif trigger == 'submit_job':
         return get_usage_submit_job()
-    elif trigger == 'get_result':
-        return get_usage_get_result()
+    elif trigger == 'get_job_result':
+        return get_usage_get_job_result()
+    elif trigger == 'get_task_result':
+        return get_usage_get_task_result()
+    elif trigger == 'print_job_output':
+        return get_usage_print_job_output()
+    elif trigger == 'print_task_output':
+        return get_usage_print_task_output()
     elif trigger == 'list_submitted_jobs':
         return get_usage_list_submitted_jobs()
     elif trigger == 'export_xml':
@@ -417,14 +424,37 @@ def is_valid_submit_job(data):
     return is_valid_write_dot(data)
 
 
-def is_valid_get_result(data):
+def is_valid_get_job_result(data):
     pattern_name = r"^[a-zA-Z_]\w*$"
     pattern_id = r"^\d+$"
-    if 'name' in data and re.match(pattern_name, data['name']):
+    if 'job_name' not in data and 'job_id' not in data:
+        raise ParameterError('Invalid parameters')
+    if 'job_name' in data and re.match(pattern_name, data['job_name']):
         return
-    if 'id' in data and re.match(pattern_id, data['id']):
+    if 'job_id' in data and re.match(pattern_id, data['job_id']):
         return
     raise ParameterError('Invalid parameters')
+
+
+def is_valid_get_task_result(data):
+    pattern_name = r"^[a-zA-Z_]\w*$"
+    pattern_id = r"^\d+$"
+    if 'job_name' not in data and 'job_id' not in data:
+        raise ParameterError('Invalid parameters')
+    if 'job_name' in data and not re.match(pattern_name, data['job_name']):
+        raise ParameterError('Invalid job_name parameter')
+    if 'job_id' in data and not re.match(pattern_id, data['job_id']):
+        raise ParameterError('Invalid job_id parameter')
+    if 'task_name' not in data or not re.match(pattern_name, data['task_name']):
+        raise ParameterError('Invalid task_name parameter')
+    return
+
+
+def is_valid_print_job_output(data):
+    return is_valid_get_job_result(data)
+
+def is_valid_print_task_output(data):
+    return is_valid_get_task_result(data)
 
 
 def is_valid_list_submitted_jobs(data):
@@ -487,8 +517,14 @@ def is_valid(data):
         return is_valid_write_dot(data)
     elif data['trigger'] == 'submit_job':
         return is_valid_submit_job(data)
-    elif data['trigger'] == 'get_result':
-        return is_valid_get_result(data)
+    elif data['trigger'] == 'get_job_result':
+        return is_valid_get_job_result(data)
+    elif data['trigger'] == 'get_task_result':
+        return is_valid_get_task_result(data)
+    elif data['trigger'] == 'print_job_output':
+        return is_valid_print_job_output(data)
+    elif data['trigger'] == 'print_task_output':
+        return is_valid_print_task_output(data)
     elif data['trigger'] == 'list_submitted_jobs':
         return is_valid_list_submitted_jobs(data)
     elif data['trigger'] == 'export_xml':
@@ -534,6 +570,10 @@ class Pragma:
                            'write_dot',
                            'submit_job',
                            'help',
+                           'get_job_result',
+                           'get_task_result',
+                           'print_job_output',
+                           'print_task_output',
                            'list_submitted_jobs',
                            'export_xml',
                            'show_resource_manager',
