@@ -456,21 +456,39 @@ Notice that the _.xml_ file will be saved under one of the following names:
 3. The notebook's name, if the kernel can retrieve it
 4. `Unnamed_job`, otherwise.
 
-#### 5.14 Print results
+#### 5.14 Get results
 
-To get the job result(s), the user has to use the `#%get_result()` pragma by providing the job name:
+After the execution of a ProActive workflow, two outputs information can be obtained,
+* results: values that have been saved in the 
+[task result variable](https://doc.activeeon.com/latest/user/ProActiveUserGuide.html#_task_result),
+* console outputs: classic outputs that has been displayed/printed 
+
+To get task results, use the `#%get_task_result()` pragma by providing the task name, and one of the job ID or name:
 
 ```python
-#%get_result(name=JOB_NAME)
+#%get_task_result([job_id=JOB_ID], [job_name=JOB_NAME], task_name=TASK_NAME)
 ```
 
-Or, by the job ID:
+To get the result(s) of all the tasks of a job, the user has to use the `#%get_job_result()` pragma by providing the 
+job name or the job ID:
 
 ```python
-#%get_result(id=JOB_ID)
+#%get_job_result([job_id=JOB_ID], [job_name=JOB_NAME])
 ```
 
-The returned values of your final tasks will be automatically printed.
+Same behavior of the Kernel to display console outputs. To print a task output, you can use the the 
+`#%print_task_output()` pragma:
+
+```python
+#%print_task_output([job_id=JOB_ID], [job_name=JOB_NAME], task_name=TASK_NAME)
+```
+
+and finally, to print all job outputs, the use may use the `#%print_job_output()` pragma by providing the 
+job name or the job ID:
+
+```python
+#%print_job_output([job_id=JOB_ID], [job_name=JOB_NAME])
+```
 
 ### 6. Display and use ActiveEon Portals directly in Jupyter
 
@@ -538,6 +556,14 @@ Features:
 * *submit_job*: submits the job to the scheduler
 
 * *get_result*: gets and prints the job results
+
+* *get_job_result*: gets and prints the job results
+
+* *get_task_result*: gets and prints the results of a given task
+
+* *print_job_output*: gets and prints the job outputs
+
+* *print_task_output*: gets and prints the outputs of a given task\n
 
 * *list_submitted_jobs*: gets and prints the ids and names of the submitted jobs
 
