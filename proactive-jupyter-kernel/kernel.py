@@ -986,7 +986,7 @@ class ProActiveKernel(Kernel):
         try:
             job_result = self.gateway.getJobResult(job_id)
         except Exception:
-            raise ResultError("Results unreachable for job: " + str(job_id))
+            raise ResultError("Results unreachable for job: " + job_id)
 
         self.__kernel_print_ok_message__('Results:\n')
         self.__kernel_print_ok_message__(job_result)
@@ -1011,7 +1011,7 @@ class ProActiveKernel(Kernel):
         try:
             job_result = self.gateway.printJobOutput(job_id)
         except Exception:
-            raise ResultError("Results unreachable for job: " + str(job_id))
+            raise ResultError("Results unreachable for job: " + job_id)
 
         self.__kernel_print_ok_message__('Outputs:\n')
         self.__kernel_print_ok_message__(job_result)
