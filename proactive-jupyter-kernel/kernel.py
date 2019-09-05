@@ -176,8 +176,14 @@ class ProActiveKernel(Kernel):
             return self.__connect__
         elif pragma_info['trigger'] == 'submit_job':
             return self.__submit_job__
-        elif pragma_info['trigger'] == 'get_result':
-            return self.__get_result__
+        elif pragma_info['trigger'] == 'get_job_result':
+            return self.__get_job_result__
+        elif pragma_info['trigger'] == 'get_task_result':
+            return self.__get_task_result__
+        elif pragma_info['trigger'] == 'print_job_output':
+            return self.__print_job_output__
+        elif pragma_info['trigger'] == 'print_task_output':
+            return self.__print_task_output__
         elif pragma_info['trigger'] == 'configure':
             return self.__configure__
         elif pragma_info['trigger'] == 'delete_task':
@@ -538,7 +544,10 @@ class ProActiveKernel(Kernel):
                                              + '#%write_dot(): writes the workflow in .dot format\n'
                                              + '#%import_dot(): imports the workflow from a .dot file\n'
                                              + '#%submit_job(): submits the job to the scheduler\n'
-                                             + '#%get_result(): gets and prints the job results\n'
+                                             + '#%get_job_result(): gets and prints the job results\n'
+                                             + '#%get_task_result(): gets and prints the results of a given task\n'
+                                             + '#%print_job_output(): gets and prints the job outputs\n'
+                                             + '#%print_task_output(): gets and prints the outputs of a given task\n'
                                              + '#%list_submitted_jobs(): gets and prints the ids and names of the submitted jobs\n'
                                              + '#%export_xml(): exports the workflow in .xml format\n'
                                              + '#%show_resource_manager(): opens the ActiveEon resource manager portal\n'
@@ -961,26 +970,64 @@ class ProActiveKernel(Kernel):
         self.job_name = name
         return 0
 
-    def __get_result__(self, input_data):
-        job_id = 0
+    def __get_job_id_from_inputs__(self, input_data):
+        if 'job_id' in input_data:
+            return input_data['job_id']
+        if 'job_name' in input_data and input_data['job_name'] != '':
+            if input_data['job_name'] not in self.submitted_jobs_ids:
+                raise ResultError("The job named \'" + input_data['job_name'] + "\' does not exist.")
+            return self.submitted_jobs_ids[input_data['job_name']]
+        raise ParameterError('Invalid parameters and validation step. Please check.')
 
-        if 'id' in input_data:
-            job_id = int(input_data['id'])
-            self.__kernel_print_ok_message__('Getting job ' + str(job_id) + ' output ...\n')
-
-        elif 'name' in input_data and input_data['name'] != '':
-            if input_data['name'] not in self.submitted_jobs_ids:
-                raise ResultError("The job named \'" + input_data['name'] + "\' does not exist.")
-            job_id = self.submitted_jobs_ids[input_data['name']]
-            self.__kernel_print_ok_message__('Getting job \'' + input_data['name'] + '\' output ...\n')
+    def __get_job_result__(self, input_data):
+        job_id = self.__get_job_id_from_inputs__(input_data)
+        self.__kernel_print_ok_message__('Getting job ' + job_id + ' results ...\n')
 
         try:
             job_result = self.gateway.getJobResult(job_id)
         except Exception:
-            raise ResultError("Results unreachable for job: " + str(job_id))
+            raise ResultError("Results unreachable for job: " + job_id)
+
+        self.__kernel_print_ok_message__('Results:\n')
+        self.__kernel_print_ok_message__(job_result)
+
+    def __get_task_result__(self, input_data):
+        job_id = self.__get_job_id_from_inputs__(input_data)
+        self.__kernel_print_ok_message__('Getting from job ' + job_id + ', task \'' + input_data['task_name']
+                                         + '\' results ...\n')
+
+        try:
+            task_result = self.gateway.getTaskResult(job_id, input_data['task_name'])
+        except Exception:
+            raise ResultError("Results unreachable for job: " + job_id)
 
         self.__kernel_print_ok_message__('Result:\n')
+        self.__kernel_print_ok_message__(str(task_result))
+
+    def __print_job_output__(self, input_data):
+        job_id = self.__get_job_id_from_inputs__(input_data)
+        self.__kernel_print_ok_message__('Getting job ' + job_id + ' console outputs ...\n')
+
+        try:
+            job_result = self.gateway.printJobOutput(job_id)
+        except Exception:
+            raise ResultError("Results unreachable for job: " + job_id)
+
+        self.__kernel_print_ok_message__('Outputs:\n')
         self.__kernel_print_ok_message__(job_result)
+
+    def __print_task_output__(self, input_data):
+        job_id = self.__get_job_id_from_inputs__(input_data)
+        self.__kernel_print_ok_message__('Getting from job ' + job_id + ', task \'' + input_data['task_name']
+                                         + '\' console output ...\n')
+
+        try:
+            task_result = self.gateway.printTaskOutput(job_id, input_data['task_name'])
+        except Exception:
+            raise ResultError("Results unreachable for job: " + job_id)
+
+        self.__kernel_print_ok_message__('Output:\n')
+        self.__kernel_print_ok_message__(str(task_result))
 
     def __submit_job__(self, input_data):
         if not self.job_created:
