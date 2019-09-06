@@ -588,4 +588,5 @@ Features:
 
 ###### Documentation
 * add some examples pictures
+* add configure pragma section (block, multiblock)
 
