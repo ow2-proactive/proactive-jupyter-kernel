@@ -476,14 +476,14 @@ job name or the job ID:
 #%get_job_result([job_id=JOB_ID], [job_name=JOB_NAME])
 ```
 
-Same behavior of the Kernel to display console outputs. To print a task output, you can use the the 
+Same behavior of the Kernel to display console outputs. To print a task output, you can use the 
 `#%print_task_output()` pragma:
 
 ```python
 #%print_task_output([job_id=JOB_ID], [job_name=JOB_NAME], task_name=TASK_NAME)
 ```
 
-and finally, to print all job outputs, the use may use the `#%print_job_output()` pragma by providing the 
+and finally, to print all job outputs, the user may use the `#%print_job_output()` pragma by providing the 
 job name or the job ID:
 
 ```python
@@ -563,7 +563,7 @@ Features:
 
 * *print_job_output*: gets and prints the job outputs
 
-* *print_task_output*: gets and prints the outputs of a given task\n
+* *print_task_output*: gets and prints the outputs of a given task
 
 * *list_submitted_jobs*: gets and prints the ids and names of the submitted jobs
 
