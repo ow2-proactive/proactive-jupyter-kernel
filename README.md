@@ -331,7 +331,7 @@ To add a post-script to a task, use:
 #%post_script(name=TASK_NAME, language=SCRIPT_LANGUAGE, [path=./POST_SCRIPT_FILE.py])
 ```
 
-#### 5.7 Deleting a task
+#### 5.7 Delete a task
 
 To delete a task from the workflow, the user should run the pragma `#%delete_task()` in the following way:
 
@@ -388,7 +388,7 @@ Note that the job's name can take one of the following possible values:
 1. The parameter `name` 's value, if provided
 2. The job's name, if created
 3. The notebook's name, if the kernel can retrieve it
-4. `Unnamed_job`, otherwise.
+4. `Unnamed_job`, otherwise
 
 General usage:
 
@@ -413,7 +413,7 @@ To create a workflow according to a [GraphViz](https://www.graphviz.org/) _.dot_
 ```
 
 By default, the workflow will contain _Python_ tasks with empty implementation scripts. If you want to modify or add 
-any information to a specific task, use, as explained in [Creating a Task](#51-creating-a-python-task), the `#%task()` 
+any information to a specific task, please use, as explained in [Creating a Task](#51-creating-a-python-task), the `#%task()` 
 pragma.
 
 #### 5.11 Submit your job to the scheduler
@@ -441,7 +441,7 @@ To get all submitted job IDs and names, use `list_submitted_jobs` pragma this wa
 #%list_submitted_jobs()
 ```
 
-#### 5.13 Export the workflow in xml format
+#### 5.13 Export the workflow in XML format
 
 To export the created workflow in _.xml_ format, use the `#%export_xml()` pragma:
 
@@ -454,37 +454,37 @@ Notice that the _.xml_ file will be saved under one of the following names:
 1. The parameter `name` 's value, if provided
 2. The job's name, if created
 3. The notebook's name, if the kernel can retrieve it
-4. `Unnamed_job`, otherwise.
+4. `Unnamed_job`, otherwise
 
 #### 5.14 Get results
 
-After the execution of a ProActive workflow, two outputs information can be obtained,
+After the execution of a ProActive workflow, two outputs can be obtained,
 * results: values that have been saved in the 
 [task result variable](https://doc.activeeon.com/latest/user/ProActiveUserGuide.html#_task_result),
-* console outputs: classic outputs that has been displayed/printed 
+* console outputs: classic outputs that have been displayed/printed 
 
-To get task results, use the `#%get_task_result()` pragma by providing the task name, and one of the job ID or name:
+To get task results, please use the `#%get_task_result()` pragma by providing the task name, and either the job ID or
+the job name:
 
 ```python
 #%get_task_result([job_id=JOB_ID], [job_name=JOB_NAME], task_name=TASK_NAME)
 ```
 
-To get the result(s) of all the tasks of a job, the user has to use the `#%get_job_result()` pragma by providing the 
-job name or the job ID:
+The result(s) of all the tasks of a job can be obtained with the `#%get_job_result()` pragma, by providing the job name
+or the job ID:
 
 ```python
 #%get_job_result([job_id=JOB_ID], [job_name=JOB_NAME])
 ```
 
-Same behavior of the Kernel to display console outputs. To print a task output, you can use the 
-`#%print_task_output()` pragma:
+To get and display console outputs of a task, you can use the `#%print_task_output()` pragma in the following
+way:
 
 ```python
 #%print_task_output([job_id=JOB_ID], [job_name=JOB_NAME], task_name=TASK_NAME)
 ```
 
-and finally, to print all job outputs, the user may use the `#%print_job_output()` pragma by providing the 
-job name or the job ID:
+Finally, the  `#%print_job_output()` pragma allows to print all job outputs, by providing the job name or the job ID:
 
 ```python
 #%print_job_output([job_id=JOB_ID], [job_name=JOB_NAME])
