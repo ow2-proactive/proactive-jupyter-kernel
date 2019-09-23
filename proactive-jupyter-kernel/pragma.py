@@ -53,6 +53,25 @@ def get_usage_job_fork_env():
     return '   #%job_fork_env([language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py], [force=on/off])\n'
 
 
+def get_usage_split():
+    return '   #%split([name=TASK_NAME], [dep=[TASK_NAME1,TASK_NAME2,...]], [generic_info=[(KEY1,VAL1),' \
+           '(KEY2,VALUE2),...]][language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])\n'
+
+
+def get_usage_runs():
+    return '   #%runs()\n'
+
+
+def get_usage_process():
+    return '   #%process([name=TASK_NAME], [dep=[TASK_NAME1,TASK_NAME2,...]], [generic_info=[(KEY1,VAL1),' \
+           '(KEY2,VALUE2),...]][language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])\n'
+
+
+def get_usage_merge():
+    return '   #%merge([name=TASK_NAME], [dep=[TASK_NAME1,TASK_NAME2,...]], [generic_info=[(KEY1,VAL1),' \
+           '(KEY2,VALUE2),...]][language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])\n'
+
+
 def get_usage_job():
     return '   #%job(name=JOB_NAME)\n'
 
@@ -143,6 +162,14 @@ def get_help(trigger):
     elif trigger == 'job_fork_env':
         help_msg = '#%job_fork_env(): sets the fork environment of a job\n'
         help_msg += 'Usages:\n' + get_usage_job_fork_env()
+    elif trigger == 'split':
+        help_msg = '#%split(): creates/modifies a splitting task of a replicate control\n'
+    elif trigger == 'runs':
+        help_msg = '#%runs(): creates/modifies the configuration script of a replicate control\n'
+    elif trigger == 'process':
+        help_msg = '#%process(): creates/modifies the script of a replicated processing task \n'
+    elif trigger == 'merge':
+        help_msg = '#%merge(): creates/modifies a merging task of a replicate control\n'
     elif trigger == 'job':
         help_msg = '#%job(): creates/renames the job\n'
         help_msg += 'Usages:\n' + get_usage_job()
@@ -216,6 +243,14 @@ def get_usage(trigger):
         return get_usage_fork_env()
     elif trigger == 'job_fork_env':
         return get_usage_job_fork_env()
+    elif trigger == 'split':
+        return get_usage_split()
+    elif trigger == 'runs':
+        return get_usage_runs()
+    elif trigger == 'process':
+        return get_usage_process()
+    elif trigger == 'merge':
+        return get_usage_merge()
     elif trigger == 'job':
         return get_usage_job()
     elif trigger == 'draw_job':
@@ -419,6 +454,39 @@ def is_valid_job_fork_env(data):
     return is_valid_job_selection_script(data)
 
 
+def is_valid_split(data):
+    pattern_name = r"^[a-zA-Z_]\w*$"
+    pattern_language = r"^[a-zA-Z_]+$"
+    pattern_path_cars = r"^[a-zA-Z0-9_\/\\:\.-]+$"
+    if 'name' in data and data['name'] != '' and not re.match(pattern_name, data['name']):
+        raise ParameterError('Invalid name parameter')
+    if 'language' in data and not re.match(pattern_language, data['language']):
+        raise ParameterError('Invalid script language parameter')
+    if 'dep' in data:
+        is_valid_names_list(data['dep'])
+    if 'generic_info' in data:
+        is_valid_names_tuples_list(data['generic_info'])
+    if 'export' in data:
+        is_valid_names_list(data['export'])
+    if 'import' in data:
+        is_valid_names_list(data['import'])
+    if 'path' in data and not re.match(pattern_path_cars, data['path']):
+        raise ParameterError('Invalid path parameter')
+    return
+
+
+def is_valid_runs(data):
+    return
+
+
+def is_valid_process(data):
+    return is_valid_split(data)
+
+
+def is_valid_merge(data):
+    return is_valid_split(data)
+
+
 def is_valid_job(data):
     pattern_name = r"^[a-zA-Z_]\w*$"
     if 'name' not in data or not re.match(pattern_name, data['name']):
@@ -485,6 +553,7 @@ def is_valid_get_task_result(data):
 def is_valid_print_job_output(data):
     return is_valid_get_job_result(data)
 
+
 def is_valid_print_task_output(data):
     return is_valid_get_task_result(data)
 
@@ -543,6 +612,14 @@ def is_valid(data):
         return is_valid_fork_env(data)
     elif data['trigger'] == 'job_fork_env':
         return is_valid_job_fork_env(data)
+    elif data['trigger'] == 'split':
+        return is_valid_split(data)
+    elif data['trigger'] == 'runs':
+        return is_valid_runs(data)
+    elif data['trigger'] == 'process':
+        return is_valid_process(data)
+    elif data['trigger'] == 'merge':
+        return is_valid_merge(data)
     elif data['trigger'] == 'job':
         return is_valid_job(data)
     elif data['trigger'] == 'draw_job':
@@ -582,6 +659,10 @@ class Pragma:
                        'task',
                        'delete_task',
                        'import',
+                       'split',
+                       'runs',
+                       'process',
+                       'merge',
                        'job',
                        'selection_script',
                        'job_selection_script',
@@ -606,6 +687,10 @@ class Pragma:
 
     pragmas_empty = ['submit_job',
                      'import',
+                     'split',
+                     'runs',
+                     'process',
+                     'merge',
                      'job_selection_script',
                      'job_fork_env',
                      'draw_job',
@@ -622,6 +707,10 @@ class Pragma:
                               'delete_task',
                               'import',
                               'job',
+                              'split',
+                              'runs',
+                              'process',
+                              'merge',
                               'selection_script',
                               'job_selection_script',
                               'fork_env',
