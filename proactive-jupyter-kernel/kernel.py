@@ -863,7 +863,7 @@ class ProActiveKernel(Kernel):
                     raise ParameterError('The variable \'' + var_name + '\' can\'t be imported.')
 
         if input_data['name'] in self.tasks_names:
-            self.__kernel_print_ok_message__('WARNING: Task \'' + input_data['name'] + '\' exists already ...\n')
+            self.__kernel_print_ok_message__('WARNING: Task \'' + input_data['name'] + '\' already exists ...\n')
             proactive_task = self.__get_task_from_name__(input_data['name'])
             proactive_task.clearDependencies()
             proactive_task.clearGenericInformation()
