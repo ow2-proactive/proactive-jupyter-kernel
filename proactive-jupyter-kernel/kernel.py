@@ -97,6 +97,7 @@ class ProActiveKernel(Kernel):
 
         self.previous_task_history = {}
         self.is_previous_pragma_task = False
+        self.last_modified_task = None
 
         self.exported_vars = {}
 
@@ -157,10 +158,10 @@ class ProActiveKernel(Kernel):
         error_content['status'] = 'error'
         return error_content
 
-    def __get_unique_task_name__(self):
-        name = 'DT' + str(self.tasks_count)
+    def __get_unique_task_name__(self, name_base = 'DT'):
+        name = name_base + str(self.tasks_count)
         while name in self.tasks_names:
-            name = 'DT' + str(random.randint(100, 9999999))
+            name = name_base + str(random.randint(100, 9999999))
         return name
 
     def __trigger_pragma__(self, pragma_info):
@@ -190,6 +191,14 @@ class ProActiveKernel(Kernel):
             return self.__delete_task__
         elif pragma_info['trigger'] == 'list_submitted_jobs':
             return self.__list_submitted_jobs__
+        elif pragma_info['trigger'] == 'split':
+            return self.__create_split__
+        elif pragma_info['trigger'] == 'runs':
+            return self.__add_runs__
+        elif pragma_info['trigger'] == 'process':
+            return self.__create_process__
+        elif pragma_info['trigger'] == 'merge':
+            return self.__create_merge__
         elif pragma_info['trigger'] == 'job':
             return self.__create_job__
         elif pragma_info['trigger'] == 'export_xml':
@@ -539,6 +548,10 @@ class ProActiveKernel(Kernel):
                                              + '#%job_selection_script(): sets the default selection script of a job\n'
                                              + '#%fork_env(): sets the fork environment script\n'
                                              + '#%job_fork_env(): sets the default fork environment of a job\n'
+                                             + '#%split(): creates/modifies a splitting task of a replicate control\n'
+                                             + '#%runs(): creates/modifies the configuration script of a replicate control\n'
+                                             + '#%process(): creates/modifies the script of a replicated processing task\n'
+                                             + '#%merge(): creates/modifies a merging task of a replicate control\n'
                                              + '#%job(): creates/renames the job\n'
                                              + '#%draw_job(): plots the workflow\n'
                                              + '#%write_dot(): writes the workflow in .dot format\n'
@@ -774,6 +787,74 @@ class ProActiveKernel(Kernel):
                 return True
         return False
 
+    def __set_default_selection_script__(self, proactive_task):
+        if self.default_selection_script is not None:
+            self.__kernel_print_ok_message__('Adding job selection script to the proactive task ...\n')
+            proactive_task.setSelectionScript(self.default_selection_script)
+        elif proactive_task.getSelectionScript() is None:
+            self.__kernel_print_ok_message__('Adding default selection script to the proactive task ...\n')
+            self.__create_selection_script_from_task__({'code': 'selected = True', 'task': proactive_task})
+
+    def __set_default_fork_environment__(self, proactive_task):
+        if self.default_fork_env is not None:
+            self.__kernel_print_ok_message__('Adding job fork environment to the proactive task ...\n')
+            proactive_task.setForkEnvironment(self.default_fork_env)
+
+    def __set_dependencies_from_input_data__(self, proactive_task, input_data):
+        if 'dep' in input_data:
+            self.__add_dependency__(proactive_task, input_data)
+
+    def __set_generic_information_from_input_data__(self, proactive_task, input_data):
+        if 'generic_info' in input_data:
+            self.__kernel_print_ok_message__('Adding generic information ...\n')
+            for gen_info in input_data['generic_info']:
+                proactive_task.addGenericInformation(gen_info[0], gen_info[1])
+
+    def __add_importing_variables_to_implementation_script__(self, input_data):
+        if 'import' in input_data:
+            self.__kernel_print_ok_message__('Adding importing variables script ...\n')
+            for var_name in input_data['import']:
+                input_data['code'] = var_name + ' = variables.get("' + var_name + '")\n' + input_data['code']
+
+    def __add_exporting_variables_to_implementation_script__(self, input_data):
+        if 'export' in input_data:
+            self.__kernel_print_ok_message__('Adding exporting variables script ...\n')
+            self.exported_vars[input_data['name']] = []
+            isAPythonTask = 'language' not in input_data \
+                            or ('language' in input_data and input_data['language'] == 'Python')
+            if isAPythonTask:
+                input_data['code'] = input_data['code'] + '\ntry:'
+            for var_name in input_data['export']:
+                if isAPythonTask:
+                    input_data['code'] = input_data['code'] + '\n' + \
+                                         '\tvariables.put("' + var_name + '", ' + var_name + ')'
+                else:
+                    input_data['code'] = input_data['code'] + '\nvariables.put("' + var_name + '", ' + var_name + ')'
+                self.exported_vars[input_data['name']].append(var_name)
+
+            if isAPythonTask:
+                input_data['code'] = input_data['code'] + \
+                                     '\nexcept Exception:' \
+                                     '\n\tprint("WARNING: Some exported variables are undefined. Please check.")'
+
+    def __add_job_imports_to_implementation_script__(self, input_data):
+        if 'language' in input_data:
+            if input_data['language'] in self.imports:
+                self.__kernel_print_ok_message__('Adding \'' + input_data['language'] + '\' library imports ...\n')
+                input_data['code'] = self.imports[input_data['language']] + '\n' + input_data['code']
+        else:
+            if 'Python' in self.imports:
+                self.__kernel_print_ok_message__('Adding \'Python\' library imports ...\n')
+                input_data['code'] = self.imports['Python'] + '\n' + input_data['code']
+
+    def __set_implementation_script_from_input_data__(self, proactive_task, input_data):
+        if 'path' in input_data:
+            proactive_task.setTaskImplementationFromFile(input_data['path'])
+            if input_data['code'] != '':
+                self.__kernel_print_ok_message__('WARNING: The written code is ignored.\n')
+        else:
+            proactive_task.setTaskImplementation(input_data['code'])
+
     def __create_task__(self, input_data):
         # Verifying if imported variables have been exported in other tasks
         if 'import' in input_data:
@@ -782,7 +863,7 @@ class ProActiveKernel(Kernel):
                     raise ParameterError('The variable \'' + var_name + '\' can\'t be imported.')
 
         if input_data['name'] in self.tasks_names:
-            self.__kernel_print_ok_message__('WARNING: Task \'' + input_data['name'] + '\' exists already ...\n')
+            self.__kernel_print_ok_message__('WARNING: Task \'' + input_data['name'] + '\' already exists ...\n')
             proactive_task = self.__get_task_from_name__(input_data['name'])
             proactive_task.clearDependencies()
             proactive_task.clearGenericInformation()
@@ -831,74 +912,60 @@ class ProActiveKernel(Kernel):
 
             self.tasks_count += 1
 
-        if self.default_selection_script is not None:
-            self.__kernel_print_ok_message__('Adding job selection script to the proactive task ...\n')
-            proactive_task.setSelectionScript(self.default_selection_script)
-        elif proactive_task.getSelectionScript() is None:
-            self.__kernel_print_ok_message__('Adding default selection script to the proactive task ...\n')
-            self.__create_selection_script_from_task__({'code': 'selected = True', 'task': proactive_task})
-
-        if self.default_fork_env is not None:
-            self.__kernel_print_ok_message__('Adding job fork environment to the proactive task ...\n')
-            proactive_task.setForkEnvironment(self.default_fork_env)
-
-        if 'dep' in input_data:
-            self.__add_dependency__(proactive_task, input_data)
-
-        if 'generic_info' in input_data:
-            self.__kernel_print_ok_message__('Adding generic information ...\n')
-            for gen_info in input_data['generic_info']:
-                proactive_task.addGenericInformation(gen_info[0], gen_info[1])
+        self.__set_default_selection_script__(proactive_task)
+        self.__set_default_fork_environment__(proactive_task)
+        self.__set_dependencies_from_input_data__(proactive_task, input_data)
+        self.__set_generic_information_from_input_data__(proactive_task, input_data)
 
         # TODO: check how to import/export variables when a file path is provided
-
-        if 'import' in input_data:
-            self.__kernel_print_ok_message__('Adding importing variables script ...\n')
-            for var_name in input_data['import']:
-                input_data['code'] = var_name + ' = variables.get("' + var_name + '")\n' + input_data['code']
-
-        if 'export' in input_data:
-            self.__kernel_print_ok_message__('Adding exporting variables script ...\n')
-            self.exported_vars[input_data['name']] = []
-            isAPythonTask = 'language' not in input_data \
-                            or ('language' in input_data and input_data['language'] == 'Python')
-            if isAPythonTask:
-                input_data['code'] = input_data['code'] + '\ntry:'
-            for var_name in input_data['export']:
-                if isAPythonTask:
-                    input_data['code'] = input_data['code'] + '\n' + \
-                                         '\tvariables.put("' + var_name + '", ' + var_name + ')'
-                else:
-                    input_data['code'] = input_data['code'] + '\nvariables.put("' + var_name + '", ' + var_name + ')'
-                self.exported_vars[input_data['name']].append(var_name)
-
-            if isAPythonTask:
-                input_data['code'] = input_data['code'] + \
-                                     '\nexcept Exception:' \
-                                     '\n\tprint("WARNING: Some exported variables are undefined. Please check.")'
-
-        if 'language' in input_data:
-            if input_data['language'] in self.imports:
-                self.__kernel_print_ok_message__('Adding \'' + input_data['language'] + '\' library imports ...\n')
-                input_data['code'] = self.imports[input_data['language']] + '\n' + input_data['code']
-        else:
-            if 'Python' in self.imports:
-                self.__kernel_print_ok_message__('Adding \'Python\' library imports ...\n')
-                input_data['code'] = self.imports['Python'] + '\n' + input_data['code']
-
-        if 'path' in input_data:
-            proactive_task.setTaskImplementationFromFile(input_data['path'])
-            if input_data['code'] != '':
-                self.__kernel_print_ok_message__('WARNING: The written code is ignored.\n')
-        else:
-            proactive_task.setTaskImplementation(input_data['code'])
+        self.__add_importing_variables_to_implementation_script__(input_data)
+        self.__add_exporting_variables_to_implementation_script__(input_data)
+        self.__add_job_imports_to_implementation_script__(input_data)
+        self.__set_implementation_script_from_input_data__(proactive_task, input_data)
 
         self.previous_task_history = input_data
         self.is_previous_pragma_task = True
+        self.last_modified_task = proactive_task
 
         self.__kernel_print_ok_message__('Done.\n')
         self.job_up_to_date = False
 
+        return 0
+
+    def __create_split__(self, input_data):
+        input_data['trigger'] = 'task'
+        if 'name' not in input_data or input_data['name'] == '':
+            input_data['name'] = self.__get_unique_task_name__('split')
+        self.__create_task__(input_data)
+        self.__kernel_print_ok_message__('Setting the flow block ...\n')
+        self.last_modified_task.setFlowBlock(self.gateway.getProactiveFlowBlockType().start())
+        return 0
+
+    def __add_runs__(self, input_data):
+        self.__kernel_print_ok_message__('Adding the REPLICATE flow script ...\n')
+        flow_script = self.gateway.createReplicateFlowScript(input_data['code'])
+        self.last_modified_task.setFlowScript(flow_script)
+        self.__kernel_print_ok_message__('Done.\n')
+        return 0
+
+    def __create_process__(self, input_data):
+        input_data['trigger'] = 'task'
+        if 'name' not in input_data or input_data['name'] == '':
+            input_data['name'] = 'process' + re.findall(r'\d+', self.previous_task_history['name']).pop()
+        if 'dep' not in input_data:
+            input_data['dep'] = [self.last_modified_task.getTaskName()]
+        self.__create_task__(input_data)
+        return 0
+
+    def __create_merge__(self, input_data):
+        input_data['trigger'] = 'task'
+        if 'name' not in input_data or input_data['name'] == '':
+            input_data['name'] = 'merge' + re.findall(r'\d+', self.previous_task_history['name']).pop()
+        if 'dep' not in input_data:
+            input_data['dep'] = [self.last_modified_task.getTaskName()]
+        self.__create_task__(input_data)
+        self.__kernel_print_ok_message__('Setting the flow block ...\n')
+        self.last_modified_task.setFlowBlock(self.gateway.getProactiveFlowBlockType().end())
         return 0
 
     def __clean_related_dependencies__(self, removed_task):
