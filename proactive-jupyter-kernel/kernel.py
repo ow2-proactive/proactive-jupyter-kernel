@@ -87,13 +87,15 @@ class ProActiveKernel(Kernel):
         self.proactive_failed_connection = False
         self.error_message = ''
         self.graph_created = False
-        self.G = None
-        self.labels = {}
+        self.graph = None
+        self.node_labels = {}
+        self.edge_labels = {}
         self.pragma = Pragma()
         self.imports = {}
         self.default_selection_script = None
         self.default_fork_env = None
         self.multiblock_task_config = False
+        self.semaphore_replicate = 0
 
         self.previous_task_history = {}
         self.is_previous_pragma_task = False
@@ -158,7 +160,7 @@ class ProActiveKernel(Kernel):
         error_content['status'] = 'error'
         return error_content
 
-    def __get_unique_task_name__(self, name_base = 'DT'):
+    def __get_unique_task_name__(self, name_base='DT'):
         name = name_base + str(self.tasks_count)
         while name in self.tasks_names:
             name = name_base + str(random.randint(100, 9999999))
@@ -282,25 +284,30 @@ class ProActiveKernel(Kernel):
         return title
 
     def __draw_graph__(self, input_data):
-        pos = graphviz_layout(self.G, prog='dot')
+        pos = graphviz_layout(self.graph, prog='dot')
 
         # nodes
-        nx.draw_networkx_nodes(self.G, pos,
+        nx.draw_networkx_nodes(self.graph, pos,
                                node_color='orange',
                                node_size=3000,
                                alpha=0.5)
 
         # edges
-        nx.draw_networkx_edges(self.G, pos,
+        nx.draw_networkx_edges(self.graph, pos,
                                arrowstyle='->',
                                arrowsize=50,
                                edge_color='green',
                                width=2,
                                alpha=0.5)
 
-        nx.draw_networkx_labels(self.G, pos,
-                                self.labels,
+        nx.draw_networkx_labels(self.graph, pos,
+                                self.node_labels,
                                 font_size=13)
+
+        nx.draw_networkx_edge_labels(self.graph, pos,
+                                     alpha=0.7,
+                                     font_size=9,
+                                     edge_labels=self.edge_labels)
 
         plt.axis('off')
 
@@ -343,12 +350,13 @@ class ProActiveKernel(Kernel):
     def __draw_job__(self, input_data):
         if not self.graph_created or not self.job_up_to_date:
             self.__kernel_print_ok_message__('Creating the job workflow ...\n')
-            self.G = nx.DiGraph()
-            self.labels.clear()
+            self.graph = nx.DiGraph()
+            self.node_labels.clear()
+            self.edge_labels.clear()
 
             # nodes
             nodes_ids = [i for i in range(len(self.proactive_tasks))]
-            self.G.add_nodes_from(nodes_ids)
+            self.graph.add_nodes_from(nodes_ids)
 
             # edges
             for index_son in range(len(self.proactive_tasks)):
@@ -356,12 +364,16 @@ class ProActiveKernel(Kernel):
                 for parent_task in dependencies:
                     for index_parent in range(len(self.proactive_tasks)):
                         if parent_task.getTaskName() == self.proactive_tasks[index_parent].getTaskName():
-                            self.G.add_edge(index_parent, index_son)
+                            self.graph.add_edge(index_parent, index_son)
+                            # edge labels
+                            if parent_task.hasFlowScript():
+                                if parent_task.getFlowScript().isReplicateFlowScript():
+                                    self.edge_labels[(index_parent, index_son)] = 'replicate'
 
-            # labels
+            # node labels
             for i in nodes_ids:
                 # some math labels
-                self.labels[i] = r'$' + self.proactive_tasks[i].getTaskName() + '$'
+                self.node_labels[i] = r'$' + self.proactive_tasks[i].getTaskName() + '$'
 
             self.graph_created = True
             self.__kernel_print_ok_message__('Workflow created.\n')
@@ -939,6 +951,7 @@ class ProActiveKernel(Kernel):
         self.__create_task__(input_data)
         self.__kernel_print_ok_message__('Setting the flow block ...\n')
         self.last_modified_task.setFlowBlock(self.gateway.getProactiveFlowBlockType().start())
+        self.semaphore_replicate = 1
         return 0
 
     def __add_runs__(self, input_data):
@@ -946,6 +959,7 @@ class ProActiveKernel(Kernel):
         flow_script = self.gateway.createReplicateFlowScript(input_data['code'])
         self.last_modified_task.setFlowScript(flow_script)
         self.__kernel_print_ok_message__('Done.\n')
+        self.semaphore_replicate = 2
         return 0
 
     def __create_process__(self, input_data):
@@ -955,6 +969,7 @@ class ProActiveKernel(Kernel):
         if 'dep' not in input_data:
             input_data['dep'] = [self.last_modified_task.getTaskName()]
         self.__create_task__(input_data)
+        self.semaphore_replicate = 3
         return 0
 
     def __create_merge__(self, input_data):
@@ -966,6 +981,7 @@ class ProActiveKernel(Kernel):
         self.__create_task__(input_data)
         self.__kernel_print_ok_message__('Setting the flow block ...\n')
         self.last_modified_task.setFlowBlock(self.gateway.getProactiveFlowBlockType().end())
+        self.semaphore_replicate = 0
         return 0
 
     def __clean_related_dependencies__(self, removed_task):
@@ -1142,6 +1158,17 @@ class ProActiveKernel(Kernel):
             _code = _code[0] + '\n' + code2
         return _code
 
+    def __traffic_verification__(self, pragma_info):
+        if self.semaphore_replicate == 1 and pragma_info['trigger'] != 'runs':
+            raise PragmaError('Expected a \'runs\' pragma.')
+        if self.semaphore_replicate == 2 and pragma_info['trigger'] != 'process':
+            raise PragmaError('Expected a \'process\' pragma.')
+        if self.semaphore_replicate == 3 and pragma_info['trigger'] != 'merge':
+            raise PragmaError('Expected a \'merge\' pragma.')
+        if self.semaphore_replicate == 0 and pragma_info['trigger'] in ['runs', 'process', 'merge']:
+            raise PragmaError('The "replicate" control should start with a \'split\' pragma.')
+        return
+
     def __preprocess_pragma_block__(self, pragma_info):
         pragma_string = pragma_info['code'].split("\n", 1)
 
@@ -1179,6 +1206,12 @@ class ProActiveKernel(Kernel):
             return self.__kernel_print_error_message({'ename': 'Pragma error', 'evalue':
                 'Directive \'' + pragma_info['trigger']
                 + '\' not known.'})
+
+        try:
+            self.__traffic_verification__(pragma_info)
+        except PragmaError as pe:
+            return self.__kernel_print_error_message({'ename': 'Pragma error', 'evalue': pe.strerror})
+
         return pragma_info
 
     def __process_pragma_block__(self, pragma_info):
