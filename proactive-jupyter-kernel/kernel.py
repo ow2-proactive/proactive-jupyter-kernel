@@ -86,7 +86,7 @@ class ProActiveKernel(Kernel):
         self.proactive_default_connection = True
         self.proactive_failed_connection = False
         self.error_message = ''
-        self.graph_created = False
+        self.graph_up_to_date = False
         self.graph = None
         self.node_labels = {}
         self.edge_labels = {}
@@ -96,6 +96,8 @@ class ProActiveKernel(Kernel):
         self.default_fork_env = None
         self.multiblock_task_config = False
         self.semaphore_replicate = 0
+
+        self.replicated_tasks = []
 
         self.previous_task_history = {}
         self.is_previous_pragma_task = False
@@ -348,7 +350,7 @@ class ProActiveKernel(Kernel):
             plt.close()
 
     def __draw_job__(self, input_data):
-        if not self.graph_created or not self.job_up_to_date:
+        if not self.graph_up_to_date:
             self.__kernel_print_ok_message__('Creating the job workflow ...\n')
             self.graph = nx.DiGraph()
             self.node_labels.clear()
@@ -375,7 +377,7 @@ class ProActiveKernel(Kernel):
                 # some math labels
                 self.node_labels[i] = r'$' + self.proactive_tasks[i].getTaskName() + '$'
 
-            self.graph_created = True
+            self.graph_up_to_date = True
             self.__kernel_print_ok_message__('Workflow created.\n')
 
         self.__draw_graph__(input_data)
@@ -867,6 +869,45 @@ class ProActiveKernel(Kernel):
         else:
             proactive_task.setTaskImplementation(input_data['code'])
 
+    def __is_replicable_as_child__(self, task):
+        task_dependencies = task.getDependencies()
+        if len(task_dependencies) != 1:
+            return False
+        if len(task_dependencies[0].getDependencies()):
+            return False
+        return True
+
+    def __find_all_children__(self, task):
+        children = []
+        for _task_child in self.proactive_tasks:
+            _task_child_dependencies = _task_child.getDependencies()
+            for _task_parent in _task_child_dependencies:
+                if _task_parent == task:
+                    children.append(_task_child)
+        return children
+
+    def __is_replicable_as_parent__(self, task):
+        children = self.__find_all_children__(task)
+        if len(children) != 1:
+            return False
+        return len(children[0].getDependencies()) == 1
+
+    def __is_not_replicable__(self, task):
+        if not self.__is_replicable_as_child__(task):
+            return 1
+        return 0 if self.__is_replicable_as_parent__(task) else 2
+
+    def __add_replicate_control__(self, proactive_task, input_data):
+        if 'runs' in input_data:
+            self.__kernel_print_ok_message__('Adding REPLICATE control ...\n')
+            if not self.__is_replicable_as_child__(proactive_task):
+                raise ParameterError('The task \'' + input_data['name'] + '\' can\'t be replicated.\n')
+            else:
+                parent_task = proactive_task.getDependencies()[0]
+                parent_task.setFlowBlock(self.gateway.getProactiveFlowBlockType().start())
+                parent_task.setFlowScript(self.gateway.createReplicateFlowScript('runs=' + input_data['runs']))
+                self.replicated_tasks.append(proactive_task)
+
     def __create_task__(self, input_data):
         # Verifying if imported variables have been exported in other tasks
         if 'import' in input_data:
@@ -935,13 +976,15 @@ class ProActiveKernel(Kernel):
         self.__add_job_imports_to_implementation_script__(input_data)
         self.__set_implementation_script_from_input_data__(proactive_task, input_data)
 
+        self.__add_replicate_control__(proactive_task, input_data)
+
         self.previous_task_history = input_data
         self.is_previous_pragma_task = True
         self.last_modified_task = proactive_task
 
         self.__kernel_print_ok_message__('Done.\n')
         self.job_up_to_date = False
-
+        self.graph_up_to_date = False
         return 0
 
     def __create_split__(self, input_data):
@@ -952,6 +995,7 @@ class ProActiveKernel(Kernel):
         self.__kernel_print_ok_message__('Setting the flow block ...\n')
         self.last_modified_task.setFlowBlock(self.gateway.getProactiveFlowBlockType().start())
         self.semaphore_replicate = 1
+        self.job_up_to_date = False
         return 0
 
     def __add_runs__(self, input_data):
@@ -960,6 +1004,8 @@ class ProActiveKernel(Kernel):
         self.last_modified_task.setFlowScript(flow_script)
         self.__kernel_print_ok_message__('Done.\n')
         self.semaphore_replicate = 2
+        self.job_up_to_date = False
+        self.graph_up_to_date = False
         return 0
 
     def __create_process__(self, input_data):
@@ -989,6 +1035,15 @@ class ProActiveKernel(Kernel):
             if removed_task in task.getDependencies():
                 task.removeDependency(removed_task)
 
+    def __clean_replicate_informations__(self, removed_task):
+        _parents = removed_task.getDependencies()
+        for _parent in _parents:
+            _parent.setFlowBlock(None)
+            _parent.setFlowScript(None)
+        _children = self.__find_all_children__(removed_task)
+        for _child in _children:
+            _child.setFlowBlock(None)
+
     def __delete_task__(self, input_data):
         if input_data['name'] in self.tasks_names:
             task_to_remove = self.__get_task_from_name__(input_data['name'])
@@ -996,8 +1051,14 @@ class ProActiveKernel(Kernel):
             raise ParameterError('Task \'' + input_data['name'] + '\' does not exist.')
 
         if self.job_created:
-            self.__kernel_print_ok_message__('Deleting task from the job...\n')
-            self.proactive_job.removeTask(task_to_remove)
+            if task_to_remove in self.proactive_job.job_tasks:
+                self.__kernel_print_ok_message__('Deleting task from the job...\n')
+                self.proactive_job.removeTask(task_to_remove)
+
+        if task_to_remove in self.replicated_tasks:
+            self.__kernel_print_ok_message__('Clearing REPLICATE control...\n')
+            self.__clean_replicate_informations__(task_to_remove)
+            self.replicated_tasks.remove(task_to_remove)
 
         self.__kernel_print_ok_message__('Deleting task from the tasks list...\n')
         self.proactive_tasks.remove(task_to_remove)
@@ -1012,6 +1073,7 @@ class ProActiveKernel(Kernel):
         self.__kernel_print_ok_message__('Done.\n')
 
         self.job_up_to_date = False
+        self.graph_up_to_date = False
 
         return
 
@@ -1112,7 +1174,36 @@ class ProActiveKernel(Kernel):
         self.__kernel_print_ok_message__('Output:\n')
         self.__kernel_print_ok_message__(str(task_result))
 
+    def __check_replicates_validity__(self):
+        self.__kernel_print_ok_message__('Checking REPLICATE controls validity ...\n')
+        for replicated_task in self.replicated_tasks:
+            _is_not_validated = self.__is_not_replicable__(replicated_task)
+            children = self.__find_all_children__(replicated_task)
+            if _is_not_validated == 2:
+                if len(children):
+                    raise JobValidationError('The replicated task \'' + replicated_task.getTaskName() +
+                                             '\' should not have more than one child task.')
+                input_data = {'name': self.__get_unique_task_name__('DefaultMerge'),
+                              'trigger': 'task',
+                              'code': '',
+                              'dep': [replicated_task.getTaskName()]}
+                self.__kernel_print_error_message({'ename': 'WARNING',
+                                                   'evalue': 'Adding an empty default merge task to complete \''
+                                                             + replicated_task.getTaskName() + '\' REPLICATE control.'})
+                self.__create_task__(input_data)
+                self.last_modified_task.setFlowBlock(self.gateway.getProactiveFlowBlockType().end())
+
+            elif _is_not_validated == 1:
+                raise JobValidationError('The replicated task \'' + replicated_task.getTaskName() +
+                                         '\' should not have more than one parent task.')
+
+            else:
+                children[0].setFlowBlock(self.gateway.getProactiveFlowBlockType().end())
+        self.__kernel_print_ok_message__('Validated.\n')
+
     def __submit_job__(self, input_data):
+        if len(self.replicated_tasks):
+            self.__check_replicates_validity__()
         if not self.job_created:
             if input_data['name'] == '':
                 if notebook_path() is not None:
@@ -1242,8 +1333,9 @@ class ProActiveKernel(Kernel):
             except ParameterError as pe:
                 return self.__kernel_print_error_message({'ename': 'Parameter error', 'evalue': pe.strerror})
             except ResultError as rer:
-                return self.__kernel_print_error_message(
-                    {'ename': 'Proactive result error', 'evalue': rer.strerror})
+                return self.__kernel_print_error_message({'ename': 'Proactive result error', 'evalue': rer.strerror})
+            except JobValidationError as jbe:
+                return self.__kernel_print_error_message({'ename': 'Job validation error', 'evalue': jbe.strerror})
             except AssertionError as ae:
                 return self.__kernel_print_error_message({'ename': 'Proactive connexion error', 'evalue': str(ae)})
 
