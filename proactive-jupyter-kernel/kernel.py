@@ -95,13 +95,14 @@ class ProActiveKernel(Kernel):
         self.default_selection_script = None
         self.default_fork_env = None
         self.multiblock_task_config = False
-        self.semaphore_replicate = 0
+        self.semaphore_controls = 0
 
         self.replicated_tasks = []
 
         self.previous_task_history = {}
         self.is_previous_pragma_task = False
         self.last_modified_task = None
+        self.saved_flow_script = None
 
         self.exported_vars = {}
 
@@ -201,6 +202,12 @@ class ProActiveKernel(Kernel):
             return self.__add_runs__
         elif pragma_info['trigger'] == 'process':
             return self.__create_process__
+        elif pragma_info['trigger'] == 'start':
+            return self.__create_start__
+        elif pragma_info['trigger'] == 'loop':
+            return self.__create_loop__
+        elif pragma_info['trigger'] == 'condition':
+            return self.__add_condition__
         elif pragma_info['trigger'] == 'merge':
             return self.__create_merge__
         elif pragma_info['trigger'] == 'job':
@@ -371,6 +378,10 @@ class ProActiveKernel(Kernel):
                             if parent_task.hasFlowScript():
                                 if parent_task.getFlowScript().isReplicateFlowScript():
                                     self.edge_labels[(index_parent, index_son)] = 'replicate'
+                            if self.proactive_tasks[index_son].hasFlowScript():
+                                if self.proactive_tasks[index_son].getFlowScript().isLoopFlowScript():
+                                    self.graph.add_edge(index_son, index_parent)
+                                    self.edge_labels[(index_son, index_parent)] = 'loop'
 
             # node labels
             for i in nodes_ids:
@@ -566,6 +577,9 @@ class ProActiveKernel(Kernel):
                                              + '#%runs(): creates/modifies the configuration script of a replicate control\n'
                                              + '#%process(): creates/modifies the script of a replicated processing task\n'
                                              + '#%merge(): creates/modifies a merging task of a replicate control\n'
+                                             + '#%start(): creates/modifies a start task of a loop control\n'
+                                             + '#%loop(): creates/modifies a loop task of a loop control\n'
+                                             + '#%condition(): creates/modifies the condition script of a branch/loop control\n'
                                              + '#%job(): creates/renames the job\n'
                                              + '#%draw_job(): plots the workflow\n'
                                              + '#%write_dot(): writes the workflow in .dot format\n'
@@ -994,7 +1008,8 @@ class ProActiveKernel(Kernel):
         self.__create_task__(input_data)
         self.__kernel_print_ok_message__('Setting the flow block ...\n')
         self.last_modified_task.setFlowBlock(self.gateway.getProactiveFlowBlockType().start())
-        self.semaphore_replicate = 1
+        self.__kernel_print_ok_message__('Done.\n')
+        self.semaphore_controls = 1
         self.job_up_to_date = False
         return 0
 
@@ -1003,7 +1018,7 @@ class ProActiveKernel(Kernel):
         flow_script = self.gateway.createReplicateFlowScript(input_data['code'])
         self.last_modified_task.setFlowScript(flow_script)
         self.__kernel_print_ok_message__('Done.\n')
-        self.semaphore_replicate = 2
+        self.semaphore_controls = 2
         self.job_up_to_date = False
         self.graph_up_to_date = False
         return 0
@@ -1015,7 +1030,7 @@ class ProActiveKernel(Kernel):
         if 'dep' not in input_data:
             input_data['dep'] = [self.last_modified_task.getTaskName()]
         self.__create_task__(input_data)
-        self.semaphore_replicate = 3
+        self.semaphore_controls = 3
         return 0
 
     def __create_merge__(self, input_data):
@@ -1027,15 +1042,58 @@ class ProActiveKernel(Kernel):
         self.__create_task__(input_data)
         self.__kernel_print_ok_message__('Setting the flow block ...\n')
         self.last_modified_task.setFlowBlock(self.gateway.getProactiveFlowBlockType().end())
-        self.semaphore_replicate = 0
+        self.semaphore_controls = 0
         return 0
+
+    def __create_start__(self, input_data):
+        input_data['trigger'] = 'task'
+        if 'name' not in input_data or input_data['name'] == '':
+            input_data['name'] = self.__get_unique_task_name__('start')
+        self.__create_task__(input_data)
+        self.__kernel_print_ok_message__('Setting the flow block ...\n')
+        self.last_modified_task.setFlowBlock(self.gateway.getProactiveFlowBlockType().start())
+        self.__kernel_print_ok_message__('Done.\n')
+        self.semaphore_controls = 11
+        self.job_up_to_date = False
+        return 0
+
+    def __create_loop__(self, input_data):
+        input_data['trigger'] = 'task'
+        if 'name' not in input_data or input_data['name'] == '':
+            input_data['name'] = 'loop' + re.findall(r'\d+', self.previous_task_history['name']).pop()
+        if 'dep' not in input_data:
+            input_data['dep'] = [self.last_modified_task.getTaskName()]
+        self.__create_task__(input_data)
+        self.__kernel_print_ok_message__('Adding the LOOP flow script ...\n')
+        self.last_modified_task.setFlowScript(self.saved_flow_script)
+        self.__kernel_print_ok_message__('Setting the flow block ...\n')
+        self.last_modified_task.setFlowBlock(self.gateway.getProactiveFlowBlockType().end())
+        self.__kernel_print_ok_message__('Done.\n')
+        self.semaphore_controls = 0
+        return 0
+
+    def __add_condition_loop__(self, input_data):
+        self.__kernel_print_ok_message__('Saving the LOOP flow script ...\n')
+        self.saved_flow_script = self.gateway.createLoopFlowScript(input_data['code'],
+                                                                   self.last_modified_task.getTaskName())
+        self.__kernel_print_ok_message__('Done.\n')
+        self.semaphore_controls = 12
+        self.job_up_to_date = False
+        self.graph_up_to_date = False
+        return 0
+
+    def __add_condition__(self, input_data):
+        if self.semaphore_controls == 11:
+            self.__add_condition_loop__(input_data)
+        else:
+            pass
 
     def __clean_related_dependencies__(self, removed_task):
         for task in self.proactive_tasks:
             if removed_task in task.getDependencies():
                 task.removeDependency(removed_task)
 
-    def __clean_replicate_informations__(self, removed_task):
+    def __clean_replicate_information__(self, removed_task):
         _parents = removed_task.getDependencies()
         for _parent in _parents:
             _parent.setFlowBlock(None)
@@ -1057,7 +1115,7 @@ class ProActiveKernel(Kernel):
 
         if task_to_remove in self.replicated_tasks:
             self.__kernel_print_ok_message__('Clearing REPLICATE control...\n')
-            self.__clean_replicate_informations__(task_to_remove)
+            self.__clean_replicate_information__(task_to_remove)
             self.replicated_tasks.remove(task_to_remove)
 
         self.__kernel_print_ok_message__('Deleting task from the tasks list...\n')
@@ -1250,14 +1308,23 @@ class ProActiveKernel(Kernel):
         return _code
 
     def __traffic_verification__(self, pragma_info):
-        if self.semaphore_replicate == 1 and pragma_info['trigger'] != 'runs':
+        if self.semaphore_controls == 1 and pragma_info['trigger'] != 'runs':
             raise PragmaError('Expected a \'runs\' pragma.')
-        if self.semaphore_replicate == 2 and pragma_info['trigger'] != 'process':
+        if self.semaphore_controls == 2 and pragma_info['trigger'] != 'process':
             raise PragmaError('Expected a \'process\' pragma.')
-        if self.semaphore_replicate == 3 and pragma_info['trigger'] != 'merge':
+        if self.semaphore_controls == 3 and pragma_info['trigger'] != 'merge':
             raise PragmaError('Expected a \'merge\' pragma.')
-        if self.semaphore_replicate == 0 and pragma_info['trigger'] in ['runs', 'process', 'merge']:
+        if self.semaphore_controls == 11 and pragma_info['trigger'] != 'condition':
+            raise PragmaError('Expected a \'condition\' pragma.')
+        if self.semaphore_controls == 12 and pragma_info['trigger'] != 'loop':
+            raise PragmaError('Expected a \'loop\' pragma.')
+        if self.semaphore_controls == 0 and pragma_info['trigger'] in ['runs', 'process', 'merge']:
             raise PragmaError('The "replicate" control should start with a \'split\' pragma.')
+        if self.semaphore_controls == 0 and pragma_info['trigger'] == 'loop':
+            raise PragmaError('The "loop" control should start with a \'start\' pragma.')
+        if self.semaphore_controls == 0 and pragma_info['trigger'] == 'condition':
+            raise PragmaError('The "branch" control should start with a \'branch\' pragma,\n' +
+                              'and the "loop" control should start with a \'start\' pragma.')
         return
 
     def __preprocess_pragma_block__(self, pragma_info):

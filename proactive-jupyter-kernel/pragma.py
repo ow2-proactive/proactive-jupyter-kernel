@@ -72,6 +72,20 @@ def get_usage_merge():
            '(KEY2,VALUE2),...]][language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])\n'
 
 
+def get_usage_start():
+    return '   #%start([name=TASK_NAME], [dep=[TASK_NAME1,TASK_NAME2,...]], [generic_info=[(KEY1,VAL1),' \
+           '(KEY2,VALUE2),...]][language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])\n'
+
+
+def get_usage_condition():
+    return '   #%condition()\n'
+
+
+def get_usage_loop():
+    return '   #%loop([name=TASK_NAME], [dep=[TASK_NAME1,TASK_NAME2,...]], [generic_info=[(KEY1,VAL1),' \
+           '(KEY2,VALUE2),...]][language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])\n'
+
+
 def get_usage_job():
     return '   #%job(name=JOB_NAME)\n'
 
@@ -170,6 +184,12 @@ def get_help(trigger):
         help_msg = '#%process(): creates/modifies the script of a replicated processing task \n'
     elif trigger == 'merge':
         help_msg = '#%merge(): creates/modifies a merging task of a replicate control\n'
+    elif trigger == 'start':
+        help_msg = '#%start(): creates/modifies a start task of a loop control\n'
+    elif trigger == 'loop':
+        help_msg = '#%loop(): creates/modifies a loop task of a loop control\n'
+    elif trigger == 'conndition':
+        help_msg = '#%condition(): creates/modifies the condition script of a branch/loop control\n'
     elif trigger == 'job':
         help_msg = '#%job(): creates/renames the job\n'
         help_msg += 'Usages:\n' + get_usage_job()
@@ -251,6 +271,12 @@ def get_usage(trigger):
         return get_usage_process()
     elif trigger == 'merge':
         return get_usage_merge()
+    elif trigger == 'start':
+        return get_usage_start()
+    elif trigger == 'loop':
+        return get_usage_loop()
+    elif trigger == 'condition':
+        return get_usage_condition()
     elif trigger == 'job':
         return get_usage_job()
     elif trigger == 'draw_job':
@@ -490,6 +516,18 @@ def is_valid_merge(data):
     return is_valid_split(data)
 
 
+def is_valid_start(data):
+    return is_valid_split(data)
+
+
+def is_valid_loop(data):
+    return is_valid_split(data)
+
+
+def is_valid_condition(data):
+    return
+
+
 def is_valid_job(data):
     pattern_name = r"^[a-zA-Z_]\w*$"
     if 'name' not in data or not re.match(pattern_name, data['name']):
@@ -623,6 +661,12 @@ def is_valid(data):
         return is_valid_process(data)
     elif data['trigger'] == 'merge':
         return is_valid_merge(data)
+    elif data['trigger'] == 'start':
+        return is_valid_start(data)
+    elif data['trigger'] == 'loop':
+        return is_valid_loop(data)
+    elif data['trigger'] == 'condition':
+        return is_valid_condition(data)
     elif data['trigger'] == 'job':
         return is_valid_job(data)
     elif data['trigger'] == 'draw_job':
@@ -666,6 +710,9 @@ class Pragma:
                        'runs',
                        'process',
                        'merge',
+                       'start',
+                       'loop',
+                       'condition',
                        'job',
                        'selection_script',
                        'job_selection_script',
@@ -694,6 +741,9 @@ class Pragma:
                      'runs',
                      'process',
                      'merge',
+                     'start',
+                     'loop',
+                     'condition',
                      'job_selection_script',
                      'job_fork_env',
                      'draw_job',
@@ -714,6 +764,9 @@ class Pragma:
                               'runs',
                               'process',
                               'merge',
+                              'start',
+                              'loop',
+                              'condition',
                               'selection_script',
                               'job_selection_script',
                               'fork_env',
