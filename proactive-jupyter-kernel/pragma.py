@@ -178,18 +178,25 @@ def get_help(trigger):
         help_msg += 'Usages:\n' + get_usage_job_fork_env()
     elif trigger == 'split':
         help_msg = '#%split(): creates/modifies a splitting task of a replicate control\n'
+        help_msg += 'Usages:\n' + get_usage_split()
     elif trigger == 'runs':
         help_msg = '#%runs(): creates/modifies the configuration script of a replicate control\n'
+        help_msg += 'Usages:\n' + get_usage_runs()
     elif trigger == 'process':
         help_msg = '#%process(): creates/modifies the script of a replicated processing task \n'
+        help_msg += 'Usages:\n' + get_usage_process()
     elif trigger == 'merge':
         help_msg = '#%merge(): creates/modifies a merging task of a replicate control\n'
+        help_msg += 'Usages:\n' + get_usage_merge()
     elif trigger == 'start':
         help_msg = '#%start(): creates/modifies a start task of a loop control\n'
+        help_msg += 'Usages:\n' + get_usage_start()
     elif trigger == 'loop':
         help_msg = '#%loop(): creates/modifies a loop task of a loop control\n'
+        help_msg += 'Usages:\n' + get_usage_loop()
     elif trigger == 'conndition':
         help_msg = '#%condition(): creates/modifies the condition script of a branch/loop control\n'
+        help_msg += 'Usages:\n' + get_usage_condition()
     elif trigger == 'job':
         help_msg = '#%job(): creates/renames the job\n'
         help_msg += 'Usages:\n' + get_usage_job()
