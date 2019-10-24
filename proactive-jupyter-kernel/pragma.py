@@ -63,13 +63,13 @@ def get_usage_runs():
 
 
 def get_usage_process():
-    return '   #%process([name=TASK_NAME], [dep=[TASK_NAME1,TASK_NAME2,...]], [generic_info=[(KEY1,VAL1),' \
-           '(KEY2,VALUE2),...]][language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])\n'
+    return '   #%process([name=TASK_NAME], [generic_info=[(KEY1,VAL1),(KEY2,VALUE2),...]][language=SCRIPT_LANGUAGE]' \
+           ', [path=./FORK_ENV_FILE.py])\n'
 
 
 def get_usage_merge():
-    return '   #%merge([name=TASK_NAME], [dep=[TASK_NAME1,TASK_NAME2,...]], [generic_info=[(KEY1,VAL1),' \
-           '(KEY2,VALUE2),...]][language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])\n'
+    return '   #%merge([name=TASK_NAME], [generic_info=[(KEY1,VAL1),(KEY2,VALUE2),...]][language=SCRIPT_LANGUAGE]' \
+           ', [path=./FORK_ENV_FILE.py])\n'
 
 
 def get_usage_start():
@@ -82,8 +82,8 @@ def get_usage_condition():
 
 
 def get_usage_loop():
-    return '   #%loop([name=TASK_NAME], [dep=[TASK_NAME1,TASK_NAME2,...]], [generic_info=[(KEY1,VAL1),' \
-           '(KEY2,VALUE2),...]][language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])\n'
+    return '   #%loop([name=TASK_NAME], [generic_info=[(KEY1,VAL1),(KEY2,VALUE2),...]][language=SCRIPT_LANGUAGE]' \
+           ', [path=./FORK_ENV_FILE.py])\n'
 
 
 def get_usage_job():
@@ -516,11 +516,26 @@ def is_valid_runs(data):
 
 
 def is_valid_process(data):
-    return is_valid_split(data)
+    pattern_name = r"^[a-zA-Z_]\w*$"
+    pattern_language = r"^[a-zA-Z_]+$"
+    pattern_path_cars = r"^[a-zA-Z0-9_\/\\:\.-]+$"
+    if 'name' in data and data['name'] != '' and not re.match(pattern_name, data['name']):
+        raise ParameterError('Invalid name parameter')
+    if 'language' in data and not re.match(pattern_language, data['language']):
+        raise ParameterError('Invalid script language parameter')
+    if 'generic_info' in data:
+        is_valid_names_tuples_list(data['generic_info'])
+    if 'export' in data:
+        is_valid_names_list(data['export'])
+    if 'import' in data:
+        is_valid_names_list(data['import'])
+    if 'path' in data and not re.match(pattern_path_cars, data['path']):
+        raise ParameterError('Invalid path parameter')
+    return
 
 
 def is_valid_merge(data):
-    return is_valid_split(data)
+    return is_valid_process(data)
 
 
 def is_valid_start(data):
@@ -528,7 +543,7 @@ def is_valid_start(data):
 
 
 def is_valid_loop(data):
-    return is_valid_split(data)
+    return is_valid_process(data)
 
 
 def is_valid_condition(data):
