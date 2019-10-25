@@ -55,7 +55,7 @@ def get_usage_job_fork_env():
 
 def get_usage_split():
     return '   #%split([name=TASK_NAME], [dep=[TASK_NAME1,TASK_NAME2,...]], [generic_info=[(KEY1,VAL1),' \
-           '(KEY2,VALUE2),...]][language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])\n'
+           '(KEY2,VALUE2),...]], [language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])\n'
 
 
 def get_usage_runs():
@@ -63,18 +63,18 @@ def get_usage_runs():
 
 
 def get_usage_process():
-    return '   #%process([name=TASK_NAME], [generic_info=[(KEY1,VAL1),(KEY2,VALUE2),...]][language=SCRIPT_LANGUAGE]' \
+    return '   #%process([name=TASK_NAME], [generic_info=[(KEY1,VAL1),(KEY2,VALUE2),...]], [language=SCRIPT_LANGUAGE]' \
            ', [path=./FORK_ENV_FILE.py])\n'
 
 
 def get_usage_merge():
-    return '   #%merge([name=TASK_NAME], [generic_info=[(KEY1,VAL1),(KEY2,VALUE2),...]][language=SCRIPT_LANGUAGE]' \
+    return '   #%merge([name=TASK_NAME], [generic_info=[(KEY1,VAL1),(KEY2,VALUE2),...]], [language=SCRIPT_LANGUAGE]' \
            ', [path=./FORK_ENV_FILE.py])\n'
 
 
 def get_usage_start():
     return '   #%start([name=TASK_NAME], [dep=[TASK_NAME1,TASK_NAME2,...]], [generic_info=[(KEY1,VAL1),' \
-           '(KEY2,VALUE2),...]][language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])\n'
+           '(KEY2,VALUE2),...]], [language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])\n'
 
 
 def get_usage_condition():
@@ -82,8 +82,28 @@ def get_usage_condition():
 
 
 def get_usage_loop():
-    return '   #%loop([name=TASK_NAME], [generic_info=[(KEY1,VAL1),(KEY2,VALUE2),...]][language=SCRIPT_LANGUAGE]' \
+    return '   #%loop([name=TASK_NAME], [generic_info=[(KEY1,VAL1),(KEY2,VALUE2),...]], [language=SCRIPT_LANGUAGE]' \
            ', [path=./FORK_ENV_FILE.py])\n'
+
+
+def get_usage_branch():
+    return '   #%branch([name=TASK_NAME], [dep=[TASK_NAME1,TASK_NAME2,...]], [generic_info=[(KEY1,VAL1),' \
+           '(KEY2,VALUE2),...]], [language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])\n'
+
+
+def get_usage_if():
+    return '   #%if([name=TASK_NAME], [generic_info=[(KEY1,VAL1),(KEY2,VALUE2),...]], [language=SCRIPT_LANGUAGE]' \
+           ', [path=./FORK_ENV_FILE.py])\n'
+
+
+def get_usage_else():
+    return '   #%else([name=TASK_NAME], [generic_info=[(KEY1,VAL1),(KEY2,VALUE2),...]], [language=SCRIPT_LANGUAGE]' \
+           ', [path=./FORK_ENV_FILE.py])\n'
+
+
+def get_usage_continuation():
+    return '   #%continuation([name=TASK_NAME], [generic_info=[(KEY1,VAL1),(KEY2,VALUE2),...]], ' \
+           '[language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])\n'
 
 
 def get_usage_job():
@@ -194,9 +214,21 @@ def get_help(trigger):
     elif trigger == 'loop':
         help_msg = '#%loop(): creates/modifies a loop task of a loop control\n'
         help_msg += 'Usages:\n' + get_usage_loop()
-    elif trigger == 'conndition':
+    elif trigger == 'condition':
         help_msg = '#%condition(): creates/modifies the condition script of a branch/loop control\n'
         help_msg += 'Usages:\n' + get_usage_condition()
+    elif trigger == 'branch':
+        help_msg = '#%branch(): creates/modifies a branch task of a branching control\n'
+        help_msg += 'Usages:\n' + get_usage_branch()
+    elif trigger == 'if':
+        help_msg = '#%if(): creates/modifies an if task of a branching control\n'
+        help_msg += 'Usages:\n' + get_usage_if()
+    elif trigger == 'else':
+        help_msg = '#%else(): creates/modifies an else task of a branching control\n'
+        help_msg += 'Usages:\n' + get_usage_else()
+    elif trigger == 'continuation':
+        help_msg = '#%continuation(): creates/modifies a continuation task of a branching control\n'
+        help_msg += 'Usages:\n' + get_usage_continuation()
     elif trigger == 'job':
         help_msg = '#%job(): creates/renames the job\n'
         help_msg += 'Usages:\n' + get_usage_job()
@@ -284,6 +316,14 @@ def get_usage(trigger):
         return get_usage_loop()
     elif trigger == 'condition':
         return get_usage_condition()
+    elif trigger == 'branch':
+        return get_usage_branch()
+    elif trigger == 'if':
+        return get_usage_if()
+    elif trigger == 'else':
+        return get_usage_else()
+    elif trigger == 'continuation':
+        return get_usage_continuation()
     elif trigger == 'job':
         return get_usage_job()
     elif trigger == 'draw_job':
@@ -550,6 +590,22 @@ def is_valid_condition(data):
     return
 
 
+def is_valid_branch(data):
+    return is_valid_split(data)
+
+
+def is_valid_if(data):
+    return is_valid_process(data)
+
+
+def is_valid_else(data):
+    return is_valid_process(data)
+
+
+def is_valid_continuation(data):
+    return is_valid_process(data)
+
+
 def is_valid_job(data):
     pattern_name = r"^[a-zA-Z_]\w*$"
     if 'name' not in data or not re.match(pattern_name, data['name']):
@@ -689,6 +745,14 @@ def is_valid(data):
         return is_valid_loop(data)
     elif data['trigger'] == 'condition':
         return is_valid_condition(data)
+    elif data['trigger'] == 'branch':
+        return is_valid_branch(data)
+    elif data['trigger'] == 'if':
+        return is_valid_if(data)
+    elif data['trigger'] == 'else':
+        return is_valid_else(data)
+    elif data['trigger'] == 'continuation':
+        return is_valid_continuation(data)
     elif data['trigger'] == 'job':
         return is_valid_job(data)
     elif data['trigger'] == 'draw_job':
@@ -735,6 +799,10 @@ class Pragma:
                        'start',
                        'loop',
                        'condition',
+                       'branch',
+                       'if',
+                       'else',
+                       'continuation',
                        'job',
                        'selection_script',
                        'job_selection_script',
@@ -766,6 +834,10 @@ class Pragma:
                      'start',
                      'loop',
                      'condition',
+                     'branch',
+                     'if',
+                     'else',
+                     'continuation',
                      'job_selection_script',
                      'job_fork_env',
                      'draw_job',
@@ -789,6 +861,10 @@ class Pragma:
                               'start',
                               'loop',
                               'condition',
+                              'branch',
+                              'if',
+                              'else',
+                              'continuation',
                               'selection_script',
                               'job_selection_script',
                               'fork_env',
