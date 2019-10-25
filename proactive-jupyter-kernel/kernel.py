@@ -380,17 +380,15 @@ class ProActiveKernel(Kernel):
             for index_son in range(len(self.proactive_tasks)):
                 dependencies = self.proactive_tasks[index_son].getDependencies()
                 for parent_task in dependencies:
-                    for index_parent in range(len(self.proactive_tasks)):
-                        if parent_task.getTaskName() == self.proactive_tasks[index_parent].getTaskName():
-                            self.graph.add_edge(index_parent, index_son)
-                            # edge labels
-                            if parent_task.hasFlowScript():
-                                if parent_task.getFlowScript().isReplicateFlowScript():
-                                    self.edge_labels[(index_parent, index_son)] = 'replicate'
-                            if self.proactive_tasks[index_son].hasFlowScript():
-                                if self.proactive_tasks[index_son].getFlowScript().isLoopFlowScript():
-                                    self.graph.add_edge(index_son, index_parent)
-                                    self.edge_labels[(index_son, index_parent)] = 'loop'
+                    index_parent = self.proactive_tasks.index(parent_task)
+                    self.graph.add_edge(index_parent, index_son)
+                    if parent_task.hasFlowScript():
+                        if parent_task.getFlowScript().isReplicateFlowScript():
+                            self.edge_labels[(index_parent, index_son)] = 'replicate'
+                    if self.proactive_tasks[index_son].hasFlowScript():
+                        if self.proactive_tasks[index_son].getFlowScript().isLoopFlowScript():
+                            self.graph.add_edge(index_son, index_parent)
+                            self.edge_labels[(index_son, index_parent)] = 'loop'
 
             # branching edges
             for index_parent in range(len(self.proactive_tasks)):
@@ -398,13 +396,9 @@ class ProActiveKernel(Kernel):
                 if parent_task.hasFlowScript():
                     parent_flow_script = parent_task.getFlowScript()
                     if parent_flow_script.isBranchFlowScript():
-                        if_task = self.__get_task_from_name__(parent_flow_script.getActionTarget())
-                        else_task = self.__get_task_from_name__(parent_flow_script.getActionTargetElse())
-                        continuation_task = self.__get_task_from_name__(parent_flow_script.getActionTargetContinuation())
-
-                        if_task_index = self.proactive_tasks.index(if_task)
-                        else_task_index = self.proactive_tasks.index(else_task)
-                        continuation_task_index = self.proactive_tasks.index(continuation_task)
+                        if_task_index = self.__find_task_index_from_name__(parent_flow_script.getActionTarget())
+                        else_task_index = self.__find_task_index_from_name__(parent_flow_script.getActionTargetElse())
+                        continuation_task_index = self.__find_task_index_from_name__(parent_flow_script.getActionTargetContinuation())
 
                         self.graph.add_edge(index_parent, if_task_index)
                         self.graph.add_edge(index_parent, else_task_index)
@@ -817,10 +811,10 @@ class ProActiveKernel(Kernel):
 
         self.__kernel_print_ok_message__('Done.\n')
 
-    def __get_task_from_name__(self, name):
-        for task in self.proactive_tasks:
-            if task.getTaskName() == name:
-                return task
+    def __find_task_index_from_name__(self, name):
+        for task_index in range(len(self.proactive_tasks)):
+            if self.proactive_tasks[task_index].getTaskName() == name:
+                return task_index
         return None
 
     def __print_all_dependencies(self):
@@ -835,7 +829,7 @@ class ProActiveKernel(Kernel):
         for task_name in input_data['dep']:
             if proactive_task.getTaskName() == task_name:
                 continue
-            task = self.__get_task_from_name__(task_name)
+            task = self.proactive_tasks[self.__find_task_index_from_name__(task_name)]
             if task is not None and task not in proactive_task.getDependencies():
                 proactive_task.addDependency(task)
                 self.__kernel_print_ok_message__('Dependence \'' + task_name + '\'==>\'' + input_data['name'] +
@@ -966,7 +960,7 @@ class ProActiveKernel(Kernel):
 
         if input_data['name'] in self.tasks_names:
             self.__kernel_print_ok_message__('WARNING: Task \'' + input_data['name'] + '\' already exists ...\n')
-            proactive_task = self.__get_task_from_name__(input_data['name'])
+            proactive_task = self.proactive_tasks[self.__find_task_index_from_name__(input_data['name'])]
             proactive_task.clearDependencies()
             proactive_task.clearGenericInformation()
             if input_data['name'] in self.exported_vars:
@@ -1191,7 +1185,7 @@ class ProActiveKernel(Kernel):
 
     def __delete_task__(self, input_data):
         if input_data['name'] in self.tasks_names:
-            task_to_remove = self.__get_task_from_name__(input_data['name'])
+            task_to_remove = self.proactive_tasks[self.__find_task_index_from_name__(input_data['name'])]
         else:
             raise ParameterError('Task \'' + input_data['name'] + '\' does not exist.')
 
@@ -1534,7 +1528,7 @@ class ProActiveKernel(Kernel):
                                                                  pragma_info['code'])
                 pragma_info.update(self.previous_task_history)
                 pragma_info['code'] = updated_code
-                proactive_task = self.__get_task_from_name__(pragma_info['name'])
+                proactive_task = self.proactive_tasks[self.__find_task_index_from_name__(pragma_info['name'])]
                 proactive_task.setTaskImplementation(pragma_info['code'])
                 self.previous_task_history.update(pragma_info)
                 self.__kernel_print_ok_message__('Done.\n')
