@@ -103,6 +103,7 @@ class ProActiveKernel(Kernel):
         self.is_previous_pragma_task = False
         self.last_modified_task = None
         self.saved_flow_script = None
+        self.saved_branch_task = None
 
         self.exported_vars = {}
 
@@ -202,14 +203,22 @@ class ProActiveKernel(Kernel):
             return self.__add_runs__
         elif pragma_info['trigger'] == 'process':
             return self.__create_process__
+        elif pragma_info['trigger'] == 'merge':
+            return self.__create_merge__
         elif pragma_info['trigger'] == 'start':
             return self.__create_start__
         elif pragma_info['trigger'] == 'loop':
             return self.__create_loop__
         elif pragma_info['trigger'] == 'condition':
             return self.__add_condition__
-        elif pragma_info['trigger'] == 'merge':
-            return self.__create_merge__
+        elif pragma_info['trigger'] == 'branch':
+            return self.__create_branch__
+        elif pragma_info['trigger'] == 'if':
+            return self.__create_if__
+        elif pragma_info['trigger'] == 'else':
+            return self.__create_else__
+        elif pragma_info['trigger'] == 'continuation':
+            return self.__create_continuation__
         elif pragma_info['trigger'] == 'job':
             return self.__create_job__
         elif pragma_info['trigger'] == 'export_xml':
@@ -382,6 +391,28 @@ class ProActiveKernel(Kernel):
                                 if self.proactive_tasks[index_son].getFlowScript().isLoopFlowScript():
                                     self.graph.add_edge(index_son, index_parent)
                                     self.edge_labels[(index_son, index_parent)] = 'loop'
+
+            # branching edges
+            for index_parent in range(len(self.proactive_tasks)):
+                parent_task = self.proactive_tasks[index_parent]
+                if parent_task.hasFlowScript():
+                    parent_flow_script = parent_task.getFlowScript()
+                    if parent_flow_script.isBranchFlowScript():
+                        if_task = self.__get_task_from_name__(parent_flow_script.getActionTarget())
+                        else_task = self.__get_task_from_name__(parent_flow_script.getActionTargetElse())
+                        continuation_task = self.__get_task_from_name__(parent_flow_script.getActionTargetContinuation())
+
+                        if_task_index = self.proactive_tasks.index(if_task)
+                        else_task_index = self.proactive_tasks.index(else_task)
+                        continuation_task_index = self.proactive_tasks.index(continuation_task)
+
+                        self.graph.add_edge(index_parent, if_task_index)
+                        self.graph.add_edge(index_parent, else_task_index)
+                        self.graph.add_edge(index_parent, continuation_task_index)
+
+                        self.edge_labels[(index_parent, if_task_index)] = 'if'
+                        self.edge_labels[(index_parent, else_task_index)] = 'else'
+                        self.edge_labels[(index_parent, continuation_task_index)] = 'continuation'
 
             # node labels
             for i in nodes_ids:
@@ -580,6 +611,10 @@ class ProActiveKernel(Kernel):
                                              + '#%start(): creates/modifies a start task of a loop control\n'
                                              + '#%loop(): creates/modifies a loop task of a loop control\n'
                                              + '#%condition(): creates/modifies the condition script of a branch/loop control\n'
+                                             + '#%branch(): creates/modifies a branch task of a branching control\n'
+                                             + '#%if(): creates/modifies an if task of a branching control\n'
+                                             + '#%else(): creates/modifies an else task of a branching control\n'
+                                             + '#%continuation(): creates/modifies a continuation task of a branching control\n'
                                              + '#%job(): creates/renames the job\n'
                                              + '#%draw_job(): plots the workflow\n'
                                              + '#%write_dot(): writes the workflow in .dot format\n'
@@ -1082,11 +1117,63 @@ class ProActiveKernel(Kernel):
         self.graph_up_to_date = False
         return 0
 
+    def __create_branch__(self, input_data):
+        input_data['trigger'] = 'task'
+        if 'name' not in input_data or input_data['name'] == '':
+            input_data['name'] = self.__get_unique_task_name__('branch')
+        self.__create_task__(input_data)
+        self.saved_branch_task = self.last_modified_task
+        self.semaphore_controls = 101
+        self.job_up_to_date = False
+        return 0
+
+    def __add_condition_branch__(self, input_data):
+        self.__kernel_print_ok_message__('Saving the BRANCHING flow script ...\n')
+        self.saved_flow_script = self.gateway.createBranchFlowScript(input_data['code'], '', '', '')
+        self.__kernel_print_ok_message__('Done.\n')
+        self.semaphore_controls = 102
+        self.job_up_to_date = False
+        self.graph_up_to_date = False
+        return 0
+
+    def __create_if__(self, input_data):
+        input_data['trigger'] = 'task'
+        if 'name' not in input_data or input_data['name'] == '':
+            input_data['name'] = self.__get_unique_task_name__('if')
+        self.__create_task__(input_data)
+        self.saved_flow_script.setActionTarget(self.last_modified_task.getTaskName())
+        self.semaphore_controls = 103
+        self.job_up_to_date = False
+        return 0
+
+    def __create_else__(self, input_data):
+        input_data['trigger'] = 'task'
+        if 'name' not in input_data or input_data['name'] == '':
+            input_data['name'] = self.__get_unique_task_name__('else')
+        self.__create_task__(input_data)
+        self.saved_flow_script.setActionTargetElse(self.last_modified_task.getTaskName())
+        self.semaphore_controls = 104
+        self.job_up_to_date = False
+        return 0
+
+    def __create_continuation__(self, input_data):
+        input_data['trigger'] = 'task'
+        if 'name' not in input_data or input_data['name'] == '':
+            input_data['name'] = self.__get_unique_task_name__('continuation')
+        self.__create_task__(input_data)
+        self.saved_flow_script.setActionTargetContinuation(self.last_modified_task.getTaskName())
+        self.__kernel_print_ok_message__('Setting the BRANCHING flow script ...\n')
+        self.saved_branch_task.setFlowScript(self.saved_flow_script)
+        self.__kernel_print_ok_message__('Done.\n')
+        self.semaphore_controls = 0
+        self.job_up_to_date = False
+        return 0
+
     def __add_condition__(self, input_data):
         if self.semaphore_controls == 11:
             self.__add_condition_loop__(input_data)
         else:
-            pass
+            self.__add_condition_branch__(input_data)
 
     def __clean_related_dependencies__(self, removed_task):
         for task in self.proactive_tasks:
@@ -1314,14 +1401,22 @@ class ProActiveKernel(Kernel):
             raise PragmaError('Expected a \'process\' pragma.')
         if self.semaphore_controls == 3 and pragma_info['trigger'] != 'merge':
             raise PragmaError('Expected a \'merge\' pragma.')
-        if self.semaphore_controls == 11 and pragma_info['trigger'] != 'condition':
+        if self.semaphore_controls in [11, 101] and pragma_info['trigger'] != 'condition':
             raise PragmaError('Expected a \'condition\' pragma.')
         if self.semaphore_controls == 12 and pragma_info['trigger'] != 'loop':
             raise PragmaError('Expected a \'loop\' pragma.')
+        if self.semaphore_controls == 102 and pragma_info['trigger'] != 'if':
+            raise PragmaError('Expected an \'if\' pragma.')
+        if self.semaphore_controls == 103 and pragma_info['trigger'] != 'else':
+            raise PragmaError('Expected an \'else\' pragma.')
+        if self.semaphore_controls == 104 and pragma_info['trigger'] != 'continuation':
+            raise PragmaError('Expected a \'continuation\' pragma.')
         if self.semaphore_controls == 0 and pragma_info['trigger'] in ['runs', 'process', 'merge']:
             raise PragmaError('The "replicate" control should start with a \'split\' pragma.')
         if self.semaphore_controls == 0 and pragma_info['trigger'] == 'loop':
             raise PragmaError('The "loop" control should start with a \'start\' pragma.')
+        if self.semaphore_controls == 0 and pragma_info['trigger'] in ['if', 'else', 'continuation']:
+            raise PragmaError('The "branch" control should start with a \'branch\' pragma,\n')
         if self.semaphore_controls == 0 and pragma_info['trigger'] == 'condition':
             raise PragmaError('The "branch" control should start with a \'branch\' pragma,\n' +
                               'and the "loop" control should start with a \'start\' pragma.')
