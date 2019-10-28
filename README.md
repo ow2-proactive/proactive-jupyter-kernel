@@ -331,7 +331,60 @@ To add a post-script to a task, use:
 #%post_script(name=TASK_NAME, language=SCRIPT_LANGUAGE, [path=./POST_SCRIPT_FILE.py])
 ```
 
-#### 5.7 Delete a task
+#### 5.7 Branch control
+
+The [branch](https://doc.activeeon.com/latest/user/ProActiveUserGuide.html#_branch) control provides the ability to 
+choose between two alternative task flows, with the possibility to merge back to a common flow.
+
+To add a branch control to the current workflow, three specific tasks and one control condition should be added 
+according to the following order:
+
+1. a `branch` task,
+2. the related branching `condition` script,
+3. an `if` task that should be executed if the result of the `condition` task if `true`,
+4. an `else` task that should be executed if the result of the `condition` task if `false`,
+5. a `continuation` task that should be executed after the `if` or the `else` tasks.
+
+For a `branch` task, use:
+
+```python
+#%branch([name=TASK_NAME], [dep=[TASK_NAME1,TASK_NAME2,...]], [generic_info=[(KEY1,VAL1), (KEY2,VALUE2),...]], [language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])
+```
+
+For the branching `condition` script, use:
+
+```python
+#%condition()
+```
+
+For an `if` task, please use:
+
+```python
+#%if([name=TASK_NAME], [generic_info=[(KEY1,VAL1),(KEY2,VALUE2),...]], [language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])
+```
+
+For an `else` task, use:
+
+```python
+#%else([name=TASK_NAME], [generic_info=[(KEY1,VAL1),(KEY2,VALUE2),...]], [language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])
+```
+
+And finally, for the `continuation` task:
+
+```python
+#%continuation([name=TASK_NAME], [generic_info=[(KEY1,VAL1),(KEY2,VALUE2),...]], [language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])
+```
+
+
+#### 5.8 Loop control
+
+asd
+
+#### 5.9 Replicate control
+
+asd
+
+#### 5.10 Delete a task
 
 To delete a task from the workflow, the user should run the pragma `#%delete_task()` in the following way:
 
@@ -339,7 +392,7 @@ To delete a task from the workflow, the user should run the pragma `#%delete_tas
 #%delete_task(name=TASK_NAME)
 ```
 
-#### 5.7 Create a job
+#### 5.11 Create a job
 
 To create a job, use the `#%job()` pragma:
 
@@ -354,7 +407,7 @@ NOTE: It is not necessary to create and assign a name explicitly to the job. If 
 implicitly performed when the job is submitted (check section [Submit your job to the scheduler](#510-submit-your-job-to-the-scheduler) for more
 information).
 
-#### 5.8 Visualize job
+#### 5.12 Visualize job
 
 To visualize the created workflow, use the `#%draw_job()` pragma to plot the workflow graph that represents the job
 into a separate window:
@@ -396,7 +449,7 @@ General usage:
 #%draw_job([name=JOB_NAME], [inline=off], [save=on])
 ```
 
-#### 5.9 Export the workflow in dot format
+#### 5.13 Export the workflow in dot format
 
 To export the created workflow into a [GraphViz](https://www.graphviz.org/) _.dot_ format, use the `#%write_dot()` pragma:
 
@@ -404,7 +457,7 @@ To export the created workflow into a [GraphViz](https://www.graphviz.org/) _.do
 #%write_dot(name=FILE_NAME)
 ```
 
-#### 5.10 Import a workflow from a dot file
+#### 5.14 Import a workflow from a dot file
 
 To create a workflow according to a [GraphViz](https://www.graphviz.org/) _.dot_ file, use the pragma `#%import_dot()`:
 
@@ -416,7 +469,7 @@ By default, the workflow will contain _Python_ tasks with empty implementation s
 any information to a specific task, please use, as explained in [Creating a Task](#51-creating-a-python-task), the `#%task()` 
 pragma.
 
-#### 5.11 Submit your job to the scheduler
+#### 5.15 Submit your job to the scheduler
 
 To submit the job to the ProActive Scheduler, the user has to use the `#%submit_job()` pragma:
 
@@ -433,7 +486,7 @@ To provide a new name, use the same pragma and provide a name as parameter:
 
 If the job's name is not set, the ProActive kernel uses the current notebook name, if possible, or gives a random one.
 
-#### 5.12 List all submitted jobs
+#### 5.16 List all submitted jobs
 
 To get all submitted job IDs and names, use `list_submitted_jobs` pragma this way:
 
@@ -441,7 +494,7 @@ To get all submitted job IDs and names, use `list_submitted_jobs` pragma this wa
 #%list_submitted_jobs()
 ```
 
-#### 5.13 Export the workflow in XML format
+#### 5.17 Export the workflow in XML format
 
 To export the created workflow in _.xml_ format, use the `#%export_xml()` pragma:
 
@@ -456,7 +509,7 @@ Notice that the _.xml_ file will be saved under one of the following names:
 3. The notebook's name, if the kernel can retrieve it
 4. `Unnamed_job`, otherwise
 
-#### 5.14 Get results
+#### 5.18 Get results
 
 After the execution of a ProActive workflow, two outputs can be obtained,
 * results: values that have been saved in the 
@@ -542,6 +595,28 @@ Features:
 * *fork_env*: sets the fork environment script
 
 * *job_fork_env*: sets the default fork environment of a job
+
+* *split*: creates/modifies a splitting task of a replicate control                             ### TODO ###
+
+* *runs*: creates/modifies the configuration script of a replicate control                      ### TODO ###
+
+* *process*: creates/modifies the script of a replicated processing task                        ### TODO ###
+
+* *merge*: creates/modifies a merging task of a replicate control                               ### TODO ###
+
+* *start*: creates/modifies a start task of a loop control                                      ### TODO ###
+
+* *loop*: creates/modifies a loop task of a loop control                                        ### TODO ###
+
+* *condition*: creates/modifies the condition script of a branch/loop control                   ### TODO ###
+
+* *branch*: creates/modifies a branch task of a branching control                               ### TODO ###
+
+* *if*: creates/modifies an if task of a branching control                                      ### TODO ###
+
+* *else*: creates/modifies an else task of a branching control                                  ### TODO ###
+
+* *continuation*: creates/modifies a continuation task of a branching control                   ### TODO ###
 
 * *delete_task*: deletes a task from the workflow
 
