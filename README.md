@@ -336,7 +336,7 @@ To add a post-script to a task, use:
 The [branch](https://doc.activeeon.com/latest/user/ProActiveUserGuide.html#_branch) control provides the ability to 
 choose between two alternative task flows, with the possibility to merge back to a common flow.
 
-To add a branch control to the current workflow, three specific tasks and one control condition should be added 
+To add a branch control to the current workflow, four specific tasks and one control condition should be added 
 according to the following order:
 
 1. a `branch` task,
@@ -378,7 +378,33 @@ And finally, for the `continuation` task:
 
 #### 5.8 Loop control
 
-asd
+The [loop](https://doc.activeeon.com/latest/user/ProActiveUserGuide.html#_loop) control provides the ability to repeat 
+a set of tasks.
+
+To add a loop control to the current workflow, two specific tasks and one control condition should be added 
+according to the following order:
+
+1. a `start` task,
+2. the related looping `condition` script,
+3. a `loop` task.
+
+For a `start` task, use:
+
+```python
+#%start([name=TASK_NAME], [dep=[TASK_NAME1,TASK_NAME2,...]], [generic_info=[(KEY1,VAL1), (KEY2,VALUE2),...]], [language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])
+```
+
+For the looping `condition` script, use:
+
+```python
+#%condition()
+```
+
+For a `loop` task, please use:
+
+```python
+#%loop([name=TASK_NAME], [generic_info=[(KEY1,VAL1),(KEY2,VALUE2),...]], [language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])
+```
 
 #### 5.9 Replicate control
 
@@ -604,19 +630,19 @@ Features:
 
 * *merge*: creates/modifies a merging task of a replicate control                               ### TODO ###
 
-* *start*: creates/modifies a start task of a loop control                                      ### TODO ###
+* *start*: creates/modifies a start task of a loop control
 
-* *loop*: creates/modifies a loop task of a loop control                                        ### TODO ###
+* *loop*: creates/modifies a loop task of a loop control
 
-* *condition*: creates/modifies the condition script of a branch/loop control                   ### TODO ###
+* *condition*: creates/modifies the condition script of a branch/loop control
 
-* *branch*: creates/modifies a branch task of a branching control                               ### TODO ###
+* *branch*: creates/modifies a branch task of a branching control
 
-* *if*: creates/modifies an if task of a branching control                                      ### TODO ###
+* *if*: creates/modifies an if task of a branching control
 
-* *else*: creates/modifies an else task of a branching control                                  ### TODO ###
+* *else*: creates/modifies an else task of a branching control
 
-* *continuation*: creates/modifies a continuation task of a branching control                   ### TODO ###
+* *continuation*: creates/modifies a continuation task of a branching control
 
 * *delete_task*: deletes a task from the workflow
 
