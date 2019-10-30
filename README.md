@@ -408,7 +408,62 @@ For a `loop` task, please use:
 
 #### 5.9 Replicate control
 
-asd
+The [replication](https://doc.activeeon.com/latest/user/ProActiveUserGuide.html#_replicate) allows the execution of 
+multiple tasks in parallel when only one task is defined, and the number of tasks to run could change.
+
+Through the ProActive Jupyter Kernel, users can add replicate controls in two main ways, a generic and a straight 
+forward way.
+
+##### 5.9.1 Generic usage
+
+To add a replicate control to the current workflow in the generic method, three specific tasks and one control runs 
+script should be added according to the following order:
+
+1. a `split` task,
+2. the related replication `runs` script,
+3. a `process` task,
+4. a `merge` task.
+
+For a `split` task, use:
+
+```python
+#%split([name=TASK_NAME], [dep=[TASK_NAME1,TASK_NAME2,...]], [generic_info=[(KEY1,VAL1), (KEY2,VALUE2),...]], [language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])
+```
+
+For the replication `runs` script, use:
+
+```python
+#%runs()
+```
+
+For a `process` task, please use:
+
+```python
+#%process([name=TASK_NAME], [generic_info=[(KEY1,VAL1),(KEY2,VALUE2),...]], [language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])
+```
+
+And finally, for a `merge` task, use:
+
+```python
+#%merge([name=TASK_NAME], [generic_info=[(KEY1,VAL1),(KEY2,VALUE2),...]], [language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])
+```
+
+##### 5.9.2 Straight forward usage
+
+The straight forward method to add a replication is most of all useful when the parallelism that should be 
+implemented is a task parallelism (the generic usage is more adapted to data parallelism).
+
+To add a replication to a task, just add the runs control script by providing the `runs` option of the `task` pragma.
+Example:
+
+```python
+#%task(name=T2,dep=[T1],runs=3)
+print("This output should be displayed 3 times ...")
+```
+
+NOTE: To construct a valid workflow, straight forward replicated tasks must have one and only one parent task and one 
+child task at most. More information about replicate validation criteria are available 
+[here](https://doc.activeeon.com/latest/user/ProActiveUserGuide.html#_replicate).
 
 #### 5.10 Delete a task
 
