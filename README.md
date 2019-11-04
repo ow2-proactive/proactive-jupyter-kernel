@@ -331,7 +331,141 @@ To add a post-script to a task, use:
 #%post_script(name=TASK_NAME, language=SCRIPT_LANGUAGE, [path=./POST_SCRIPT_FILE.py])
 ```
 
-#### 5.7 Delete a task
+#### 5.7 Branch control
+
+The [branch](https://doc.activeeon.com/latest/user/ProActiveUserGuide.html#_branch) control provides the ability to 
+choose between two alternative task flows, with the possibility to merge back to a common one.
+
+To add a branch control to the current workflow, four specific tasks and one control condition should be added in 
+accordance with the following order:
+
+1. a `branch` task,
+2. the related branching `condition` script,
+3. an `if` task that should be executed if the result of the `condition` task if `true`,
+4. an `else` task that should be executed if the result of the `condition` task if `false`,
+5. a `continuation` task that should be executed after the `if` or the `else` tasks.
+
+To add a `branch`task, you can rely on the following macro:
+
+```python
+#%branch([name=TASK_NAME], [dep=[TASK_NAME1,TASK_NAME2,...]], [generic_info=[(KEY1,VAL1), (KEY2,VALUE2),...]], [language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])
+```
+
+For the branching `condition` script, use:
+
+```python
+#%condition()
+```
+
+For an `if` task, please use:
+
+```python
+#%if([name=TASK_NAME], [generic_info=[(KEY1,VAL1),(KEY2,VALUE2),...]], [language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])
+```
+
+For an `else` task, use:
+
+```python
+#%else([name=TASK_NAME], [generic_info=[(KEY1,VAL1),(KEY2,VALUE2),...]], [language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])
+```
+
+And finally, for the `continuation` task:
+
+```python
+#%continuation([name=TASK_NAME], [generic_info=[(KEY1,VAL1),(KEY2,VALUE2),...]], [language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])
+```
+
+
+#### 5.8 Loop control
+
+The [loop](https://doc.activeeon.com/latest/user/ProActiveUserGuide.html#_loop) control provides the ability to repeat 
+a set of tasks.
+
+To add a loop control to the current workflow, two specific tasks and one control condition should be added 
+in the following order:
+
+1. a `start` task,
+2. the related looping `condition` script,
+3. a `loop` task.
+
+For a `start` task, use:
+
+```python
+#%start([name=TASK_NAME], [dep=[TASK_NAME1,TASK_NAME2,...]], [generic_info=[(KEY1,VAL1), (KEY2,VALUE2),...]], [language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])
+```
+
+For the looping `condition` script, use:
+
+```python
+#%condition()
+```
+
+For a `loop` task, please use:
+
+```python
+#%loop([name=TASK_NAME], [generic_info=[(KEY1,VAL1),(KEY2,VALUE2),...]], [language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])
+```
+
+#### 5.9 Replicate control
+
+The [replication](https://doc.activeeon.com/latest/user/ProActiveUserGuide.html#_replicate) allows the execution of 
+multiple tasks in parallel when only one task is defined, and the number of tasks to run could change.
+
+Through the ProActive Jupyter Kernel, users can add replicate controls in two main ways, a generic and a straight 
+forward way.
+
+##### 5.9.1 Generic usage
+
+To add a replicate control to the current workflow in the generic method, three specific tasks and one control runs 
+script should be added according to the following order:
+
+1. a `split` task,
+2. the related replication `runs` script,
+3. a `process` task,
+4. a `merge` task.
+
+For a `split` task, use:
+
+```python
+#%split([name=TASK_NAME], [dep=[TASK_NAME1,TASK_NAME2,...]], [generic_info=[(KEY1,VAL1), (KEY2,VALUE2),...]], [language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])
+```
+
+For the replication `runs` script, use:
+
+```python
+#%runs()
+```
+
+For a `process` task, please use:
+
+```python
+#%process([name=TASK_NAME], [generic_info=[(KEY1,VAL1),(KEY2,VALUE2),...]], [language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])
+```
+
+And finally, for a `merge` task, use:
+
+```python
+#%merge([name=TASK_NAME], [generic_info=[(KEY1,VAL1),(KEY2,VALUE2),...]], [language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])
+```
+
+##### 5.9.2 Straight forward usage
+
+The straight forward method to add a replication is most of all useful when the parallelism that should be 
+implemented is a task parallelism (the generic usage is more adapted to data parallelism).
+
+To add a replication to a task, just add the runs control script by providing the `runs` option of the `task` pragma.
+Example:
+
+```python
+#%task(name=T2,dep=[T1],runs=3)
+print("This output should be displayed 3 times ...")
+```
+
+NOTE: To construct a valid workflow, straight forward replicated tasks must have one and only one parent task and one 
+child task at most. More information about replicate validation criteria are available 
+[here](https://doc.activeeon.com/latest/user/ProActiveUserGuide.html#_replicate).
+
+#### 5.10 Delete a task
 
 To delete a task from the workflow, the user should run the pragma `#%delete_task()` in the following way:
 
@@ -339,7 +473,7 @@ To delete a task from the workflow, the user should run the pragma `#%delete_tas
 #%delete_task(name=TASK_NAME)
 ```
 
-#### 5.7 Create a job
+#### 5.11 Create a job
 
 To create a job, use the `#%job()` pragma:
 
@@ -354,7 +488,7 @@ NOTE: It is not necessary to create and assign a name explicitly to the job. If 
 implicitly performed when the job is submitted (check section [Submit your job to the scheduler](#510-submit-your-job-to-the-scheduler) for more
 information).
 
-#### 5.8 Visualize job
+#### 5.12 Visualize job
 
 To visualize the created workflow, use the `#%draw_job()` pragma to plot the workflow graph that represents the job
 into a separate window:
@@ -396,7 +530,7 @@ General usage:
 #%draw_job([name=JOB_NAME], [inline=off], [save=on])
 ```
 
-#### 5.9 Export the workflow in dot format
+#### 5.13 Export the workflow in dot format
 
 To export the created workflow into a [GraphViz](https://www.graphviz.org/) _.dot_ format, use the `#%write_dot()` pragma:
 
@@ -404,7 +538,7 @@ To export the created workflow into a [GraphViz](https://www.graphviz.org/) _.do
 #%write_dot(name=FILE_NAME)
 ```
 
-#### 5.10 Import a workflow from a dot file
+#### 5.14 Import a workflow from a dot file
 
 To create a workflow according to a [GraphViz](https://www.graphviz.org/) _.dot_ file, use the pragma `#%import_dot()`:
 
@@ -416,7 +550,7 @@ By default, the workflow will contain _Python_ tasks with empty implementation s
 any information to a specific task, please use, as explained in [Creating a Task](#51-creating-a-python-task), the `#%task()` 
 pragma.
 
-#### 5.11 Submit your job to the scheduler
+#### 5.15 Submit your job to the scheduler
 
 To submit the job to the ProActive Scheduler, the user has to use the `#%submit_job()` pragma:
 
@@ -433,7 +567,7 @@ To provide a new name, use the same pragma and provide a name as parameter:
 
 If the job's name is not set, the ProActive kernel uses the current notebook name, if possible, or gives a random one.
 
-#### 5.12 List all submitted jobs
+#### 5.16 List all submitted jobs
 
 To get all submitted job IDs and names, use `list_submitted_jobs` pragma this way:
 
@@ -441,7 +575,7 @@ To get all submitted job IDs and names, use `list_submitted_jobs` pragma this wa
 #%list_submitted_jobs()
 ```
 
-#### 5.13 Export the workflow in XML format
+#### 5.17 Export the workflow in XML format
 
 To export the created workflow in _.xml_ format, use the `#%export_xml()` pragma:
 
@@ -456,7 +590,7 @@ Notice that the _.xml_ file will be saved under one of the following names:
 3. The notebook's name, if the kernel can retrieve it
 4. `Unnamed_job`, otherwise
 
-#### 5.14 Get results
+#### 5.18 Get results
 
 After the execution of a ProActive workflow, two outputs can be obtained,
 * results: values that have been saved in the 
@@ -542,6 +676,28 @@ Features:
 * *fork_env*: sets the fork environment script
 
 * *job_fork_env*: sets the default fork environment of a job
+
+* *split*: creates/modifies a splitting task of a replicate control
+
+* *runs*: creates/modifies the configuration script of a replicate control
+
+* *process*: creates/modifies the script of a replicated processing task
+
+* *merge*: creates/modifies a merging task of a replicate control
+
+* *start*: creates/modifies a start task of a loop control
+
+* *loop*: creates/modifies a loop task of a loop control
+
+* *condition*: creates/modifies the condition script of a branch/loop control
+
+* *branch*: creates/modifies a branch task of a branching control
+
+* *if*: creates/modifies an if task of a branching control
+
+* *else*: creates/modifies an else task of a branching control
+
+* *continuation*: creates/modifies a continuation task of a branching control
 
 * *delete_task*: deletes a task from the workflow
 
