@@ -334,10 +334,10 @@ To add a post-script to a task, use:
 #### 5.7 Branch control
 
 The [branch](https://doc.activeeon.com/latest/user/ProActiveUserGuide.html#_branch) control provides the ability to 
-choose between two alternative task flows, with the possibility to merge back to a common flow.
+choose between two alternative task flows, with the possibility to merge back to a common one.
 
-To add a branch control to the current workflow, four specific tasks and one control condition should be added 
-according to the following order:
+To add a branch control to the current workflow, four specific tasks and one control condition should be added in 
+accordance with the following order:
 
 1. a `branch` task,
 2. the related branching `condition` script,
@@ -345,7 +345,7 @@ according to the following order:
 4. an `else` task that should be executed if the result of the `condition` task if `false`,
 5. a `continuation` task that should be executed after the `if` or the `else` tasks.
 
-For a `branch` task, use:
+To add a `branch`task, you can rely on the following macro:
 
 ```python
 #%branch([name=TASK_NAME], [dep=[TASK_NAME1,TASK_NAME2,...]], [generic_info=[(KEY1,VAL1), (KEY2,VALUE2),...]], [language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])
@@ -382,7 +382,7 @@ The [loop](https://doc.activeeon.com/latest/user/ProActiveUserGuide.html#_loop) 
 a set of tasks.
 
 To add a loop control to the current workflow, two specific tasks and one control condition should be added 
-according to the following order:
+in the following order:
 
 1. a `start` task,
 2. the related looping `condition` script,
@@ -677,13 +677,13 @@ Features:
 
 * *job_fork_env*: sets the default fork environment of a job
 
-* *split*: creates/modifies a splitting task of a replicate control                             ### TODO ###
+* *split*: creates/modifies a splitting task of a replicate control
 
-* *runs*: creates/modifies the configuration script of a replicate control                      ### TODO ###
+* *runs*: creates/modifies the configuration script of a replicate control
 
-* *process*: creates/modifies the script of a replicated processing task                        ### TODO ###
+* *process*: creates/modifies the script of a replicated processing task
 
-* *merge*: creates/modifies a merging task of a replicate control                               ### TODO ###
+* *merge*: creates/modifies a merging task of a replicate control
 
 * *start*: creates/modifies a start task of a loop control
 
