@@ -123,7 +123,7 @@ def get_usage_import_dot():
 
 
 def get_usage_submit_job():
-    return '   #%submit_job([name=JOB_NAME])\n'
+    return '   #%submit_job([name=JOB_NAME], [input_path=INPUT_FOLDER_PATH], [output_path=OUTPUT_FOLDER_PATH])\n'
 
 
 def get_usage_get_job_result():
@@ -640,7 +640,15 @@ def is_valid_import_dot(data):
 
 
 def is_valid_submit_job(data):
-    return is_valid_write_dot(data)
+    pattern_name = r"^[a-zA-Z_]\w*$"
+    pattern_path_cars = r"^[a-zA-Z0-9_\/\\:\.-]+$"
+    if 'name' in data and data['name'] != '' and not re.match(pattern_name, data['name']):
+        raise ParameterError('Invalid name parameter')
+    if 'input_path' in data and not re.match(pattern_path_cars, data['input_path']):
+        raise ParameterError('Invalid input path parameter')
+    if 'output_path' in data and not re.match(pattern_path_cars, data['output_path']):
+        raise ParameterError('Invalid output path parameter')
+    return
 
 
 def is_valid_get_job_result(data):

@@ -1366,7 +1366,17 @@ class ProActiveKernel(Kernel):
 
         self.__kernel_print_ok_message__('Submitting the job to the proactive scheduler ...\n')
 
-        temp_id = self.gateway.submitJob(self.proactive_job, debug=False)
+        if 'input_path' in input_data or 'output_path' in input_data:
+            input_path = input_data['input_path'] if 'input_path' in input_data else '.'
+            output_path = input_data['output_path'] if 'output_path' in input_data else '.'
+
+            temp_id = self.gateway.submitJobWithInputsAndOutputsPaths(self.proactive_job,
+                                                                      input_path,
+                                                                      output_path,
+                                                                      debug=False)
+        else:
+            temp_id = self.gateway.submitJob(self.proactive_job, debug=False)
+
         self.submitted_jobs_names[temp_id] = self.job_name
         self.submitted_jobs_ids[self.job_name] = temp_id
 

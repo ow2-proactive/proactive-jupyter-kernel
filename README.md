@@ -345,7 +345,7 @@ accordance with the following order:
 4. an `else` task that should be executed if the result of the `condition` task if `false`,
 5. a `continuation` task that should be executed after the `if` or the `else` tasks.
 
-To add a `branch`task, you can rely on the following macro:
+To add a `branch` task, you can rely on the following macro:
 
 ```python
 #%branch([name=TASK_NAME], [dep=[TASK_NAME1,TASK_NAME2,...]], [generic_info=[(KEY1,VAL1), (KEY2,VALUE2),...]], [language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])
