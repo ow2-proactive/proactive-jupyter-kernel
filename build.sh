@@ -1,7 +1,14 @@
-#!/usr/bin/env bash
-# https://github.com/pypa/warehouse/issues/5890#issuecomment-494868157
-pip install -U pip
-pip install -U twine wheel setuptools
+#!/bin/bash
+command -v source >/dev/null 2>&1 || {
+  echo "I require source but it's not installed.  Aborting." >&2; exit 1;
+}
+
+pip install virtualenv
+
+virtualenv -p python3 env
+source env/bin/activate
+
+pip install -U pip twine wheel setuptools
 
 rm -rf dist/
 rm -rf build/
