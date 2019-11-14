@@ -640,6 +640,8 @@ def is_valid_import_dot(data):
 
 
 def is_valid_submit_job(data):
+    # `pattern_name` represents the pattern of a valid variable name,
+    # A valid variable name starts with a letter or underscore, followed by letters, digits, or/and underscores.
     pattern_name = r"^[a-zA-Z_]\w*$"
     pattern_path_cars = r"^[a-zA-Z0-9_\/\\:\.-]+$"
     if 'name' in data and data['name'] != '' and not re.match(pattern_name, data['name']):
