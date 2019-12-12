@@ -6,6 +6,10 @@ import configparser as cp
 import random
 import tempfile
 import proactive
+import sys
+
+import logging
+import logging.config
 
 from notebook import notebookapp
 import urllib
@@ -70,6 +74,7 @@ class ProActiveKernel(Kernel):
 
     def __init__(self, **kwargs):
         Kernel.__init__(self, **kwargs)
+        self.root_dir = os.path.dirname(os.path.abspath(__file__))
         self.gateway = None
         self.proactive_tasks = []
         self.proactive_script_languages = None
@@ -96,6 +101,8 @@ class ProActiveKernel(Kernel):
         self.default_fork_env = None
         self.multiblock_task_config = False
         self.semaphore_controls = 0
+        self.logger = None
+        self.debug = False
 
         self.replicated_tasks = []
 
@@ -119,6 +126,11 @@ class ProActiveKernel(Kernel):
             self.proactive_failed_connection = True
             self.error_message = str(e)
 
+        if self.logger is None:
+            logging.config.fileConfig(os.path.join(self.root_dir, 'logging.conf'))
+            self.logger = logging.getLogger('ProactiveKernel')
+            logging.disable()
+
     def __start_proactive__(self):
         if notebook_path() is not None:
             config_file = str(notebook_path().rsplit('/', 1)[0]) + '/proactive_config.ini'
@@ -134,11 +146,26 @@ class ProActiveKernel(Kernel):
                 proactive_port = self.proactive_config['proactive_server']['port']
 
                 proactive_url = "http://" + proactive_host + ":" + proactive_port
-                javaopts = []
-                # uncomment for detailed logs
-                # javaopts.append('-Dlog4j.configuration=file:'+os.path.join(os.getcwd(),'log4j.properties'))
-                redirectJVMOutput = False
-                self.gateway = proactive.ProActiveGateway(proactive_url, javaopts, redirectJVMOutput)
+
+                self.debug = True if self.proactive_config['cli_props']['debug'] == 'True' else False
+                log4j_props_file = self.proactive_config['cli_props']['log4j_props_file'] \
+                    if 'log4j_props_file' in self.proactive_config['cli_props'] else None
+                log4py_props_file = self.proactive_config['cli_props']['log4py_props_file'] \
+                    if 'log4py_props_file' in self.proactive_config['cli_props'] else None
+
+                if log4py_props_file is not None:
+                    logging.config.fileConfig(log4py_props_file)
+                    self.logger = logging.getLogger('ProactiveKernel')
+
+                if self.debug:
+                    self.gateway = proactive.ProActiveGateway(proactive_url,
+                                                              debug=self.debug,
+                                                              log4j_props_file=log4j_props_file,
+                                                              log4py_props_file=log4py_props_file)
+                    logging.disable(logging.NOTSET)
+                else:
+                    self.gateway = proactive.ProActiveGateway(proactive_url)
+                    logging.disable()
 
                 if 'user' in self.proactive_config and 'login' in self.proactive_config['user'] and 'password' in \
                         self.proactive_config['user']:
@@ -146,6 +173,7 @@ class ProActiveKernel(Kernel):
                         self.gateway.connect(username=self.proactive_config['user']['login'],
                                              password=self.proactive_config['user']['password'])
                         assert self.gateway.isConnected() is True
+                        self.logger.debug('Connected as \'' + self.proactive_config['user']['login'] + '\'!\n')
                         self.proactive_connected = True
                 return
 
@@ -498,11 +526,18 @@ class ProActiveKernel(Kernel):
 
     def __connect__(self, input_data):
         if self.proactive_connected:
-            self.__kernel_print_ok_message__('WARNING: Proactive is already connected.\n')
-            self.__kernel_print_ok_message__('Disconnecting from server: ' + self.gateway.base_url + ' ...\n')
+            self.logger.warning('WARNING: Proactive is already connected.\n')
+            self.logger.debug('Ending last connexion to the server: ' + self.gateway.base_url + ' ...\n')
             self.gateway.disconnect()
             self.gateway.terminate()
+            del self.gateway
+            self.gateway = None
             self.proactive_connected = False
+            self.proactive_config = {'proactive_server': {}}
+            self.logger.debug('Connexion ended.')
+            self.__kernel_print_ok_message__('DISCONNECTED AND DELETED.\n')
+
+        # print('Example of forced output to console', file=sys.__stdout__)
 
         if 'path' in input_data:
             exists = os.path.isfile(input_data['path'])
@@ -517,20 +552,32 @@ class ProActiveKernel(Kernel):
                     proactive_port = self.proactive_config['proactive_server']['port']
 
                     proactive_url = "http://" + proactive_host + ":" + proactive_port
-                    javaopts = []
-                    # uncomment for detailed logs
-                    # javaopts.append('-Dlog4j.configuration=file:'+os.path.join(os.getcwd(),'log4j.properties'))
-                    redirectJVMOutput = False
-                    self.gateway = proactive.ProActiveGateway(proactive_url, javaopts, redirectJVMOutput)
+
+                    self.debug = True if self.proactive_config['cli_props']['debug'] == 'True' else False
+                    log4j_props_file = self.proactive_config['cli_props']['log4j_props_file'] \
+                        if 'log4j_props_file' in self.proactive_config['cli_props'] else None
+                    log4py_props_file = self.proactive_config['cli_props']['log4py_props_file'] \
+                        if 'log4py_props_file' in self.proactive_config['cli_props'] else None
+
+                    if self.debug:
+                        self.gateway = proactive.ProActiveGateway(proactive_url,
+                                                                  debug=self.debug,
+                                                                  log4j_props_file=log4j_props_file,
+                                                                  log4py_props_file=log4py_props_file)
+                        logging.disable(logging.NOTSET)
+                    else:
+                        self.gateway = proactive.ProActiveGateway(proactive_url)
+                        logging.disable()
+
                     self.gateway.connect(username=self.proactive_config['user']['login'],
                                          password=self.proactive_config['user']['password'])
 
-                    self.__kernel_print_ok_message__('Connecting to server ...\n')
+                    self.logger.debug('Connecting to server ...\n')
 
                     assert self.gateway.isConnected() is True
 
-                    self.__kernel_print_ok_message__('Connected as \'' + self.proactive_config['user']['login']
-                                                     + '\'!\n')
+                    self.logger.debug('Connected as \'' + self.proactive_config['user']['login'] + '\'!\n')
+                    self.__kernel_print_ok_message__('Connected.')
 
                     self.proactive_connected = True
                     self.proactive_default_connection = False
@@ -561,11 +608,23 @@ class ProActiveKernel(Kernel):
         proactive_url = "http://" + self.proactive_config['proactive_server']['host'] + ":" + \
                         self.proactive_config['proactive_server']['port']
 
-        javaopts = []
-        # uncomment for detailed logs
-        # javaopts.append('-Dlog4j.configuration=file:'+os.path.join(os.getcwd(),'log4j.properties'))
-        redirectJVMOutput = False
-        self.gateway = proactive.ProActiveGateway(proactive_url, javaopts, redirectJVMOutput)
+        self.debug = True if 'debug' in input_data and input_data['debug'] == 'True' else False
+        log4j_props_file = input_data['log4j_props_file'] if 'log4j_props_file' in input_data else None
+        log4py_props_file = input_data['log4py_props_file'] if 'log4py_props_file' in input_data else None
+
+        if self.debug:
+            self.gateway = proactive.ProActiveGateway(proactive_url,
+                                                      debug=self.debug,
+                                                      log4j_props_file=log4j_props_file,
+                                                      log4py_props_file=log4py_props_file)
+            logging.disable(logging.NOTSET)
+        else:
+            self.gateway = proactive.ProActiveGateway(proactive_url)
+            logging.disable()
+
+        self.__kernel_print_ok_message__('debug: ' + str(self.debug) + '\n')
+        self.__kernel_print_ok_message__('log4j_props_file: ' + str(log4j_props_file) + '\n')
+        self.__kernel_print_ok_message__('log4py_props_file: ' + str(log4py_props_file) + '\n')
 
         self.__kernel_print_ok_message__('Connecting to server ...\n')
 

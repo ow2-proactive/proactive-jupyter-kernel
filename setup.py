@@ -43,6 +43,7 @@ setup(name='proactive-jupyter-kernel',
       author_email='contact@activeeon.com',
       url='https://github.com/ow2-proactive/proactive-jupyter-kernel',
       packages=packages,
+      package_dir={'proactive-jupyter-kernel': 'proactive-jupyter-kernel'},
       package_data=package_data,
       install_requires=install_requires,
       license="BSD 2-Clause License"

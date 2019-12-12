@@ -7,7 +7,9 @@ def get_usage_help():
 
 
 def get_usage_connect():
-    return '   #%connect([host=YOUR_HOST], [port=YOUR_PORT], login=YOUR_LOGIN, password=YOUR_PASSWORD)\n' \
+    return '   #%connect([host=YOUR_HOST], [port=YOUR_PORT], [debug=True/False], ' \
+           '[log4j_props_file=PATH_TO/LOG4J_CONFIG_FILE], [log4py_props_file=PATH_TO/LOG4PY_CONFIG_FILE], ' \
+           'login=YOUR_LOGIN, password=YOUR_PASSWORD)\n' \
            + '   #%connect(path=PATH_TO/YOUR_CONFIG_FILE.ini)\n'
 
 
@@ -409,6 +411,7 @@ def is_valid_connect(data):
     pattern_password = r"^[^ ]+$"
     pattern_path_cars = r"^[a-zA-Z0-9_\/\\:\.-]+$"
     pattern_port = r"^\d+$"
+    pattern_bool = r"^(True|False)$"
     if 'path' in data and re.match(pattern_path_cars, data['path']):
         return
     if 'login' not in data or not re.match(pattern_name, data['login']) or \
@@ -418,6 +421,12 @@ def is_valid_connect(data):
         raise ParameterError('Invalid host parameter')
     if 'port' in data and not re.match(pattern_port, data['port']):
         raise ParameterError('Invalid port parameter')
+    if 'debug' in data and not re.match(pattern_bool, data['debug']):
+        raise ParameterError('Invalid debug parameter')
+    if 'log4j_props_file' in data and not re.match(pattern_path_cars, data['log4j_props_file']):
+        raise ParameterError('Invalid log4j_props_file parameter')
+    if 'log4py_props_file' in data and not re.match(pattern_path_cars, data['log4py_props_file']):
+        raise ParameterError('Invalid log4py_props_file parameter')
     return
 
 
@@ -906,6 +915,9 @@ class Pragma:
         pattern_l = r"[a-zA-Z_]\w*"
         pattern_r = r"([a-zA-Z_]\w*|" + pattern_list_tuples + r"|" + pattern_list + r"|" + pattern_path_cars + r")"
         pattern_connect = r"^( *host *= *" + pattern_path_cars + r" *, *)?(port *= *\d+ *, *)?" \
+                          r"( *debug *= *(True|False) *, *)?" \
+                          r"( *log4j_props_file *= *" + pattern_path_cars + r" *, *)?" \
+                          r"( *log4py_props_file *= *" + pattern_path_cars + r" *, *)?" \
                           r"(login *= *[a-zA-Z_][a-zA-Z0-9_]* *, *password *= *[^ ]*)$"
         pattern_connect_with_path = r"^( *path *= *" + pattern_path_cars + r" *)$"
         pattern_generic = r"^( *" + pattern_l + r" *= *" + pattern_r + r")( *, *" + pattern_l + r" *= *" + \
