@@ -134,11 +134,7 @@ class ProActiveKernel(Kernel):
                 proactive_port = self.proactive_config['proactive_server']['port']
 
                 proactive_url = "http://" + proactive_host + ":" + proactive_port
-                javaopts = []
-                # uncomment for detailed logs
-                # javaopts.append('-Dlog4j.configuration=file:'+os.path.join(os.getcwd(),'log4j.properties'))
-                redirectJVMOutput = False
-                self.gateway = proactive.ProActiveGateway(proactive_url, javaopts, redirectJVMOutput)
+                self.gateway = proactive.ProActiveGateway(proactive_url)
 
                 if 'user' in self.proactive_config and 'login' in self.proactive_config['user'] and 'password' in \
                         self.proactive_config['user']:
@@ -517,11 +513,7 @@ class ProActiveKernel(Kernel):
                     proactive_port = self.proactive_config['proactive_server']['port']
 
                     proactive_url = "http://" + proactive_host + ":" + proactive_port
-                    javaopts = []
-                    # uncomment for detailed logs
-                    # javaopts.append('-Dlog4j.configuration=file:'+os.path.join(os.getcwd(),'log4j.properties'))
-                    redirectJVMOutput = False
-                    self.gateway = proactive.ProActiveGateway(proactive_url, javaopts, redirectJVMOutput)
+                    self.gateway = proactive.ProActiveGateway(proactive_url)
                     self.gateway.connect(username=self.proactive_config['user']['login'],
                                          password=self.proactive_config['user']['password'])
 
@@ -561,11 +553,7 @@ class ProActiveKernel(Kernel):
         proactive_url = "http://" + self.proactive_config['proactive_server']['host'] + ":" + \
                         self.proactive_config['proactive_server']['port']
 
-        javaopts = []
-        # uncomment for detailed logs
-        # javaopts.append('-Dlog4j.configuration=file:'+os.path.join(os.getcwd(),'log4j.properties'))
-        redirectJVMOutput = False
-        self.gateway = proactive.ProActiveGateway(proactive_url, javaopts, redirectJVMOutput)
+        self.gateway = proactive.ProActiveGateway(proactive_url)
 
         self.__kernel_print_ok_message__('Connecting to server ...\n')
 
