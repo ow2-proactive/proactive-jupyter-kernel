@@ -115,6 +115,9 @@ class ProActiveKernel(Kernel):
 
         try:
             self.__start_proactive__()
+        except ConfigError as ce:
+            self.proactive_failed_connection = True
+            self.error_message = str(ce)
         except Exception as e:
             self.proactive_failed_connection = True
             self.error_message = str(e)
@@ -130,10 +133,16 @@ class ProActiveKernel(Kernel):
                 self.proactive_config = cp.ConfigParser()
                 self.proactive_config.read(config_file)
 
-                proactive_host = self.proactive_config['proactive_server']['host']
-                proactive_port = self.proactive_config['proactive_server']['port']
+                if 'host' in self.proactive_config['proactive_server']:
+                    proactive_host = self.proactive_config['proactive_server']['host']
+                    proactive_port = self.proactive_config['proactive_server']['port']
+                    proactive_url = "http://" + proactive_host + ":" + proactive_port
+                    self.proactive_config['proactive_server']['url'] = proactive_url
+                elif 'url' in self.proactive_config['proactive_server']:
+                    proactive_url = self.proactive_config['proactive_server']['url']
+                else:
+                    raise ConfigError('Activeeon server host and url not found in the config file.')
 
-                proactive_url = "http://" + proactive_host + ":" + proactive_port
                 self.gateway = proactive.ProActiveGateway(proactive_url)
 
                 if 'user' in self.proactive_config and 'login' in self.proactive_config['user'] and 'password' in \
@@ -262,7 +271,7 @@ class ProActiveKernel(Kernel):
         if 'host' in input_data:
             url = os.path.join('https://', input_data['host'], input_data['portal'])
         else:
-            url = os.path.join('https://', self.proactive_config['proactive_server']['host'], input_data['portal'])
+            url = os.path.join(self.proactive_config['proactive_server']['url'], input_data['portal'])
 
         if 'width' in input_data and 'height' in input_data:
             data = IFrame(url, width=input_data['width'], height=input_data['height'])
@@ -509,10 +518,16 @@ class ProActiveKernel(Kernel):
                     self.proactive_config = cp.ConfigParser()
                     self.proactive_config.read(input_data['path'])
 
-                    proactive_host = self.proactive_config['proactive_server']['host']
-                    proactive_port = self.proactive_config['proactive_server']['port']
+                    if 'host' in self.proactive_config['proactive_server']:
+                        proactive_host = self.proactive_config['proactive_server']['host']
+                        proactive_port = self.proactive_config['proactive_server']['port']
+                        proactive_url = "http://" + proactive_host + ":" + proactive_port
+                        self.proactive_config['proactive_server']['url'] = proactive_url
+                    elif 'url' in self.proactive_config['proactive_server']:
+                        proactive_url = self.proactive_config['proactive_server']['url']
+                    else:
+                        raise ConfigError('Activeeon server host and url not found in the config file.')
 
-                    proactive_url = "http://" + proactive_host + ":" + proactive_port
                     self.gateway = proactive.ProActiveGateway(proactive_url)
                     self.gateway.connect(username=self.proactive_config['user']['login'],
                                          password=self.proactive_config['user']['password'])
@@ -539,19 +554,30 @@ class ProActiveKernel(Kernel):
 
         if 'host' in input_data:
             self.proactive_config['proactive_server']['host'] = input_data['host']
+            if 'port' in input_data:
+                self.proactive_config['proactive_server']['port'] = input_data['port']
+            else:
+                self.proactive_config['proactive_server']['port'] = '8080'
+            proactive_url = "http://" + self.proactive_config['proactive_server']['host'] + ":" + \
+                            self.proactive_config['proactive_server']['port']
+            self.proactive_default_connection = False
+        elif 'port' in input_data:
+            self.proactive_config['proactive_server']['port'] = input_data['port']
+            self.proactive_config['proactive_server']['host'] = 'try.activeeon.com'
+            proactive_url = "http://" + self.proactive_config['proactive_server']['host'] + ":" + \
+                            self.proactive_config['proactive_server']['port']
+            self.proactive_default_connection = False
+        elif 'url' in input_data:
+            proactive_url = input_data['url']
             self.proactive_default_connection = False
         else:
             self.proactive_config['proactive_server']['host'] = 'try.activeeon.com'
+            self.proactive_config['proactive_server']['port'] = '8080'
+            proactive_url = "http://" + self.proactive_config['proactive_server']['host'] + ":" + \
+                            self.proactive_config['proactive_server']['port']
             self.proactive_default_connection = True
 
-        if 'port' in input_data:
-            self.proactive_config['proactive_server']['port'] = input_data['port']
-            self.proactive_default_connection = False
-        else:
-            self.proactive_config['proactive_server']['port'] = '8080'
-
-        proactive_url = "http://" + self.proactive_config['proactive_server']['host'] + ":" + \
-                        self.proactive_config['proactive_server']['port']
+        self.proactive_config['proactive_server']['url'] = proactive_url
 
         self.gateway = proactive.ProActiveGateway(proactive_url)
 
