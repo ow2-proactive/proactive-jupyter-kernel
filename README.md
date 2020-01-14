@@ -98,7 +98,7 @@ You can also connect to a distant server by providing its `url` in the following
 #%connect(url=YOUR_SERVER_URL, login=YOUR_LOGIN, password=YOUR_PASSWORD)
 ```
 
-By providing the complete `url` of the server, users can eventually connect through the secure protocol HTTPS.
+By providing the complete `url` of the server, users can eventually connect through the secure HTTPS protocol.
 
 ### 4.2 Using a configuration file:
 
