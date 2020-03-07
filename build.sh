@@ -5,14 +5,14 @@ command -v source >/dev/null 2>&1 || {
 
 #pip list
 
+pip install -U pip
+
 pip install virtualenv
 #which virtualenv
 
 virtualenv -p python3 env
 #virtualenv -p python2 env
 source env/bin/activate
-
-#pip install -U pip
 
 # https://github.com/pypa/warehouse/issues/5890#issuecomment-494868157
 pip install -U twine wheel setuptools
