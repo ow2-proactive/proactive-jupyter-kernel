@@ -152,15 +152,15 @@ def get_usage_export_xml():
 
 
 def get_usage_show_resource_manager():
-    return '   #%show_resource_manager([height=HEIGHT_VALUE, width=WIDTH_VALUE])\n'
+    return '   #%show_resource_manager([host=YOUR_HOST], [height=HEIGHT_VALUE], [width=WIDTH_VALUE])\n'
 
 
 def get_usage_show_scheduling_portal():
-    return '   #%show_scheduling_portal([height=HEIGHT_VALUE, width=WIDTH_VALUE])\n'
+    return '   #%show_scheduling_portal([host=YOUR_HOST], [height=HEIGHT_VALUE], [width=WIDTH_VALUE])\n'
 
 
 def get_usage_show_workflow_automation():
-    return '   #%show_workflow_automation([height=HEIGHT_VALUE, width=WIDTH_VALUE])\n'
+    return '   #%show_workflow_automation([host=YOUR_HOST], [height=HEIGHT_VALUE], [width=WIDTH_VALUE])\n'
 
 
 def get_help(trigger):
@@ -701,11 +701,10 @@ def is_valid_export_xml(data):
 def is_valid_show_resource_manager(data):
     pattern_dimension = r"^\d+$"
     pattern_path_cars = r"^[a-zA-Z0-9_\/\\:\.-]+$"
-    if ('width' in data and 'height' not in data) or ('width' not in data and 'height' in data):
-        raise ParsingError('Missing one of height/width parameters')
-    if 'width' in data and 'height' in data and \
-            not (re.match(pattern_dimension, data['width']) and re.match(pattern_dimension, data['height'])):
-        raise ParameterError('Invalid height/width parameters')
+    if 'width' in data and not re.match(pattern_dimension, data['width']):
+        raise ParameterError('Invalid width parameter')
+    if 'height' in data and not re.match(pattern_dimension, data['height']):
+        raise ParameterError('Invalid height parameter')
     if 'host' in data and not re.match(pattern_path_cars, data['host']):
         raise ParameterError('Invalid host parameter')
     return
