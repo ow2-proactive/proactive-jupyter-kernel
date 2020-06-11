@@ -273,10 +273,9 @@ class ProActiveKernel(Kernel):
         else:
             url = os.path.join(self.proactive_config['proactive_server']['url'], input_data['portal'])
 
-        if 'width' in input_data and 'height' in input_data:
-            data = IFrame(url, width=input_data['width'], height=input_data['height'])
-        else:
-            data = IFrame(url, width=1200, height=750)
+        width = input_data['width'] if 'width' in input_data else 1200
+        height = input_data['height'] if 'height' in input_data else 750
+        data = IFrame(url, width=width, height=height)
 
         content = {'data': {'text/html': data._repr_html_()},
                    'metadata': {}
