@@ -7,7 +7,7 @@ command -v source >/dev/null 2>&1 || {
 
 pip install -U pip
 
-pip install virtualenv
+pip3 install virtualenv
 #which virtualenv
 
 virtualenv -p python3 env
@@ -17,7 +17,7 @@ source env/bin/activate
 #pip install -U pip
 
 # https://github.com/pypa/warehouse/issues/5890#issuecomment-494868157
-pip install -U twine wheel setuptools
+pip3 install -U twine wheel setuptools
 
 rm -rf dist/
 rm -rf build/
