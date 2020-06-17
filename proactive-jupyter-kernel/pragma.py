@@ -659,20 +659,16 @@ def is_valid_submit_job(data):
 def is_valid_get_job_result(data):
     pattern_name = r"^[a-zA-Z_]\w*$"
     pattern_id = r"^\d+$"
-    if 'job_name' not in data and 'job_id' not in data:
-        raise ParameterError('Invalid parameters')
-    if 'job_name' in data and re.match(pattern_name, data['job_name']):
-        return
-    if 'job_id' in data and re.match(pattern_id, data['job_id']):
-        return
-    raise ParameterError('Invalid parameters')
+    if 'job_name' in data and not re.match(pattern_name, data['job_name']):
+        raise ParameterError('Invalid job_name parameter')
+    if 'job_id' in data and not re.match(pattern_id, data['job_id']):
+        raise ParameterError('Invalid job_id parameter')
+    return
 
 
 def is_valid_get_task_result(data):
     pattern_name = r"^[a-zA-Z_]\w*$"
     pattern_id = r"^\d+$"
-    if 'job_name' not in data and 'job_id' not in data:
-        raise ParameterError('Invalid parameters')
     if 'job_name' in data and not re.match(pattern_name, data['job_name']):
         raise ParameterError('Invalid job_name parameter')
     if 'job_id' in data and not re.match(pattern_id, data['job_id']):
@@ -854,6 +850,8 @@ class Pragma:
                      'job_fork_env',
                      'draw_job',
                      'help',
+                     'get_job_result',
+                     'print_job_output',
                      'list_submitted_jobs',
                      'export_xml',
                      'show_resource_manager',
@@ -886,6 +884,10 @@ class Pragma:
                               'write_dot',
                               'import_dot',
                               'submit_job',
+                              'get_job_result',
+                              'get_task_result',
+                              'print_job_output',
+                              'print_task_output',
                               'list_submitted_jobs',
                               'export_xml',
                               'show_resource_manager',

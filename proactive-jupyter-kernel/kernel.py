@@ -79,6 +79,7 @@ class ProActiveKernel(Kernel):
         self.job_name = None
         self.submitted_jobs_names = {}
         self.submitted_jobs_ids = {}
+        self.last_submitted_job_id = None
         self.tasks_names = []
         self.tasks_count = 0
         self.proactive_config = {}
@@ -1277,8 +1278,11 @@ class ProActiveKernel(Kernel):
         raise ParameterError('Invalid parameters and validation step. Please check.')
 
     def __get_job_result__(self, input_data):
-        job_id = self.__get_job_id_from_inputs__(input_data)
-        self.__kernel_print_ok_message__('Getting job ' + job_id + ' results ...\n')
+        job_id = self.last_submitted_job_id if self.last_submitted_job_id is not None \
+                                               and 'job_id' not in input_data \
+                                               and 'job_name' not in input_data \
+                                               else self.__get_job_id_from_inputs__(input_data)
+        self.__kernel_print_ok_message__('Getting job ' + str(job_id) + ' results ...\n')
 
         try:
             job_result = self.gateway.getJobResult(job_id)
@@ -1289,8 +1293,11 @@ class ProActiveKernel(Kernel):
         self.__kernel_print_ok_message__(job_result)
 
     def __get_task_result__(self, input_data):
-        job_id = self.__get_job_id_from_inputs__(input_data)
-        self.__kernel_print_ok_message__('Getting from job ' + job_id + ', task \'' + input_data['task_name']
+        job_id = self.last_submitted_job_id if self.last_submitted_job_id is not None \
+                                               and 'job_id' not in input_data \
+                                               and 'job_name' not in input_data \
+                                               else self.__get_job_id_from_inputs__(input_data)
+        self.__kernel_print_ok_message__('Getting from job ' + str(job_id) + ', task \'' + input_data['task_name']
                                          + '\' results ...\n')
 
         try:
@@ -1302,8 +1309,11 @@ class ProActiveKernel(Kernel):
         self.__kernel_print_ok_message__(str(task_result))
 
     def __print_job_output__(self, input_data):
-        job_id = self.__get_job_id_from_inputs__(input_data)
-        self.__kernel_print_ok_message__('Getting job ' + job_id + ' console outputs ...\n')
+        job_id = self.last_submitted_job_id if self.last_submitted_job_id is not None \
+                                               and 'job_id' not in input_data \
+                                               and 'job_name' not in input_data \
+                                               else self.__get_job_id_from_inputs__(input_data)
+        self.__kernel_print_ok_message__('Getting job ' + str(job_id) + ' console outputs ...\n')
 
         try:
             job_result = self.gateway.printJobOutput(job_id)
@@ -1314,8 +1324,11 @@ class ProActiveKernel(Kernel):
         self.__kernel_print_ok_message__(job_result)
 
     def __print_task_output__(self, input_data):
-        job_id = self.__get_job_id_from_inputs__(input_data)
-        self.__kernel_print_ok_message__('Getting from job ' + job_id + ', task \'' + input_data['task_name']
+        job_id = self.last_submitted_job_id if self.last_submitted_job_id is not None \
+                                               and 'job_id' not in input_data \
+                                               and 'job_name' not in input_data \
+                                               else self.__get_job_id_from_inputs__(input_data)
+        self.__kernel_print_ok_message__('Getting from job ' + str(job_id) + ', task \'' + input_data['task_name']
                                          + '\' console output ...\n')
 
         try:
@@ -1392,6 +1405,7 @@ class ProActiveKernel(Kernel):
 
         self.submitted_jobs_names[temp_id] = self.job_name
         self.submitted_jobs_ids[self.job_name] = temp_id
+        self.last_submitted_job_id = temp_id
 
         self.__kernel_print_ok_message__('job_id: ' + str(temp_id) + '\n')
 
