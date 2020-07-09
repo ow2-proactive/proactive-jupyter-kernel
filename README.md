@@ -154,7 +154,7 @@ print('Hello world')
 General usage:
 
 ```python
-#%task(name=TASK_NAME, [language=SCRIPT_LANGUAGE], [dep=[TASK_NAME1,TASK_NAME2,...]], [generic_info=[(KEY1,VAL1), (KEY2,VALUE2),...]], [export=[VAR_NAME1,VAR_NAME2,...]], [import=[VAR_NAME1,VAR_NAME2,...]], [path=IMPLEMENTATION_FILE_PATH])\n'
+#%task(name=TASK_NAME, [language=SCRIPT_LANGUAGE], [dep=[TASK_NAME1,TASK_NAME2,...]], [generic_info=[(KEY1,VAL1), (KEY2,VALUE2),...]], [variables=[(VAR1,VAL1), (VAR2,VALUE2),...]], [export=[VAR_NAME1,VAR_NAME2,...]], [import=[VAR_NAME1,VAR_NAME2,...]], [path=IMPLEMENTATION_FILE_PATH])\n'
 ```
 
 Users can also provide more information about the task using the pragma's options. In the following, we give more
@@ -196,7 +196,18 @@ One of the most important notions in workflows is the dependencies between tasks
 print('Hello world')
 ```
 
-##### 5.1.3 Generic information
+##### 5.1.3 Variables
+
+To specify [task variables](https://doc.activeeon.com/latest/user/ProActiveUserGuide.html#_task_variables), 
+you should provide the `variables` parameter. Its value should be a list of tuples `(key,value)` that corresponds to 
+the names and adequate values of the corresponding task variables. Example:
+
+```python
+#%task(name=myTask, variables=[(var1,value1),(var2,value2)])
+print('Hello world')
+```
+
+##### 5.1.4 Generic information
 
 To specify the values of some advanced ProActive variables called
 [generic_information](https://doc.activeeon.com/latest/user/ProActiveUserGuide.html#_generic_information), you should
@@ -208,7 +219,7 @@ and adequate values of the Generic Information. Example:
 print('Hello world')
 ```
 
-##### 5.1.4 Export/import variables
+##### 5.1.5 Export/import variables
 
 The `export` and `import` parameters ensure variables propagation between the different tasks of a workflow.
 If `myTask1` variables `var1` and `var2` are needed in `myTask2`, both pragmas have to specify this information as
@@ -232,7 +243,7 @@ and `myTask2` implementation block would be:
 print(var1 + " from " + var2)
 ```
 
-##### 5.1.5 Implementation file
+##### 5.1.6 Implementation file
 
 It is also possible to use an external implementation file to define the task implementation. To do so, the option `path`
  should be used.
@@ -495,14 +506,11 @@ To delete a task from the workflow, the user should run the pragma `#%delete_tas
 
 #### 5.11 Create a job
 
-To create a job, use the `#%job()` pragma:
+To create a job, specify job variables and/or job generic information, use the `#%job()` pragma:
 
 ```python
-#%job(name=JOB_NAME)
+#%job(name=JOB_NAME, [generic_info=[(KEY1,VAL1), (KEY2,VALUE2),...]], [variables=[(VAR1,VAL1), (VAR2,VALUE2),...]])
 ```
-
-If the job has already been created, the call of this pragma would just rename the already created job by the new
-provided name.
 
 NOTE: It is not necessary to create and assign a name explicitly to the job. If not done by the user, this step is
 implicitly performed when the job is submitted (check section [Submit your job to the scheduler](#510-submit-your-job-to-the-scheduler) for more

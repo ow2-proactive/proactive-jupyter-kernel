@@ -22,8 +22,9 @@ def get_usage_import():
 
 def get_usage_task():
     return '   #%task(name=TASK_NAME, [dep=[TASK_NAME1,TASK_NAME2,...]], [generic_info=[(KEY1,VAL1),' \
-           '(KEY2,VALUE2),...]], [export=[VAR_NAME1,VAR_NAME2,...]], [import=[VAR_NAME1,VAR_NAME2,...]], ' \
-           '[path=IMPLEMENTATION_FILE_PATH], [language=SCRIPT_LANGUAGE], [runs=NB_RUNS])\n'
+           '(KEY2,VALUE2),...]], [variables=[(VAR1,VAL1), (VAR2,VALUE2),...]], [export=[VAR_NAME1,VAR_NAME2,...]], ' \
+           '[import=[VAR_NAME1,VAR_NAME2,...]], [path=IMPLEMENTATION_FILE_PATH], [language=SCRIPT_LANGUAGE], ' \
+           '[runs=NB_RUNS])\n'
 
 
 def get_usage_delete_task():
@@ -108,7 +109,8 @@ def get_usage_continuation():
 
 
 def get_usage_job():
-    return '   #%job(name=JOB_NAME)\n'
+    return '   #%job(name=JOB_NAME, [generic_info=[(KEY1,VAL1), (KEY2,VALUE2),...]], ' \
+           '[variables=[(VAR1,VAL1), (VAR2,VALUE2),...]])\n'
 
 
 def get_usage_draw_job():
@@ -366,7 +368,7 @@ def extract_tuples_list(msg):
     draft = re.split(',', draft.replace(')', "").replace('(', ""))
     t_list = []
     for index in range(0, len(draft), 2):
-        t_list.append((draft[index],draft[index + 1]))
+        t_list.append((draft[index], draft[index + 1]))
     return t_list
 
 
@@ -467,6 +469,8 @@ def is_valid_task(data):
         is_valid_names_list(data['dep'])
     if 'generic_info' in data:
         is_valid_names_tuples_list(data['generic_info'])
+    if 'variables' in data:
+        is_valid_names_tuples_list(data['variables'])
     if 'export' in data:
         is_valid_names_list(data['export'])
     if 'import' in data:
@@ -613,6 +617,10 @@ def is_valid_job(data):
     pattern_name = r"^[a-zA-Z_]\w*$"
     if 'name' not in data or not re.match(pattern_name, data['name']):
         raise ParameterError('Invalid name parameter')
+    if 'generic_info' in data:
+        is_valid_names_tuples_list(data['generic_info'])
+    if 'variables' in data:
+        is_valid_names_tuples_list(data['variables'])
     return
 
 

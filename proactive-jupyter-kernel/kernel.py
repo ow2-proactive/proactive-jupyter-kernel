@@ -875,11 +875,17 @@ class ProActiveKernel(Kernel):
         if 'dep' in input_data:
             self.__add_dependency__(proactive_task, input_data)
 
-    def __set_generic_information_from_input_data__(self, proactive_task, input_data):
+    def __set_generic_information_from_input_data__(self, proactive_common, input_data):
         if 'generic_info' in input_data:
             self.__kernel_print_ok_message__('Adding generic information ...\n')
             for gen_info in input_data['generic_info']:
-                proactive_task.addGenericInformation(gen_info[0], gen_info[1])
+                proactive_common.addGenericInformation(gen_info[0], gen_info[1])
+
+    def __set_variables_from_input_data__(self, proactive_common, input_data):
+        if 'variables' in input_data:
+            self.__kernel_print_ok_message__('Adding variables ...\n')
+            for variable in input_data['variables']:
+                proactive_common.addVariable(variable[0], variable[1])
 
     def __add_importing_variables_to_implementation_script__(self, input_data):
         if 'import' in input_data:
@@ -977,6 +983,7 @@ class ProActiveKernel(Kernel):
             proactive_task = self.proactive_tasks[self.__find_task_index_from_name__(input_data['name'])]
             proactive_task.clearDependencies()
             proactive_task.clearGenericInformation()
+            proactive_task.clearVariables()
             if input_data['name'] in self.exported_vars:
                 del self.exported_vars[input_data['name']]
 
@@ -1026,6 +1033,7 @@ class ProActiveKernel(Kernel):
         self.__set_default_fork_environment__(proactive_task)
         self.__set_dependencies_from_input_data__(proactive_task, input_data)
         self.__set_generic_information_from_input_data__(proactive_task, input_data)
+        self.__set_variables_from_input_data__(proactive_task, input_data)
 
         # TODO: check how to import/export variables when a file path is provided
         self.__add_importing_variables_to_implementation_script__(input_data)
@@ -1230,6 +1238,12 @@ class ProActiveKernel(Kernel):
 
         return
 
+    def __restore_variables_and_generic_info_in_input_data__(self, input_data):
+        self.__kernel_print_ok_message__('Saving job variables and generic information ...\n')
+        input_data['generic_info'] = [(k, v) for k, v in self.proactive_job.getGenericInformation().items()]
+        input_data['variables'] = [(k, v) for k, v in self.proactive_job.getVariables().items()]
+        return
+
     def __create_job__(self, input_data):
         if self.job_created and self.job_up_to_date:
             self.__set_job_name__(input_data['name'])
@@ -1238,6 +1252,8 @@ class ProActiveKernel(Kernel):
 
         if self.job_created:
             self.__kernel_print_ok_message__('Re-creating the proactive job due to tasks changes ...\n')
+            if input_data['trigger'] == 'submit_job':
+                self.__restore_variables_and_generic_info_in_input_data__(input_data)
         else:
             self.__kernel_print_ok_message__('Creating a proactive job ...\n')
 
@@ -1249,6 +1265,9 @@ class ProActiveKernel(Kernel):
         self.__kernel_print_ok_message__('Adding the created tasks to \'' + input_data['name'] + '\' ...\n')
         for task in self.proactive_tasks:
             self.proactive_job.addTask(task)
+
+        self.__set_generic_information_from_input_data__(self.proactive_job, input_data)
+        self.__set_variables_from_input_data__(self.proactive_job, input_data)
 
         # TODO:
         #  if input_data['input_folder'] is None, use the `tmpdir` variable
