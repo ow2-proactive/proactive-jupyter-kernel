@@ -581,6 +581,12 @@ class ProActiveKernel(Kernel):
 
         self.gateway = proactive.ProActiveGateway(proactive_url)
 
+        if 'login' not in input_data:
+            input_data['login'] = self.raw_input("Login: ")
+
+        if 'password' not in input_data:
+            input_data['password'] = self.getpass("Password: ")
+
         self.__kernel_print_ok_message__('Connecting to server ...\n')
 
         self.gateway.connect(username=input_data['login'], password=input_data['password'])
@@ -1594,8 +1600,9 @@ class ProActiveKernel(Kernel):
                                                           'evalue': 'Blocks should be started by pragmas.'})
         return exitcode
 
-    def do_execute(self, code, silent, store_history=True, user_expressions=None, allow_stdin=False):
+    def do_execute(self, code, silent, store_history=True, user_expressions=True, allow_stdin=True):
         self.silent = silent
+        self._allow_stdin = allow_stdin
         if not code.strip():
             return {'status': 'ok', 'execution_count': self.execution_count,
                     'payload': [], 'user_expressions': {}}
