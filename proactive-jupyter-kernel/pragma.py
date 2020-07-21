@@ -7,8 +7,8 @@ def get_usage_help():
 
 
 def get_usage_connect():
-    return '   #%connect([host=YOUR_HOST], [port=YOUR_PORT], login=YOUR_LOGIN, password=YOUR_PASSWORD)\n' \
-           + '   #%connect([url=YOUR_URL], login=YOUR_LOGIN, password=YOUR_PASSWORD)\n' \
+    return '   #%connect([host=YOUR_HOST], [port=YOUR_PORT], [login=YOUR_LOGIN], [password=YOUR_PASSWORD])\n' \
+           + '   #%connect([url=YOUR_URL], [login=YOUR_LOGIN], [password=YOUR_PASSWORD])\n' \
            + '   #%connect(path=PATH_TO/YOUR_CONFIG_FILE.ini)\n'
 
 
@@ -414,9 +414,10 @@ def is_valid_connect(data):
     pattern_port = r"^\d+$"
     if 'path' in data and re.match(pattern_path_cars, data['path']):
         return
-    if 'login' not in data or not re.match(pattern_name, data['login']) or \
-            'password' not in data or not re.match(pattern_password, data['password']):
-        raise ParameterError('Invalid login/password parameters')
+    if 'login' in data and not re.match(pattern_name, data['login']):
+        raise ParameterError('Invalid login parameter')
+    if 'password' in data and not re.match(pattern_password, data['password']):
+        raise ParameterError('Invalid password parameter')
     if 'url' in data and not re.match(pattern_path_cars, data['url']):
         raise ParameterError('Invalid url parameter')
     if 'host' in data and not re.match(pattern_path_cars, data['host']):
@@ -841,7 +842,8 @@ class Pragma:
                        'show_workflow_automation'
                        ]
 
-    pragmas_empty = ['submit_job',
+    pragmas_empty = ['connect',
+                     'submit_job',
                      'import',
                      'split',
                      'runs',
@@ -925,13 +927,14 @@ class Pragma:
         pattern_generic = r"^( *" + pattern_l + r" *= *" + pattern_r + r")( *, *" + pattern_l + r" *= *" + \
                           pattern_r + r" *)*$"
 
-        invalid_generic = not re.match(pattern_generic, params) and self.trigger in Pragma.pragmas_generic
-        invalid_connect = not (re.match(pattern_connect, params) or re.match(pattern_connect_with_url, params) or
-                               pattern_connect_with_path) and self.trigger == 'connect'
         valid_empty = params == "" and self.trigger in Pragma.pragmas_empty
 
         if valid_empty:
             return
+
+        invalid_generic = not re.match(pattern_generic, params) and self.trigger in Pragma.pragmas_generic
+        invalid_connect = not (re.match(pattern_connect, params) or re.match(pattern_connect_with_url, params) or
+                               pattern_connect_with_path) and self.trigger == 'connect'
 
         if invalid_connect or invalid_generic:
             raise ParsingError('Invalid parameters.')
