@@ -849,7 +849,8 @@ class ProActiveKernel(Kernel):
         for task_name in input_data['dep']:
             if proactive_task.getTaskName() == task_name:
                 continue
-            task = self.proactive_tasks[self.__find_task_index_from_name__(task_name)]
+            task_index = self.__find_task_index_from_name__(task_name)
+            task = self.proactive_tasks[task_index] if task_index is not None else None
             if task is not None and task not in proactive_task.getDependencies():
                 proactive_task.addDependency(task)
                 self.__kernel_print_ok_message__('Dependence \'' + task_name + '\'==>\'' + input_data['name'] +
