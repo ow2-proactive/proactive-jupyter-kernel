@@ -10,11 +10,17 @@ pip -V
 python3 -V
 pip3 -V
 
-#pip list
+curl https://bootstrap.pypa.io/pip/3.5/get-pip.py -o get-pip.py
+python3 get-pip.py
+hash -r
+pip3 -V
 
-pip install -U pip
-
+#pip3 list
+# Python 2 and 3.5 are being deprecated
+#pip3 install -U pip
 pip3 install virtualenv
+pip3 list
+
 #which virtualenv
 
 virtualenv -p python3 env
