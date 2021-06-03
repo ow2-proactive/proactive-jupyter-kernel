@@ -1,3 +1,7 @@
+![License BSD](https://img.shields.io/badge/License-BSD-blue.svg "License BSD")
+![Python 3](https://img.shields.io/badge/Python-3-brightgreen.svg "Python 3")
+![blabla](https://img.shields.io/pypi/v/proactive-jupyter-kernel.svg "bla")
+
 # proactive-jupyter-kernel
 The ActiveEon Jupyter Kernel adds a kernel backend to Jupyter. This kernel interfaces directly with the ProActive
 scheduler and constructs tasks and workflows to execute them on the fly.
