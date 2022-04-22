@@ -726,8 +726,10 @@ class ProActiveKernel(Kernel):
         raise Exception('The task named \'' + input_data['name'] + '\' does not exist.')
 
     def __create_selection_script_from_task__(self, input_data):
-        # TODO: add different script language handling
-        proactive_selection_script = self.gateway.createDefaultSelectionScript()
+        if 'language' in input_data:
+            proactive_selection_script = self.gateway.createSelectionScript(language=input_data['language'])
+        else:
+            proactive_selection_script = self.gateway.createDefaultSelectionScript()
         if 'path' in input_data:
             exists = os.path.isfile(input_data['path'])
             if exists:
@@ -753,8 +755,10 @@ class ProActiveKernel(Kernel):
         raise Exception('The task named \'' + input_data['name'] + '\' does not exist.')
 
     def __create_job_selection_script__(self, input_data):
-        # TODO: add different script language handling
-        proactive_selection_script = self.gateway.createDefaultSelectionScript()
+        if 'language' in input_data:
+            proactive_selection_script = self.gateway.createSelectionScript(language=input_data['language'])
+        else:
+            proactive_selection_script = self.gateway.createDefaultSelectionScript()
         if 'path' in input_data:
             exists = os.path.isfile(input_data['path'])
             if exists:
