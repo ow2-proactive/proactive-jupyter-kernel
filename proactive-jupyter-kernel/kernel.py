@@ -864,6 +864,7 @@ class ProActiveKernel(Kernel):
         from string import Template
 
         DEBUG = False
+        VERBOSE = "false"
 
         DEFAULT_CONTAINER_PLATFORM = "docker"
         DEFAULT_CONTAINER_IMAGE = "docker://activeeon/dlm3"
@@ -888,6 +889,9 @@ class ProActiveKernel(Kernel):
         if 'debug' in input_data and str.lower(input_data['debug']) == "true":
             DEBUG = True
 
+        if 'verbose' in input_data and str.lower(input_data['verbose']) == "true":
+            VERBOSE = "true"
+
         params = {
             'CONTAINER_PLATFORM': CONTAINER_PLATFORM,
             'CONTAINER_IMAGE': CONTAINER_IMAGE,
@@ -897,7 +901,8 @@ class ProActiveKernel(Kernel):
             'CONTAINER_ROOTLESS_ENABLED': CONTAINER_ROOTLESS_ENABLED,
             'CONTAINER_ISOLATION_ENABLED': CONTAINER_ISOLATION_ENABLED,
             'CONTAINER_NO_HOME_ENABLED': CONTAINER_NO_HOME_ENABLED,
-            'CONTAINER_HOST_NETWORK_ENABLED': CONTAINER_HOST_NETWORK_ENABLED
+            'CONTAINER_HOST_NETWORK_ENABLED': CONTAINER_HOST_NETWORK_ENABLED,
+            'VERBOSE': VERBOSE
         }
 
         if DEBUG:
@@ -927,6 +932,7 @@ import org.ow2.proactive.utils.OperatingSystem
 import org.ow2.proactive.utils.OperatingSystemFamily
 import org.codehaus.groovy.runtime.StackTraceUtils
 
+def VERBOSE = $VERBOSE
 def CONTAINER_PLATFORM = "$CONTAINER_PLATFORM"
 def CONTAINER_IMAGE = "$CONTAINER_IMAGE"
 def CONTAINER_GPU_ENABLED = $CONTAINER_GPU_ENABLED
@@ -969,20 +975,24 @@ if (CONTAINER_ENABLED) {
     }
 }
 
-println "Fork environment info..."
-println "CONTAINER_ENABLED:              " + CONTAINER_ENABLED
-println "CONTAINER_PLATFORM:             " + CONTAINER_PLATFORM
-println "CONTAINER_IMAGE:                " + CONTAINER_IMAGE
-println "CONTAINER_GPU_ENABLED:          " + CONTAINER_GPU_ENABLED
-println "CUDA_ENABLED:                   " + CUDA_ENABLED
-println "HOST_LOG_PATH:                  " + HOST_LOG_PATH
-println "CONTAINER_LOG_PATH:             " + CONTAINER_LOG_PATH
-println "CONTAINER_NO_HOME_ENABLED:      " + CONTAINER_NO_HOME_ENABLED
-println "CONTAINER_ROOTLESS_ENABLED:     " + CONTAINER_ROOTLESS_ENABLED
-println "CONTAINER_HOST_NETWORK_ENABLED: " + CONTAINER_HOST_NETWORK_ENABLED
+if (VERBOSE) {
+    println "Fork environment info..."
+    println "CONTAINER_ENABLED:              " + CONTAINER_ENABLED
+    println "CONTAINER_PLATFORM:             " + CONTAINER_PLATFORM
+    println "CONTAINER_IMAGE:                " + CONTAINER_IMAGE
+    println "CONTAINER_GPU_ENABLED:          " + CONTAINER_GPU_ENABLED
+    println "CUDA_ENABLED:                   " + CUDA_ENABLED
+    println "HOST_LOG_PATH:                  " + HOST_LOG_PATH
+    println "CONTAINER_LOG_PATH:             " + CONTAINER_LOG_PATH
+    println "CONTAINER_NO_HOME_ENABLED:      " + CONTAINER_NO_HOME_ENABLED
+    println "CONTAINER_ROOTLESS_ENABLED:     " + CONTAINER_ROOTLESS_ENABLED
+    println "CONTAINER_HOST_NETWORK_ENABLED: " + CONTAINER_HOST_NETWORK_ENABLED
+}
 
 String osName = System.getProperty("os.name")
-println "Operating system : " + osName
+if (VERBOSE) {
+    println "Operating system : " + osName
+}
 OperatingSystem operatingSystem = OperatingSystem.resolveOrError(osName)
 OperatingSystemFamily family = operatingSystem.getFamily()
 
@@ -1026,7 +1036,9 @@ if (CONTAINER_ENABLED && (
                 docker_version = docker_version.substring(1, docker_version.length()-2)
                 docker_version_major = docker_version.split("\\\\.")[0].toInteger()
                 docker_version_minor = docker_version.split("\\\\.")[1].toInteger()
-                println "Docker version: " + docker_version
+                if (VERBOSE) {
+                    println "Docker version: " + docker_version
+                }
                 if ((docker_version_major >= 19) && (docker_version_minor >= 3)) {
                     cmd.add("--gpus=all")
                 } else {
@@ -1142,7 +1154,9 @@ if (CONTAINER_ENABLED && (
     forkEnvironment.setPreJavaCommand(cmd)
 
     // Show the generated command
-    println "CONTAINER COMMAND : " + forkEnvironment.getPreJavaCommand()
+    if (VERBOSE) {
+        println "CONTAINER COMMAND : " + forkEnvironment.getPreJavaCommand()
+    }
 }
 
 // If singularity
@@ -1174,7 +1188,9 @@ if (CONTAINER_ENABLED &&
             if (process.waitFor() == 0) {
                 version = process.text
                 version = version.replace("singularity version ", "").trim()
-                println "Singularity version: " + version
+                if (VERBOSE) {
+                    println "Singularity version: " + version
+                }
                 majorVersion = Integer.parseInt(version.substring(0, version.indexOf(".")))
             } else {
                 throw new IllegalStateException("Cannot find singularity command")
@@ -1199,7 +1215,9 @@ if (CONTAINER_ENABLED &&
             // pull the container inside the synchronization lock
             if (majorVersion >= 3) {
                 pullCmd = "singularity pull --dir " + userHome + " " + imageFile + " " + imageUrl
-                println pullCmd
+                if (VERBOSE) {
+                    println pullCmd
+                }
                 def env = System.getenv().collect { k, v -> "$$k=$$v" }
                 env.push('XDG_RUNTIME_DIR=/run/user/$$UID')
                 process = pullCmd.execute(env, new File(userHome))
@@ -1209,9 +1227,11 @@ if (CONTAINER_ENABLED &&
                 env.push("SINGULARITY_PULLFOLDER=" + userHome)
                 process = pullCmd.execute(env, new File(userHome))
             }
-
-            process.in.eachLine { line ->
-                println line
+            
+            if (VERBOSE) {
+                process.in.eachLine { line ->
+                    println line
+                }
             }
             process.waitFor()
 
@@ -1303,11 +1323,15 @@ if (CONTAINER_ENABLED &&
     forkEnvironment.addSystemEnvironmentVariable("XDG_RUNTIME_DIR",'/run/user/$$UID')
 
     // Show the generated command
-    println "SINGULARITY COMMAND : " + forkEnvironment.getPreJavaCommand()
+    if (VERBOSE) {
+        println "SINGULARITY COMMAND : " + forkEnvironment.getPreJavaCommand()
+    }
 }
 
 if (!CONTAINER_ENABLED) {
-    println "Fork environment disabled"
+    if (VERBOSE) {
+        println "Fork environment disabled"
+    }
 }
         ''')
         runtime_code = str(template.substitute(**params))
