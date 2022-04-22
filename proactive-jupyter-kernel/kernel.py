@@ -730,7 +730,11 @@ class ProActiveKernel(Kernel):
 
     def __create_selection_script_from_task__(self, input_data):
         if 'language' in input_data:
-            proactive_selection_script = self.gateway.createSelectionScript(language=input_data['language'])
+            if input_data['language'] in self.proactive_script_languages:
+                proactive_selection_script = self.gateway.createSelectionScript(language=self.proactive_script_languages[input_data['language']])
+            else:
+                raise ParameterError('Language \'' + input_data['language'] +
+                                     '\' not supported!\n Supported Languages:\n' + self.script_languages)
         else:
             proactive_selection_script = self.gateway.createDefaultSelectionScript()
         if 'path' in input_data:
@@ -759,7 +763,11 @@ class ProActiveKernel(Kernel):
 
     def __create_job_selection_script__(self, input_data):
         if 'language' in input_data:
-            proactive_selection_script = self.gateway.createSelectionScript(language=input_data['language'])
+            if input_data['language'] in self.proactive_script_languages:
+                proactive_selection_script = self.gateway.createSelectionScript(language=self.proactive_script_languages[input_data['language']])
+            else:
+                raise ParameterError('Language \'' + input_data['language'] +
+                                     '\' not supported!\n Supported Languages:\n' + self.script_languages)
         else:
             proactive_selection_script = self.gateway.createDefaultSelectionScript()
         if 'path' in input_data:
@@ -788,7 +796,11 @@ class ProActiveKernel(Kernel):
 
     def __create_fork_environment_from_task__(self, input_data):
         if 'language' in input_data:
-            proactive_fork_env = self.gateway.createForkEnvironment(language=input_data['language'])
+            if input_data['language'] in self.proactive_script_languages:
+                proactive_fork_env = self.gateway.createForkEnvironment(language=self.proactive_script_languages[input_data['language']])
+            else:
+                raise ParameterError('Language \'' + input_data['language'] +
+                                     '\' not supported!\n Supported Languages:\n' + self.script_languages)
         else:
             proactive_fork_env = self.gateway.createDefaultForkEnvironment()
         if 'path' in input_data:
@@ -817,7 +829,11 @@ class ProActiveKernel(Kernel):
 
     def __create_job_fork_environment__(self, input_data):
         if 'language' in input_data:
-            proactive_fork_env = self.gateway.createForkEnvironment(language=input_data['language'])
+            if input_data['language'] in self.proactive_script_languages:
+                proactive_fork_env = self.gateway.createForkEnvironment(language=self.proactive_script_languages[input_data['language']])
+            else:
+                raise ParameterError('Language \'' + input_data['language'] +
+                                     '\' not supported!\n Supported Languages:\n' + self.script_languages)
         else:
             proactive_fork_env = self.gateway.createDefaultForkEnvironment()
         if 'path' in input_data:
