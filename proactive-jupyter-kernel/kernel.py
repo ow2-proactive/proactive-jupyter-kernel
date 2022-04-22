@@ -135,9 +135,10 @@ class ProActiveKernel(Kernel):
                 self.proactive_config.read(config_file)
 
                 if 'host' in self.proactive_config['proactive_server']:
+                    proactive_protocol = self.proactive_config['proactive_server']['protocol']
                     proactive_host = self.proactive_config['proactive_server']['host']
                     proactive_port = self.proactive_config['proactive_server']['port']
-                    proactive_url = "http://" + proactive_host + ":" + proactive_port
+                    proactive_url = proactive_protocol + "://" + proactive_host + ":" + proactive_port
                     self.proactive_config['proactive_server']['url'] = proactive_url
                 elif 'url' in self.proactive_config['proactive_server']:
                     proactive_url = self.proactive_config['proactive_server']['url']
@@ -519,9 +520,10 @@ class ProActiveKernel(Kernel):
                     self.proactive_config.read(input_data['path'])
 
                     if 'host' in self.proactive_config['proactive_server']:
+                        proactive_protocol = self.proactive_config['proactive_server']['protocol']
                         proactive_host = self.proactive_config['proactive_server']['host']
                         proactive_port = self.proactive_config['proactive_server']['port']
-                        proactive_url = "http://" + proactive_host + ":" + proactive_port
+                        proactive_url = proactive_protocol + "://" + proactive_host + ":" + proactive_port
                         self.proactive_config['proactive_server']['url'] = proactive_url
                     elif 'url' in self.proactive_config['proactive_server']:
                         proactive_url = self.proactive_config['proactive_server']['url']
@@ -778,8 +780,10 @@ class ProActiveKernel(Kernel):
         self.__kernel_print_ok_message__('Done.\n')
 
     def __create_fork_environment_from_task__(self, input_data):
-        # TODO: add different script language handling
-        proactive_fork_env = self.gateway.createDefaultForkEnvironment()
+        if 'language' in input_data:
+            proactive_fork_env = self.gateway.createForkEnvironment(language=input_data['language'])
+        else:
+            proactive_fork_env = self.gateway.createDefaultForkEnvironment()
         if 'path' in input_data:
             exists = os.path.isfile(input_data['path'])
             if exists:
@@ -805,8 +809,10 @@ class ProActiveKernel(Kernel):
         raise Exception('The task named \'' + input_data['name'] + '\' does not exist.')
 
     def __create_job_fork_environment__(self, input_data):
-        # TODO: add different script language handling
-        proactive_fork_env = self.gateway.createDefaultForkEnvironment()
+        if 'language' in input_data:
+            proactive_fork_env = self.gateway.createForkEnvironment(language=input_data['language'])
+        else:
+            proactive_fork_env = self.gateway.createDefaultForkEnvironment()
         if 'path' in input_data:
             exists = os.path.isfile(input_data['path'])
             if exists:
