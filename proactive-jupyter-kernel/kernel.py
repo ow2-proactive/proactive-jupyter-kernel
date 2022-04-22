@@ -847,6 +847,8 @@ class ProActiveKernel(Kernel):
     def __build_runtime_environment__(self, input_data):
         from string import Template
 
+        DEBUG = False
+
         DEFAULT_CONTAINER_PLATFORM = "docker"
         DEFAULT_CONTAINER_IMAGE = "docker://activeeon/dlm3"
         DEFAULT_CONTAINER_GPU_ENABLED = "false"
@@ -867,6 +869,9 @@ class ProActiveKernel(Kernel):
         CONTAINER_NO_HOME_ENABLED = input_data['no_home'] if 'no_home' in input_data else DEFAULT_CONTAINER_NO_HOME_ENABLED
         CONTAINER_HOST_NETWORK_ENABLED = input_data['host_network'] if 'host_network' in input_data else DEFAULT_CONTAINER_HOST_NETWORK_ENABLED
 
+        if 'debug' in input_data and str.lower(input_data['debug']) == "true":
+            DEBUG = True
+
         params = {
             'CONTAINER_PLATFORM': CONTAINER_PLATFORM,
             'CONTAINER_IMAGE': CONTAINER_IMAGE,
@@ -878,7 +883,9 @@ class ProActiveKernel(Kernel):
             'CONTAINER_NO_HOME_ENABLED': CONTAINER_NO_HOME_ENABLED,
             'CONTAINER_HOST_NETWORK_ENABLED': CONTAINER_HOST_NETWORK_ENABLED
         }
-        self.__kernel_print_ok_message__(str(params) + '\n')
+
+        if DEBUG:
+            self.__kernel_print_ok_message__(str(params) + '\n')
 
         template = Template('''
 /*
@@ -904,11 +911,11 @@ import org.ow2.proactive.utils.OperatingSystem
 import org.ow2.proactive.utils.OperatingSystemFamily
 import org.codehaus.groovy.runtime.StackTraceUtils
 
-def CONTAINER_PLATFORM = $CONTAINER_PLATFORM
-def CONTAINER_IMAGE = $CONTAINER_IMAGE
+def CONTAINER_PLATFORM = "$CONTAINER_PLATFORM"
+def CONTAINER_IMAGE = "$CONTAINER_IMAGE"
 def CONTAINER_GPU_ENABLED = $CONTAINER_GPU_ENABLED
-def HOST_LOG_PATH = $HOST_LOG_PATH
-def CONTAINER_LOG_PATH = $CONTAINER_LOG_PATH
+def HOST_LOG_PATH = "$HOST_LOG_PATH"
+def CONTAINER_LOG_PATH = "$CONTAINER_LOG_PATH"
 def CONTAINER_ROOTLESS_ENABLED = $CONTAINER_ROOTLESS_ENABLED
 def CONTAINER_ISOLATION_ENABLED = $CONTAINER_ISOLATION_ENABLED
 def CONTAINER_NO_HOME_ENABLED = $CONTAINER_NO_HOME_ENABLED
@@ -951,7 +958,7 @@ println "CONTAINER_ENABLED:              " + CONTAINER_ENABLED
 println "CONTAINER_PLATFORM:             " + CONTAINER_PLATFORM
 println "CONTAINER_IMAGE:                " + CONTAINER_IMAGE
 println "CONTAINER_GPU_ENABLED:          " + CONTAINER_GPU_ENABLED
-println "CUDA_ENABLED:                   " + CUDA_ENABLE
+println "CUDA_ENABLED:                   " + CUDA_ENABLED
 println "HOST_LOG_PATH:                  " + HOST_LOG_PATH
 println "CONTAINER_LOG_PATH:             " + CONTAINER_LOG_PATH
 println "CONTAINER_NO_HOME_ENABLED:      " + CONTAINER_NO_HOME_ENABLED
@@ -1001,8 +1008,8 @@ if (CONTAINER_ENABLED && (
                 proc.waitForOrKill(10000)
                 docker_version = sout.toString()
                 docker_version = docker_version.substring(1, docker_version.length()-2)
-                docker_version_major = docker_version.split("\\.")[0].toInteger()
-                docker_version_minor = docker_version.split("\\.")[1].toInteger()
+                docker_version_major = docker_version.split("\\\\.")[0].toInteger()
+                docker_version_minor = docker_version.split("\\\\.")[1].toInteger()
                 println "Docker version: " + docker_version
                 if ((docker_version_major >= 19) && (docker_version_minor >= 3)) {
                     cmd.add("--gpus=all")
@@ -1177,12 +1184,12 @@ if (CONTAINER_ENABLED &&
             if (majorVersion >= 3) {
                 pullCmd = "singularity pull --dir " + userHome + " " + imageFile + " " + imageUrl
                 println pullCmd
-                def env = System.getenv().collect { k, v -> "$k=$v" }
-                env.push('XDG_RUNTIME_DIR=/run/user/$UID')
+                def env = System.getenv().collect { k, v -> "$$k=$$v" }
+                env.push('XDG_RUNTIME_DIR=/run/user/$$UID')
                 process = pullCmd.execute(env, new File(userHome))
             } else {
                 pullCmd = "singularity pull --name " + imageFile + " " + imageUrl
-                def env = System.getenv().collect { k, v -> "$k=$v" }
+                def env = System.getenv().collect { k, v -> "$$k=$$v" }
                 env.push("SINGULARITY_PULLFOLDER=" + userHome)
                 process = pullCmd.execute(env, new File(userHome))
             }
@@ -1222,7 +1229,7 @@ if (CONTAINER_ENABLED &&
     if (CONTAINER_ISOLATION_ENABLED) {
         // cmd.add("--disable-cache") // dont use cache, and dont create cache
         // cmd.add("--cleanenv") // clean environment before running container
-        // cmd.add("--contain") // use minimal /dev and empty other directories (e.g. /tmp and $HOME) instead of sharing filesystems from your host
+        // cmd.add("--contain") // use minimal /dev and empty other directories (e.g. /tmp and $$HOME) instead of sharing filesystems from your host
         cmd.add("--containall") // contain not only file systems, but also PID, IPC, and environment
     }
 
@@ -1270,14 +1277,14 @@ if (CONTAINER_ENABLED &&
     // Prepare container working directory
     cmd.add("--pwd") // initial working directory for payload process inside the container
     cmd.add(workspaceContainer)
-    cmd.add("--workdir") // working directory to be used for /tmp, /var/tmp and $HOME (if -c/--contain was also used)
+    cmd.add("--workdir") // working directory to be used for /tmp, /var/tmp and $$HOME (if -c/--contain was also used)
     cmd.add(workspaceContainer)
 
     // Directory containing the singularity image
     cmd.add(sif_image_path)
 
     forkEnvironment.setPreJavaCommand(cmd)
-    forkEnvironment.addSystemEnvironmentVariable("XDG_RUNTIME_DIR",'/run/user/$UID')
+    forkEnvironment.addSystemEnvironmentVariable("XDG_RUNTIME_DIR",'/run/user/$$UID')
 
     // Show the generated command
     println "SINGULARITY COMMAND : " + forkEnvironment.getPreJavaCommand()
@@ -1287,7 +1294,12 @@ if (!CONTAINER_ENABLED) {
     println "Fork environment disabled"
 }
         ''')
-        return template.substitute(params)
+        runtime_code = str(template.substitute(**params))
+
+        if DEBUG:
+            self.__kernel_print_ok_message__(runtime_code + '\n')
+
+        return runtime_code
 
     def __create_runtime_environment__(self, input_data):
         proactive_runtime_env = self.__build_runtime_environment__(input_data)
