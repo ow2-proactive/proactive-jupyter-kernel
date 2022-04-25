@@ -683,7 +683,7 @@ class ProActiveKernel(Kernel):
             else:
                 raise Exception('The file \'' + input_data['path'] + '\' does not exist')
         else:
-            pre_script.setImplementation(input_data['code'])
+            pre_script.setImplementation('\n' + input_data['code'])
 
         input_data['task'].setPreScript(pre_script)
 
@@ -713,7 +713,7 @@ class ProActiveKernel(Kernel):
             else:
                 raise Exception('The file \'' + input_data['path'] + '\' does not exist')
         else:
-            post_script.setImplementation(input_data['code'])
+            post_script.setImplementation('\n' + input_data['code'])
 
         input_data['task'].setPostScript(post_script)
 
@@ -746,7 +746,7 @@ class ProActiveKernel(Kernel):
             else:
                 raise Exception('The file \'' + input_data['path'] + '\' does not exist')
         else:
-            proactive_selection_script.setImplementation(input_data['code'])
+            proactive_selection_script.setImplementation('\n' + input_data['code'])
 
         input_data['task'].setSelectionScript(proactive_selection_script)
 
@@ -779,7 +779,7 @@ class ProActiveKernel(Kernel):
             else:
                 raise Exception('The file \'' + input_data['path'] + '\' does not exist')
         else:
-            proactive_selection_script.setImplementation(input_data['code'])
+            proactive_selection_script.setImplementation('\n' + input_data['code'])
 
         self.__kernel_print_ok_message__('Saving selection script ...\n')
         self.default_selection_script = proactive_selection_script
@@ -812,7 +812,7 @@ class ProActiveKernel(Kernel):
             else:
                 raise Exception('The file \'' + input_data['path'] + '\' does not exist')
         else:
-            proactive_fork_env.setImplementation(input_data['code'])
+            proactive_fork_env.setImplementation('\n' + input_data['code'])
 
         input_data['task'].setForkEnvironment(proactive_fork_env)
 
@@ -845,7 +845,7 @@ class ProActiveKernel(Kernel):
             else:
                 raise Exception('The file \'' + input_data['path'] + '\' does not exist')
         else:
-            proactive_fork_env.setImplementation(input_data['code'])
+            proactive_fork_env.setImplementation('\n' + input_data['code'])
 
         self.__kernel_print_ok_message__('Saving the fork environment ...\n')
         self.default_fork_env = proactive_fork_env
@@ -1399,7 +1399,7 @@ if (!CONTAINER_ENABLED) {
             proactive_task.setSelectionScript(self.default_selection_script)
         elif proactive_task.getSelectionScript() is None:
             self.__kernel_print_ok_message__('Adding default selection script to the proactive task ...\n')
-            self.__create_selection_script_from_task__({'code': 'selected = True', 'task': proactive_task})
+            self.__create_selection_script_from_task__({'code': 'selected = true', 'language': 'Groovy', 'task': proactive_task})
 
     def __set_default_fork_environment__(self, proactive_task):
         if self.default_fork_env is not None:
@@ -1465,7 +1465,7 @@ if (!CONTAINER_ENABLED) {
             if input_data['code'] != '':
                 self.__kernel_print_ok_message__('WARNING: The written code is ignored.\n')
         else:
-            proactive_task.setTaskImplementation(input_data['code'])
+            proactive_task.setTaskImplementation('\n' + input_data['code'])
 
     def __is_replicable_as_child__(self, task):
         task_dependencies = task.getDependencies()
