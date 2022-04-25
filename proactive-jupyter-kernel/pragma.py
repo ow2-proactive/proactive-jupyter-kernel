@@ -55,6 +55,10 @@ def get_usage_job_fork_env():
     return '   #%job_fork_env([language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py], [force=on/off])\n'
 
 
+def get_usage_runtime_env():
+    return '   #%runtime_env([type=docker/podman/singularity], [image=docker://...], [nvidia_gpu=true/false], [mount_host_path=PATH], [mount_container_path=PATH], [force=on/off])\n'
+
+
 def get_usage_split():
     return '   #%split([name=TASK_NAME], [dep=[TASK_NAME1,TASK_NAME2,...]], [generic_info=[(KEY1,VAL1),' \
            '(KEY2,VALUE2),...]], [language=SCRIPT_LANGUAGE], [path=./FORK_ENV_FILE.py])\n'
@@ -199,6 +203,9 @@ def get_help(trigger):
     elif trigger == 'job_fork_env':
         help_msg = '#%job_fork_env(): sets the fork environment of a job\n'
         help_msg += 'Usages:\n' + get_usage_job_fork_env()
+    elif trigger == 'runtime_env':
+        help_msg = '#%runtime_env(): sets the runtime environment of a job\n'
+        help_msg += 'Usages:\n' + get_usage_runtime_env()
     elif trigger == 'split':
         help_msg = '#%split(): creates/modifies a splitting task of a replicate control\n'
         help_msg += 'Usages:\n' + get_usage_split()
@@ -305,6 +312,8 @@ def get_usage(trigger):
         return get_usage_fork_env()
     elif trigger == 'job_fork_env':
         return get_usage_job_fork_env()
+    elif trigger == 'runtime_env':
+        return get_usage_runtime_env()
     elif trigger == 'split':
         return get_usage_split()
     elif trigger == 'runs':
