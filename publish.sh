@@ -8,6 +8,7 @@ pip install virtualenv
 virtualenv -p python3 env
 source env/bin/activate
 
+pip3 install certifi==2021.10.8
 pip3 install -U twine
 
 #twine upload dist/* --config-file .pypirc

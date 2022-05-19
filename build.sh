@@ -28,6 +28,7 @@ virtualenv -p python3 env
 source env/bin/activate
 
 # https://github.com/pypa/warehouse/issues/5890#issuecomment-494868157
+pip3 install certifi==2021.10.8
 pip3 install -U twine wheel setuptools
 
 rm -rf dist/
