@@ -1564,6 +1564,9 @@ if (!CONTAINER_ENABLED) {
 
             self.tasks_count += 1
 
+        proactive_task.setPreciousResult(bool(input_data['precious_result'].lower() == "true") if 'precious_result' in
+                                                                                                  input_data else False)
+
         self.__set_default_selection_script__(proactive_task)
         self.__set_default_fork_environment__(proactive_task)
         self.__set_dependencies_from_input_data__(proactive_task, input_data)

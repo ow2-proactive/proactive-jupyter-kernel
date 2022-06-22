@@ -24,7 +24,7 @@ def get_usage_task():
     return '   #%task(name=TASK_NAME, [dep=[TASK_NAME1,TASK_NAME2,...]], [generic_info=[(KEY1,VAL1),' \
            '(KEY2,VALUE2),...]], [variables=[(VAR1,VAL1), (VAR2,VALUE2),...]], [export=[VAR_NAME1,VAR_NAME2,...]], ' \
            '[import=[VAR_NAME1,VAR_NAME2,...]], [path=IMPLEMENTATION_FILE_PATH], [language=SCRIPT_LANGUAGE], ' \
-           '[runs=NB_RUNS])\n'
+           '[runs=NB_RUNS], [precious_result=true/false])\n'
 
 
 def get_usage_delete_task():
@@ -471,6 +471,7 @@ def is_valid_task(data):
     pattern_language = r"^[a-zA-Z_]+$"
     pattern_path_cars = r"^[a-zA-Z0-9_\/\\:\.-]+$"
     pattern_expression = r"^(\d+|[a-zA-Z_]\w*)([+*\/-](\d+|[a-zA-Z_]\w*))*$"
+    pattern_boolean = r"^([Tt][Rr][Uu][Ee]|[Ff][Aa][Ll][Ss][Ee])$"
     if 'name' not in data or not re.match(pattern_name, data['name']):
         raise ParameterError('Invalid name parameter')
     if 'language' in data and not re.match(pattern_language, data['language']):
@@ -485,6 +486,8 @@ def is_valid_task(data):
         is_valid_names_list(data['export'])
     if 'import' in data:
         is_valid_names_list(data['import'])
+    if 'precious_result' in data and not re.match(pattern_boolean, data['precious_result']):
+        raise ParameterError('Invalid precious result parameter')
     if 'path' in data and not re.match(pattern_path_cars, data['path']):
         raise ParameterError('Invalid path parameter')
     if 'runs' in data and not re.match(pattern_expression, data['runs']):
