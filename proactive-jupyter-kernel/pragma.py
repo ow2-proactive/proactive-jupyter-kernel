@@ -929,8 +929,8 @@ class Pragma:
         pattern_list = r"\[ *[a-zA-Z_](\w|\-)* *( *, *[a-zA-Z_](\w|\-)*)* *\]"
         pattern_list_tuples = r"\[ *\( *\w+ *, *\w+ *\)( *, *\( *\w+ *, *\w+ *\))* *\]"
         pattern_path_cars = r"[a-zA-Z0-9_\/\\:\.-]*"
-        pattern_l = r"[a-zA-Z_]\w*"
-        pattern_r = r"([a-zA-Z_]\w*|" + pattern_list_tuples + r"|" + pattern_list + r"|" + pattern_path_cars + r")"
+        pattern_l = r"[a-zA-Z_](\w|\-)*"
+        pattern_r = r"([a-zA-Z_](\w|\-)*|" + pattern_list_tuples + r"|" + pattern_list + r"|" + pattern_path_cars + r")"
         pattern_connect = r"^( *host *= *" + pattern_path_cars + r" *, *)?(port *= *\d+ *, *)?" \
                           r"(login *= *[a-zA-Z_][a-zA-Z0-9_]* *, *password *= *[^ ]*)$"
         pattern_connect_with_url = r"^( *url *= *" + pattern_path_cars + r" *)" \
