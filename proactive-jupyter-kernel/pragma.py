@@ -467,7 +467,7 @@ def is_valid_names_list(deps):
 
 
 def is_valid_task(data):
-    pattern_name = r"^[a-zA-Z_]\w*$"
+    pattern_name = r"^[a-zA-Z_](\w|\-)*$"
     pattern_language = r"^[a-zA-Z_]+$"
     pattern_path_cars = r"^[a-zA-Z0-9_\/\\:\.-]+$"
     pattern_expression = r"^(\d+|[a-zA-Z_]\w*)([+*\/-](\d+|[a-zA-Z_]\w*))*$"
