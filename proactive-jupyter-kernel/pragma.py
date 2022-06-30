@@ -926,7 +926,7 @@ class Pragma:
         self.trigger = 'task'
 
     def is_valid_for_parsing(self, params):
-        pattern_list = r"\[ *[a-zA-Z_]\w* *( *, *[a-zA-Z_]\w*)* *\]"
+        pattern_list = r"\[ *[a-zA-Z_](\w|\-)* *( *, *[a-zA-Z_](\w|\-)*)* *\]"
         pattern_list_tuples = r"\[ *\( *\w+ *, *\w+ *\)( *, *\( *\w+ *, *\w+ *\))* *\]"
         pattern_path_cars = r"[a-zA-Z0-9_\/\\:\.-]*"
         pattern_l = r"[a-zA-Z_]\w*"
