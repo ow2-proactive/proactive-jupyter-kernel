@@ -315,24 +315,24 @@ class ProActiveKernel(Kernel):
         # nodes
         nx.draw_networkx_nodes(self.graph, pos,
                                node_color='orange',
-                               node_size=3000,
+                               node_size=2000,
                                alpha=0.5)
 
         # edges
         nx.draw_networkx_edges(self.graph, pos,
                                arrowstyle='->',
-                               arrowsize=50,
+                               arrowsize=25,
                                edge_color='green',
                                width=2,
                                alpha=0.5)
 
         nx.draw_networkx_labels(self.graph, pos,
                                 self.node_labels,
-                                font_size=13)
+                                font_size=9)
 
         nx.draw_networkx_edge_labels(self.graph, pos,
                                      alpha=0.7,
-                                     font_size=9,
+                                     font_size=7,
                                      edge_labels=self.edge_labels)
 
         plt.axis('off')
@@ -419,7 +419,8 @@ class ProActiveKernel(Kernel):
             # node labels
             for i in nodes_ids:
                 # some math labels
-                self.node_labels[i] = r'$' + self.proactive_tasks[i].getTaskName() + '$'
+                # self.node_labels[i] = r'$' + self.proactive_tasks[i].getTaskName() + '$'
+                self.node_labels[i] = self.proactive_tasks[i].getTaskName()
 
             self.graph_up_to_date = True
             self.__kernel_print_ok_message__('Workflow created.\n')
