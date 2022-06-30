@@ -459,7 +459,7 @@ def is_valid_names_tuples_list(gen_info):
 
 
 def is_valid_names_list(deps):
-    pattern_name = r"^[a-zA-Z_]\w*$"
+    pattern_name = r"^[a-zA-Z_](\w|\-)*$"
     for name in deps:
         if not re.match(pattern_name, name):
             raise ParameterError('Invalid dependencies parameter')
