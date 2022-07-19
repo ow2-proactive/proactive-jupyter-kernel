@@ -65,8 +65,10 @@ task publish(type:Exec) {
    }
 }
 
-
 task install(overwrite: true) {
+}
+
+task uploadArchives(overwrite: true) {
 }
 
 copyDependenciesToLib.dependsOn clean
