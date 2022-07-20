@@ -9,3 +9,4 @@ MANIFEST
 *.egg-info
 .gradle
 env/
+_*
