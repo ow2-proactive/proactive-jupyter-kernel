@@ -10,3 +10,4 @@ MANIFEST
 .gradle
 env*
 _*
+*.code-workspace
