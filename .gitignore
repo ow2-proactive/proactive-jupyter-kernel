@@ -8,5 +8,5 @@ build
 MANIFEST
 *.egg-info
 .gradle
-env/
+env*
 _*
