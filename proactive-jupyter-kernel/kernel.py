@@ -561,15 +561,17 @@ class ProActiveKernel(Kernel):
             self.proactive_config['proactive_server']['host'] = input_data['host']
             if 'port' in input_data:
                 self.proactive_config['proactive_server']['port'] = input_data['port']
+                proactive_url = "https://" + self.proactive_config['proactive_server']['host'] + ":" + \
+                                self.proactive_config['proactive_server']['port']
             else:
                 self.proactive_config['proactive_server']['port'] = '8080'
-            proactive_url = "http://" + self.proactive_config['proactive_server']['host'] + ":" + \
-                            self.proactive_config['proactive_server']['port']
+                proactive_url = "http://" + self.proactive_config['proactive_server']['host'] + ":" + \
+                                self.proactive_config['proactive_server']['port']
             self.proactive_default_connection = False
         elif 'port' in input_data:
             self.proactive_config['proactive_server']['port'] = input_data['port']
             self.proactive_config['proactive_server']['host'] = 'try.activeeon.com'
-            proactive_url = "http://" + self.proactive_config['proactive_server']['host'] + ":" + \
+            proactive_url = "https://" + self.proactive_config['proactive_server']['host'] + ":" + \
                             self.proactive_config['proactive_server']['port']
             self.proactive_default_connection = False
         elif 'url' in input_data:
@@ -577,8 +579,8 @@ class ProActiveKernel(Kernel):
             self.proactive_default_connection = False
         else:
             self.proactive_config['proactive_server']['host'] = 'try.activeeon.com'
-            self.proactive_config['proactive_server']['port'] = '8080'
-            proactive_url = "http://" + self.proactive_config['proactive_server']['host'] + ":" + \
+            self.proactive_config['proactive_server']['port'] = '8443'
+            proactive_url = "https://" + self.proactive_config['proactive_server']['host'] + ":" + \
                             self.proactive_config['proactive_server']['port']
             self.proactive_default_connection = True
 
