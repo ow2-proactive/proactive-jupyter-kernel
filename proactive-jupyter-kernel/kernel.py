@@ -204,6 +204,14 @@ class ProActiveKernel(Kernel):
             return self.__delete_task__
         elif pragma_info['trigger'] == 'list_submitted_jobs':
             return self.__list_submitted_jobs__
+        elif pragma_info['trigger'] == 'get_target_env_nodesources':
+            return self.__get_target_env_nodesources__  
+        elif pragma_info['trigger'] == 'get_target_env_hosts':
+            return self.__get_target_env_hosts__     
+        elif pragma_info['trigger'] == 'get_target_env_tokens':
+            return self.__get_target_env_tokens__   
+        elif pragma_info['trigger'] == 'get_target_envs':
+            return self.__get_target_envs__      
         elif pragma_info['trigger'] == 'split':
             return self.__create_split__
         elif pragma_info['trigger'] == 'runs':
@@ -254,6 +262,14 @@ class ProActiveKernel(Kernel):
             return self.__show_scheduling_portal__
         elif pragma_info['trigger'] == 'show_workflow_automation':
             return self.__show_workflow_automation__
+        elif pragma_info['trigger'] == 'get_target_env_nodesources':
+            return self.__get_target_env_nodesources__
+        elif pragma_info['trigger'] == 'get_target_env_hosts':
+            return self.__get_target_env_hosts__
+        elif pragma_info['trigger'] == 'get_target_env_tokens':
+            return self.__get_target_env_tokens__
+        elif pragma_info['trigger'] == 'get_target_envs':
+            return self.__get_target_envs__
         else:
             raise PragmaError('Directive \'' + pragma_info['trigger'] + '\' not known.')
 
@@ -648,6 +664,10 @@ class ProActiveKernel(Kernel):
                                              + '#%export_xml(): exports the workflow in .xml format\n'
                                              + '#%show_resource_manager(): opens the ActiveEon resource manager portal\n'
                                              + '#%show_scheduling_portal(): opens the ActiveEon scheduling portal\n'
+                                             + '#%get_target_env_nodesources(): gets and prints any available node source\n'
+                                             + '#%get_target_env_hosts(): gets and prints any available host\n'    
+                                             + '#%get_target_env_tokens(): gets and prints any available token\n'   
+                                             + '#%get_target_envs(): gets and prints any available node source, host and token\n'                                            
                                              + '#%show_workflow_automation(): opens the ActiveEon workflow automation portal\n\n'
                                              + 'To know the usage of a pragma use: #%help(pragma=PRAGMA_NAME)\n\n'
                                              + 'For more information, please check: https://github.com/ow2-proactive/'
@@ -1856,6 +1876,7 @@ if (!CONTAINER_ENABLED) {
                                                and 'job_name' not in input_data \
                                                else self.__get_job_id_from_inputs__(input_data)
         self.__kernel_print_ok_message__('Getting from job ' + str(job_id) + ', task \'' + input_data['task_name']
+           
                                          + '\' results ...\n')
 
         try:
@@ -1971,9 +1992,96 @@ if (!CONTAINER_ENABLED) {
 
     def __list_submitted_jobs__(self, input_data):
         for job_id in self.submitted_jobs_names:
-            self.__kernel_print_ok_message__('Id: ' + str(job_id) + ' , Name: ' + self.submitted_jobs_names[job_id]
-                                             + '\n')
+            self.__kernel_print_ok_message__('Id: ' + str(job_id) + ' , Name: ' + self.submitted_jobs_names[job_id]+ '\n')
 
+    def __list_html_table__(self, input_data):
+        html = ''
+        for d in input_data:
+            html += '<tr>' + ''.join('<td>' + d + '</td>') + '</tr>'
+        return html
+
+    def __display_html__(self, input_data):
+        content = {'data': {'text/html':  input_data}, 'metadata': {}}
+        self.send_response(self.iopub_socket, 'display_data', content)
+
+    def __get_target_env_nodesources__(self, input_data, send_response=True):
+        restapi = self.gateway.getProactiveRestApi()
+        nodesources = restapi.get_rm_model_nodesources()
+        
+        html = self.__list_html_table__(nodesources)   
+        if html =='':
+            warning_msg = '<div><i class="fa fa-warning"></i> Warning Message: None of node source is available.</div>'
+            if send_response:
+                self.__display_html__(warning_msg)
+            return  html
+        else:
+            html = '<table border=2 class="stocktable" id="table1" > <th>List of available node sources</th>' + html + '</table>'
+
+            if send_response:
+                html = html + '<div><i class="fa fa-info-circle"></i> If you don\'t set a node source name for your job, it will run on any available node source.</div>'
+                self.__display_html__(html)
+            else:
+                return html
+
+    def __get_target_env_hosts__(self, input_data, send_response=True):
+        restapi = self.gateway.getProactiveRestApi()
+        hosts = restapi.get_rm_model_hosts()
+
+        html = self.__list_html_table__(hosts)   
+        if html =='':
+            warning_msg = '<div><i class="fa fa-warning"></i> Warning Message: None of node source is available.</div>'
+            if  send_response:
+                self.__display_html__(warning_msg)
+            return  html
+        else:
+            html = '<table border=2 class="stocktable" id="table1" > <th>List of available hots</th>' + html + '</table>'
+
+            if send_response:
+                html = html + '<div class="info-msg"><i class="fa fa-info-circle"></i> If you don\'t set a host name for your job, it will run on any available host.</div>'
+                self.__display_html__(html)
+            else:
+                return html     
+
+    def __get_target_env_tokens__(self, input_data, send_response=True, warning_response=True):
+        restapi = self.gateway.getProactiveRestApi()
+        tokens = restapi.get_rm_model_tokens()
+
+        html = self.__list_html_table__(tokens)   
+        if html =='':
+            warning_msg = '<div><i class="fa fa-warning"></i> Warning Message: None of node source is available.</div>'
+            if  send_response:
+                self.__display_html__(warning_msg)
+            return  html
+        else:
+            html = '<table border=2 class="stocktable" id="table1" > <th>List of available tokens</th>' + html + '</table>'
+           
+            if send_response:
+                html = html + '<div><i class="fa fa-info-circle"></i> If you don\'t set a token name for your job, it will run on any available token.</div>'
+                self.__display_html__(html)
+            else:
+                return html      
+
+    def __get_target_envs__(self, input_data):
+        
+       html_nodesources = self.__get_target_env_nodesources__(input_data, False) 
+       html_hosts = self.__get_target_env_hosts__(input_data, False)
+       html_token = self.__get_target_env_tokens__(input_data, False)
+
+       if html_nodesources !='' or  html_hosts !='' or html_token !='':
+        html = '</div><div id="container"><div id="navigation" style="float:left;padding:10px">' + html_nodesources + '</div><div id="content" style="float:left;padding:10px"><div id="shoutout-box">' + html_hosts  + '</div></div><div id="content" style="float:left;padding:10px"><div id="shoutout-box">' + html_token  + '</div></div></div>'
+        html =  '<style>.footer {clear: both; border-top: 1px solid #000;}</style>' + html + '<div class="footer"><i class="fa fa-info-circle"></i> If you don\'t set a node source, host or token name for your job, it will run on any of them available.</div>'
+        self.__display_html__(html)  
+
+       if html_nodesources == '':
+        warning_msg = '<div><i class="fa fa-warning"></i> Warning Message: None of node source is available.</div>'
+        self.__display_html__(warning_msg)
+       if html_hosts == '':
+        warning_msg = '<div><i class="fa fa-warning"></i> Warning Message: None of host is available.</div>'
+        self.__display_html__(warning_msg)
+       if html_token == '':
+        warning_msg = '<div><i class="fa fa-warning"></i> Warning Message: None of token is available.</div>'
+        self.__display_html__(warning_msg)
+        
     @staticmethod
     def __merge_scripts__(code1, code2):
         _code = code1.split('\ntry:\n\tvariables.put')
