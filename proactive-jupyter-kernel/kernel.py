@@ -287,15 +287,15 @@ class ProActiveKernel(Kernel):
         self.send_response(self.iopub_socket, 'display_data', content)
 
     def __show_resource_manager__(self, input_data):
-        input_data['portal'] = 'rm'
+        input_data['portal'] = 'rm/'
         self.__show_portal__(input_data)
 
     def __show_scheduling_portal__(self, input_data):
-        input_data['portal'] = 'scheduler'
+        input_data['portal'] = 'scheduler/'
         self.__show_portal__(input_data)
 
     def __show_workflow_automation__(self, input_data):
-        input_data['portal'] = 'automation-dashboard/#/portal/workflow-automation'
+        input_data['portal'] = 'automation-dashboard/#/portal/workflow-automation/'
         self.__show_portal__(input_data)
 
     def __get_saving_file_name__(self, input_data):
