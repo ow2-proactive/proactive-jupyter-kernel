@@ -203,15 +203,7 @@ class ProActiveKernel(Kernel):
         elif pragma_info['trigger'] == 'delete_task':
             return self.__delete_task__
         elif pragma_info['trigger'] == 'list_submitted_jobs':
-            return self.__list_submitted_jobs__
-        elif pragma_info['trigger'] == 'get_target_env_nodesources':
-            return self.__get_target_env_nodesources__  
-        elif pragma_info['trigger'] == 'get_target_env_hosts':
-            return self.__get_target_env_hosts__     
-        elif pragma_info['trigger'] == 'get_target_env_tokens':
-            return self.__get_target_env_tokens__   
-        elif pragma_info['trigger'] == 'get_target_envs':
-            return self.__get_target_envs__      
+            return self.__list_submitted_jobs__        
         elif pragma_info['trigger'] == 'split':
             return self.__create_split__
         elif pragma_info['trigger'] == 'runs':
@@ -1876,7 +1868,6 @@ if (!CONTAINER_ENABLED) {
                                                and 'job_name' not in input_data \
                                                else self.__get_job_id_from_inputs__(input_data)
         self.__kernel_print_ok_message__('Getting from job ' + str(job_id) + ', task \'' + input_data['task_name']
-           
                                          + '\' results ...\n')
 
         try:
