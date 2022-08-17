@@ -203,7 +203,7 @@ class ProActiveKernel(Kernel):
         elif pragma_info['trigger'] == 'delete_task':
             return self.__delete_task__
         elif pragma_info['trigger'] == 'list_submitted_jobs':
-            return self.__list_submitted_jobs__        
+            return self.__list_submitted_jobs__
         elif pragma_info['trigger'] == 'split':
             return self.__create_split__
         elif pragma_info['trigger'] == 'runs':
