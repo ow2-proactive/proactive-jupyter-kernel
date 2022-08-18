@@ -169,22 +169,22 @@ def get_usage_show_workflow_automation():
     return '   #%show_workflow_automation([host=YOUR_HOST], [height=HEIGHT_VALUE], [width=WIDTH_VALUE])\n'
 
 
-def get_usage_get_target_env_nodesources():
-    return '   #%get_target_env_nodesources()\n'
+def list_usage_list_nodesources():
+    return '   #%list_nodesources()\n'
 
 
-def get_usage_get_target_env_hosts():
-    return '   #%get_target_env_hosts()\n'
+def list_usage_list_hosts():
+    return '   #%list_hosts()\n'
 
 
-def get_usage_get_target_env_tokens():
-    return '   #%get_target_env_tokens()\n'
+def list_usage_list_tokens():
+    return '   #%list_tokens()\n'
 
 
-def get_usage_get_target_envs():
-    return '   #%get_target_envs()\n'
+def list_usage_list_resources():
+    return '   #%list_resources()\n'
 
-    
+
 def get_help(trigger):
     if trigger == 'connect':
         help_msg = 'Pragma #%connect(): connects to an ActiveEon server\n'
@@ -297,18 +297,18 @@ def get_help(trigger):
     elif trigger == 'show_workflow_automation':
         help_msg = '#%show_workflow_automation(): opens the ActiveEon workflow automation portal\n'
         help_msg += 'Usages:\n' + get_usage_show_workflow_automation()
-    elif trigger == 'get_target_env_nodesources':
-        help_msg = '#%get_target_env_nodesources(): gets and prints any available node source\n'
-        help_msg += 'Usages:\n' + get_usage_get_target_env_nodesources()
-    elif trigger == 'get_target_env_hosts':
-        help_msg = '#%get_target_env_hosts(): gets and prints any available host\n'
-        help_msg += 'Usages:\n' + get_usage_get_target_env_hosts()
-    elif trigger == 'get_target_env_tokens':
-        help_msg = '#%get_target_env_tokens(): gets and prints any available token\n'
-        help_msg += 'Usages:\n' + get_usage_get_target_env_tokens()
-    elif trigger == 'get_target_envs':
-        help_msg = '#%get_target_envs(): gets and prints any available node source, host and token\n'
-        help_msg += 'Usages:\n' + get_usage_get_target_envs() 
+    elif trigger == 'list_nodesources':
+        help_msg = '#%list_nodesources(): lists and prints any available node source\n'
+        help_msg += 'Usages:\n' + list_usage_list_nodesources()
+    elif trigger == 'list_hosts':
+        help_msg = '#%list_hosts(): lists and prints any available host\n'
+        help_msg += 'Usages:\n' + list_usage_list_hosts()
+    elif trigger == 'list_tokens':
+        help_msg = '#%list_tokens(): lists and prints any available token\n'
+        help_msg += 'Usages:\n' + list_usage_list_tokens()
+    elif trigger == 'list_resources':
+        help_msg = '#%list_resources(): lists and prints any available node source, host and token\n'
+        help_msg += 'Usages:\n' + list_usage_list_resources() 
     else:
         raise ParameterError('Pragma \'' + trigger + '\' not known.')
 
@@ -392,14 +392,14 @@ def get_usage(trigger):
         return get_usage_show_scheduling_portal()
     elif trigger == 'show_workflow_automation':
         return get_usage_show_workflow_automation()
-    elif trigger == 'get_target_env_nodesources':
-        return get_usage_get_target_env_nodesources()
-    elif trigger == 'get_target_env_hosts':
-        return get_usage_get_target_env_hosts()
-    elif trigger == 'get_target_env_tokens':
-        return get_usage_get_target_env_tokens()
-    elif trigger == 'get_target_envs':
-        return get_usage_get_target_envs()
+    elif trigger == 'list_nodesources':
+        return list_usage_list_nodesources()
+    elif trigger == 'list_hosts':
+        return list_usage_list_hosts()
+    elif trigger == 'list_tokens':
+        return list_usage_list_tokens()
+    elif trigger == 'list_resources':
+        return list_usage_list_resources()
     return None
 
 
@@ -747,19 +747,19 @@ def is_valid_list_submitted_jobs(data):
     pass
 
 
-def is_valid_get_target_env_nodesources(data):
+def is_valid_list_nodesources(data):
     pass
 
 
-def is_valid_get_target_env_hosts(data):
+def is_valid_list_hosts(data):
     pass
 
 
-def is_valid_get_target_env_tokens(data):
+def is_valid_list_tokens(data):
     pass
 
 
-def is_valid_get_target_envs(data):
+def is_valid_list_resources(data):
     pass
 
 
@@ -854,14 +854,14 @@ def is_valid(data):
         return is_valid_print_task_output(data)
     elif data['trigger'] == 'list_submitted_jobs':
         return is_valid_list_submitted_jobs(data)
-    elif data['trigger'] == 'get_target_env_nodesources':
-        return is_valid_get_target_env_nodesources(data)
-    elif data['trigger'] == 'get_target_env_hosts':
-        return is_valid_get_target_env_hosts(data)
-    elif data['trigger'] == 'get_target_env_tokens':
-        return is_valid_get_target_env_tokens(data)
-    elif data['trigger'] == 'get_target_envs':
-        return is_valid_get_target_envs(data)
+    elif data['trigger'] == 'list_nodesources':
+        return is_valid_list_nodesources(data)
+    elif data['trigger'] == 'list_hosts':
+        return is_valid_list_hosts(data)
+    elif data['trigger'] == 'list_tokens':
+        return is_valid_list_tokens(data)
+    elif data['trigger'] == 'list_resources':
+        return is_valid_list_resources(data)
     elif data['trigger'] == 'export_xml':
         return is_valid_export_xml(data)
     elif data['trigger'] == 'show_resource_manager':
@@ -905,10 +905,10 @@ class Pragma:
                        'help',
                        'get_job_result',
                        'get_task_result',
-                       'get_target_env_nodesources',
-                       'get_target_env_hosts',
-                       'get_target_env_tokens',
-                       'get_target_envs',
+                       'list_nodesources',
+                       'list_hosts',
+                       'list_tokens',
+                       'list_resources',
                        'print_job_output',
                        'print_task_output',
                        'list_submitted_jobs',
@@ -939,10 +939,10 @@ class Pragma:
                      'get_job_result',
                      'print_job_output',
                      'list_submitted_jobs',
-                     'get_target_env_nodesources',
-                     'get_target_env_hosts',
-                     'get_target_env_tokens',
-                     'get_target_envs',
+                     'list_nodesources',
+                     'list_hosts',
+                     'list_tokens',
+                     'list_resources',
                      'export_xml',
                      'show_resource_manager',
                      'show_scheduling_portal',
@@ -976,10 +976,10 @@ class Pragma:
                               'submit_job',
                               'get_job_result',
                               'get_task_result',
-                              'get_target_env_nodesources',
-                              'get_target_env_hosts',
-                              'get_target_env_tokens',
-                              'get_target_envs',
+                              'list_nodesources',
+                              'list_hosts',
+                              'list_tokens',
+                              'list_resources',
                               'print_job_output',
                               'print_task_output',
                               'list_submitted_jobs',
