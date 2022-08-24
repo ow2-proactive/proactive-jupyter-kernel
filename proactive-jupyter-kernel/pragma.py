@@ -130,7 +130,7 @@ def get_usage_import_dot():
 
 
 def get_usage_submit_job():
-    return '   #%submit_job([name=JOB_NAME], [input_path=INPUT_FOLDER_PATH], [output_path=OUTPUT_FOLDER_PATH])\n'
+    return '   #%submit_job([name=JOB_NAME], [nodesource=NODESOURCE_NAME], [host=HOST_NAME], [token=TOKEN_NAME], [input_path=INPUT_FOLDER_PATH], [output_path=OUTPUT_FOLDER_PATH])\n'
 
 
 def get_usage_get_job_result():
@@ -710,6 +710,12 @@ def is_valid_submit_job(data):
         raise ParameterError('Invalid input path parameter')
     if 'output_path' in data and not re.match(pattern_path_cars, data['output_path']):
         raise ParameterError('Invalid output path parameter')
+    if 'nodesource' in data and not re.match(pattern_path_cars, data['nodesource']):
+        raise ParameterError('Invalid nodesource parameter')
+    if 'host' in data and not re.match(pattern_path_cars, data['host']):
+        raise ParameterError('Invalid host parameter')
+    if 'token' in data and not re.match(pattern_path_cars, data['token']):
+        raise ParameterError('Invalid token parameter')
     return
 
 
