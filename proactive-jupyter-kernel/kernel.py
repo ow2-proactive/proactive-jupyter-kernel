@@ -105,6 +105,9 @@ class ProActiveKernel(Kernel):
         self.last_modified_task = None
         self.saved_flow_script = None
         self.saved_branch_task = None
+        self.added_nodesource_submitjob = False
+        self.added_host_submitjob = False
+        self.added_token_submitjob = False
 
         self.exported_vars = {}
 
@@ -2018,27 +2021,50 @@ if (HOST_NAME) {
         else:
             input_data['name'] = self.job_name
 
+        if self.added_nodesource_submitjob:
+            self.proactive_job.removeGenericInformation("NODESOURCENAME")
+            self.__kernel_print_ok_message__('Updating created tasks ...\n')
+            for task in self.proactive_tasks:
+                self.__kernel_print_ok_message__('Setting the selection script of the task \'' + task.getTaskName()
+                                                 + '\' ...\n')
+                task.setSelectionScript(None)
+                self.job_up_to_date = False
+        if self.added_host_submitjob:
+            for task in self.proactive_tasks:
+                self.__kernel_print_ok_message__('Setting the selection script of the task \'' + task.getTaskName()
+                                                 + '\' ...\n')
+                task.setSelectionScript(None)
+                self.job_up_to_date = False
+        if self.added_token_submitjob:
+            self.proactive_job.removeGenericInformation("NODE_ACCESS_TOKEN")
+
+        self.added_nodesource_submitjob = False
         if 'nodesource' in input_data:
             restapi = self.gateway.getProactiveRestApi()
             nodesources = restapi.get_rm_model_nodesources()
             if input_data['nodesource'] in nodesources:
                 self.__set_job_nodesource__(self.proactive_job, input_data)
+                self.added_nodesource_submitjob = True
             else:
                 raise ParameterError('Invalid node source name!')
 
+        self.added_host_submitjob = False
         if 'host' in input_data:
             restapi = self.gateway.getProactiveRestApi()
             hosts = restapi.get_rm_model_hosts()
             if input_data['host'] in hosts:
                 self.__set_job_host__(self.proactive_job, input_data)
+                self.added_host_submitjob = True
             else:
                 raise ParameterError('Invalid host name!')
 
+        self.added_token_submitjob = False
         if 'token' in input_data:
             restapi = self.gateway.getProactiveRestApi()
             tokens = restapi.get_rm_model_tokens()
             if input_data['token'] in tokens:
                 self.__set_job_token__(self.proactive_job, input_data)
+                self.added_token_submitjob = True
             else:
                 raise ParameterError('Invalid token name!')
 
