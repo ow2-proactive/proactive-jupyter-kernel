@@ -36,7 +36,7 @@ def notebook_path():
 
     for srv in notebookapp.list_running_servers():
         try:
-            if srv['token'] == '' and not srv['password']:  # No token and no password, ahem...
+            if srv['token'] == '' and not srv['password']: # No token and no password
                 req = urllib.request.urlopen(srv['url'] + 'api/sessions')
             else:
                 req = urllib.request.urlopen(srv['url'] + 'api/sessions?token=' + srv['token'])
@@ -105,6 +105,9 @@ class ProActiveKernel(Kernel):
         self.last_modified_task = None
         self.saved_flow_script = None
         self.saved_branch_task = None
+        self.added_nodesource_submitjob = False
+        self.added_host_submitjob = False
+        self.added_token_submitjob = False
 
         self.exported_vars = {}
 
@@ -353,21 +356,21 @@ class ProActiveKernel(Kernel):
         if 'inline' in input_data and input_data['inline'] == 'off':
             if 'save' in input_data and input_data['save'] == 'on':
                 self.__kernel_print_ok_message__('Saving the job workflow into a png file ...\n')
-                plt.savefig(filename)  # save as png
+                plt.savefig(filename) # save as png
                 self.__kernel_print_ok_message__('\'' + filename + '\' file created.\n')
 
             self.__kernel_print_ok_message__('Plotting ...\n')
-            plt.show()  # display
+            plt.show() # display
             self.__kernel_print_ok_message__('End.\n')
 
         else:
             if 'save' in input_data and input_data['save'] == 'on':
                 self.__kernel_print_ok_message__('Saving the job workflow into a png file ...\n')
-                plt.savefig(filename)  # save as png
+                plt.savefig(filename) # save as png
                 self.__kernel_print_ok_message__('\'' + filename + '\' file created.\n')
                 save_file = True
             else:
-                plt.savefig(filename)  # save as png
+                plt.savefig(filename) # save as png
                 save_file = False
 
             try:
@@ -1431,6 +1434,62 @@ if (!CONTAINER_ENABLED) {
             for gen_info in input_data['generic_info']:
                 proactive_common.addGenericInformation(gen_info[0], gen_info[1])
 
+    def __set_job_nodesource__(self, proactive_common, input_data):
+        if 'nodesource' in input_data:
+            self.__kernel_print_ok_message__('Adding node source information ...\n')
+            NODE_SOURCE_NAME = input_data['nodesource']
+            proactive_common.addGenericInformation("NODESOURCENAME", NODE_SOURCE_NAME)
+            from string import Template
+            selection_script_template = Template("""
+selected = false
+NODE_SOURCE_NAME = "$NODE_SOURCE_NAME"
+if (NODE_SOURCE_NAME) {
+    selected = (NODE_SOURCE_NAME.equals(System.getProperty("proactive.node.nodesource")));
+} else {
+    selected = true
+}
+            """)
+            params = {
+                'NODE_SOURCE_NAME': NODE_SOURCE_NAME
+            }
+            selection_script_code = str(selection_script_template.substitute(**params))
+            input_data = {
+                'language': 'Groovy',
+                'code': selection_script_code,
+                'force': 'on'
+            }
+            self.__create_job_selection_script__(input_data)
+
+    def __set_job_host__(self, proactive_common, input_data):
+        if 'host' in input_data:
+            self.__kernel_print_ok_message__('Adding host information ...\n')
+            HOST_NAME = input_data['host']
+            from string import Template
+            selection_script_template = Template("""
+selected = false
+HOST_NAME = "$HOST_NAME"
+if (HOST_NAME) {
+    selected = (nodehost.toLowerCase() == HOST_NAME)
+} else {
+    selected = true
+}
+            """)
+            params = {
+                'HOST_NAME': HOST_NAME
+            }
+            selection_script_code = str(selection_script_template.substitute(**params))
+            input_data = {
+                'language': 'Groovy',
+                'code': selection_script_code,
+                'force': 'on'
+            }
+            self.__create_job_selection_script__(input_data)
+
+    def __set_job_token__(self, proactive_common, input_data):
+        if 'token' in input_data:
+            self.__kernel_print_ok_message__('Adding token information ...\n')
+            proactive_common.addGenericInformation("NODE_ACCESS_TOKEN", input_data['token'])
+
     def __set_variables_from_input_data__(self, proactive_common, input_data):
         if 'variables' in input_data:
             self.__kernel_print_ok_message__('Adding variables ...\n')
@@ -1796,7 +1855,7 @@ if (!CONTAINER_ENABLED) {
         input_data['generic_info'] = [(k, v) for k, v in self.proactive_job.getGenericInformation().items()]
         input_data['variables'] = [(k, v) for k, v in self.proactive_job.getVariables().items()]
         return
-
+    
     def __create_job__(self, input_data):
         if self.job_created and self.job_up_to_date:
             self.__set_job_name__(input_data['name'])
@@ -1962,6 +2021,53 @@ if (!CONTAINER_ENABLED) {
         else:
             input_data['name'] = self.job_name
 
+        if self.added_nodesource_submitjob:
+            self.proactive_job.removeGenericInformation("NODESOURCENAME")
+            self.__kernel_print_ok_message__('Updating created tasks ...\n')
+            for task in self.proactive_tasks:
+                self.__kernel_print_ok_message__('Setting the selection script of the task \'' + task.getTaskName()
+                                                 + '\' ...\n')
+                task.setSelectionScript(None)
+                self.job_up_to_date = False
+        if self.added_host_submitjob:
+            for task in self.proactive_tasks:
+                self.__kernel_print_ok_message__('Setting the selection script of the task \'' + task.getTaskName()
+                                                 + '\' ...\n')
+                task.setSelectionScript(None)
+                self.job_up_to_date = False
+        if self.added_token_submitjob:
+            self.proactive_job.removeGenericInformation("NODE_ACCESS_TOKEN")
+
+        self.added_nodesource_submitjob = False
+        if 'nodesource' in input_data:
+            restapi = self.gateway.getProactiveRestApi()
+            nodesources = restapi.get_rm_model_nodesources()
+            if input_data['nodesource'] in nodesources:
+                self.__set_job_nodesource__(self.proactive_job, input_data)
+                self.added_nodesource_submitjob = True
+            else:
+                raise ParameterError('Invalid node source name!')
+
+        self.added_host_submitjob = False
+        if 'host' in input_data:
+            restapi = self.gateway.getProactiveRestApi()
+            hosts = restapi.get_rm_model_hosts()
+            if input_data['host'] in hosts:
+                self.__set_job_host__(self.proactive_job, input_data)
+                self.added_host_submitjob = True
+            else:
+                raise ParameterError('Invalid host name!')
+
+        self.added_token_submitjob = False
+        if 'token' in input_data:
+            restapi = self.gateway.getProactiveRestApi()
+            tokens = restapi.get_rm_model_tokens()
+            if input_data['token'] in tokens:
+                self.__set_job_token__(self.proactive_job, input_data)
+                self.added_token_submitjob = True
+            else:
+                raise ParameterError('Invalid token name!')
+
         self.__kernel_print_ok_message__('Submitting the job to the proactive scheduler ...\n')
 
         if 'input_path' in input_data or 'output_path' in input_data:
@@ -1987,29 +2093,30 @@ if (!CONTAINER_ENABLED) {
         for job_id in self.submitted_jobs_names:
             self.__kernel_print_ok_message__('Id: ' + str(job_id) + ' , Name: ' + self.submitted_jobs_names[job_id]+ '\n')
 
-    def __show_html_table__(self, input_data):
+    def __generate_html_table__(self, input_data):
         html = ''
         for d in input_data:
-            html += '<tr>' + ''.join('<td>' + d + '</td>') + '</tr>'
+            if d == '':
+                pass
+            else:
+                html += '<tr>' + ''.join('<td>' + d + '</td>') + '</tr>'
         return html
 
     def __display_html__(self, input_data):
-        content = {'data': {'text/html':  input_data}, 'metadata': {}}
+        content = {'data': {'text/html': input_data}, 'metadata': {}}
         self.send_response(self.iopub_socket, 'display_data', content)
 
     def __list_nodesources__(self, input_data, send_response=True):
         restapi = self.gateway.getProactiveRestApi()
         nodesources = restapi.get_rm_model_nodesources()
-        
-        html = self.__show_html_table__(nodesources)   
-        if html =='':
+        html = self.__generate_html_table__(nodesources)
+        if html == '':
             warning_msg = '<div><i class="fa fa-warning"></i> Warning Message: None of node source is available.</div>'
             if send_response:
                 self.__display_html__(warning_msg)
-            return  html
+            return html
         else:
             html = '<table border=2 class="stocktable" id="table1" > <th>List of available node sources</th>' + html + '</table>'
-
             if send_response:
                 html = html + '<div><i class="fa fa-info-circle"></i> If you don\'t set a node source name for your job, it will run on any available node source.</div>'
                 self.__display_html__(html)
@@ -2019,58 +2126,59 @@ if (!CONTAINER_ENABLED) {
     def __list_hosts__(self, input_data, send_response=True):
         restapi = self.gateway.getProactiveRestApi()
         hosts = restapi.get_rm_model_hosts()
-
-        html = self.__show_html_table__(hosts)   
+        html = self.__generate_html_table__(hosts)
         if html =='':
-            warning_msg = '<div><i class="fa fa-warning"></i> Warning Message: None of node source is available.</div>'
-            if  send_response:
+            warning_msg = '<div><i class="fa fa-warning"></i> Warning Message: None of host is available.</div>'
+            if send_response:
                 self.__display_html__(warning_msg)
-            return  html
+            return html
         else:
-            html = '<table border=2 class="stocktable" id="table1" > <th>List of available hots</th>' + html + '</table>'
-
+            html = '<table border=2 class="stocktable" id="table1" > <th>List of available hosts</th>' + html + '</table>'
             if send_response:
                 html = html + '<div class="info-msg"><i class="fa fa-info-circle"></i> If you don\'t set a host name for your job, it will run on any available host.</div>'
                 self.__display_html__(html)
             else:
-                return html     
+                return html
 
-    def __list_tokens__(self, input_data, send_response=True, warning_response=True):
+    def __list_tokens__(self, input_data, send_response=True):
         restapi = self.gateway.getProactiveRestApi()
         tokens = restapi.get_rm_model_tokens()
-
-        html = self.__show_html_table__(tokens)   
+        html = self.__generate_html_table__(tokens)
         if html =='':
-            warning_msg = '<div><i class="fa fa-warning"></i> Warning Message: None of node source is available.</div>'
-            if  send_response:
+            warning_msg = '<div><i class="fa fa-warning"></i> Warning Message: None of token is available.</div>'
+            if send_response:
                 self.__display_html__(warning_msg)
-            return  html
+            return html
         else:
             html = '<table border=2 class="stocktable" id="table1" > <th>List of available tokens</th>' + html + '</table>'
-           
             if send_response:
-                html = html + '<div><i class="fa fa-info-circle"></i> If you don\'t set a token name for your job, it will run on any available token.</div>'
+                html = html + '<div class="info-msg"><i class="fa fa-info-circle"></i> If you don\'t set a token name for your job, it will run on any available token.</div>'
                 self.__display_html__(html)
             else:
-                return html      
-
+                return html
+    
     def __list_resources__(self, input_data):
-       html_nodesources = self.__list_nodesources__(input_data, False) 
-       html_hosts = self.__list_hosts__(input_data, False)
-       html_token = self.__list_tokens__(input_data, False)
-       if html_nodesources !='' or  html_hosts !='' or html_token !='':
-        html = '</div><div id="container"><div id="navigation" style="float:left;padding:10px">' + html_nodesources + '</div><div id="content" style="float:left;padding:10px"><div id="shoutout-box">' + html_hosts  + '</div></div><div id="content" style="float:left;padding:10px"><div id="shoutout-box">' + html_token  + '</div></div></div>'
-        html =  '<style>.footer {clear: both; border-top: 1px solid #000;}</style>' + html + '<div class="footer"><i class="fa fa-info-circle"></i> If you don\'t set a node source, host or token name for your job, it will run on any of them available.</div>'
-        self.__display_html__(html)  
+        html_nodesources = self.__list_nodesources__(input_data, False)
+        html_hosts = self.__list_hosts__(input_data, False)
+        html_token = self.__list_tokens__(input_data, False)
+        
+        if html_nodesources !='' or  html_hosts !='' or html_token !='':
+            html = '</div><div id="container"><div id="navigation" style="float:left;padding:10px">' + html_nodesources + '</div><div id="content" style="float:left;padding:10px"><div id="shoutout-box">' + html_hosts + '</div></div><div id="content" style="float:left;padding:10px"><div id="shoutout-box">' + html_token  + '</div></div></div>'
+            self.__display_html__(html)
 
-       if html_nodesources == '':
-        warning_msg = '<div><i class="fa fa-warning"></i> Warning Message: None of node source is available.</div>'
-        self.__display_html__(warning_msg)
-       if html_hosts == '':
-        warning_msg = '<div><i class="fa fa-warning"></i> Warning Message: None of host is available.</div>'
-        self.__display_html__(warning_msg)
-       if html_token == '':
-        warning_msg = '<div><i class="fa fa-warning"></i> Warning Message: None of token is available.</div>'
+        if html_nodesources == '':
+            warning_msg = '<div><i class="fa fa-warning"></i> Warning Message: None of node source is available.</div>'
+            self.__display_html__(warning_msg)
+        
+        if html_hosts == '':
+            warning_msg = '<div><i class="fa fa-warning"></i> Warning Message: None of host is available.</div>'
+            self.__display_html__(warning_msg)
+        
+        if html_token == '':
+            warning_msg = '<div><i class="fa fa-warning"></i> Warning Message: None of token is available.</div>'
+            self.__display_html__(warning_msg)
+
+        warning_msg = '<div><i class="fa fa-warning"></i> Warning Message: If you don\'t set a node source, host or token name for your job, it will run on any of them available.</div>'
         self.__display_html__(warning_msg)
         
     @staticmethod
