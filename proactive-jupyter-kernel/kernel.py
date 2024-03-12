@@ -7,7 +7,7 @@ import random
 import tempfile
 import proactive
 
-from notebook import notebookapp
+from notebook import app
 import urllib
 import json
 import ipykernel
