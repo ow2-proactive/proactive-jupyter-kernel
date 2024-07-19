@@ -1,0 +1,3 @@
+matplotlib
+networkx
+jupyterlab~=3.0
