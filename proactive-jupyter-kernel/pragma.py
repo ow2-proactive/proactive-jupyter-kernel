@@ -165,8 +165,8 @@ def get_usage_show_scheduling_portal():
     return '   #%show_scheduling_portal([host=YOUR_HOST], [height=HEIGHT_VALUE], [width=WIDTH_VALUE])\n'
 
 
-def get_usage_show_workflow_automation():
-    return '   #%show_workflow_automation([host=YOUR_HOST], [height=HEIGHT_VALUE], [width=WIDTH_VALUE])\n'
+def get_usage_show_workflow_execution():
+    return '   #%show_workflow_execution([host=YOUR_HOST], [height=HEIGHT_VALUE], [width=WIDTH_VALUE])\n'
 
 
 def list_usage_list_nodesources():
@@ -294,9 +294,9 @@ def get_help(trigger):
     elif trigger == 'show_scheduling_portal':
         help_msg = '#%show_scheduling_portal(): opens the ActiveEon scheduling portal\n'
         help_msg += 'Usages:\n' + get_usage_show_scheduling_portal()
-    elif trigger == 'show_workflow_automation':
-        help_msg = '#%show_workflow_automation(): opens the ActiveEon workflow automation portal\n'
-        help_msg += 'Usages:\n' + get_usage_show_workflow_automation()
+    elif trigger == 'show_workflow_execution':
+        help_msg = '#%show_workflow_execution(): opens the ActiveEon workflow execution portal\n'
+        help_msg += 'Usages:\n' + get_usage_show_workflow_execution()
     elif trigger == 'list_nodesources':
         help_msg = '#%list_nodesources(): lists and prints any available node source\n'
         help_msg += 'Usages:\n' + list_usage_list_nodesources()
@@ -390,8 +390,8 @@ def get_usage(trigger):
         return get_usage_show_resource_manager()
     elif trigger == 'show_scheduling_portal':
         return get_usage_show_scheduling_portal()
-    elif trigger == 'show_workflow_automation':
-        return get_usage_show_workflow_automation()
+    elif trigger == 'show_workflow_execution':
+        return get_usage_show_workflow_execution()
     elif trigger == 'list_nodesources':
         return list_usage_list_nodesources()
     elif trigger == 'list_hosts':
@@ -789,7 +789,7 @@ def is_valid_show_scheduling_portal(data):
     return is_valid_show_resource_manager(data)
 
 
-def is_valid_show_workflow_automation(data):
+def is_valid_show_workflow_execution(data):
     return is_valid_show_resource_manager(data)
 
 
@@ -874,8 +874,8 @@ def is_valid(data):
         return is_valid_show_resource_manager(data)
     elif data['trigger'] == 'show_scheduling_portal':
         return is_valid_show_scheduling_portal(data)
-    elif data['trigger'] == 'show_workflow_automation':
-        return is_valid_show_workflow_automation(data)
+    elif data['trigger'] == 'show_workflow_execution':
+        return is_valid_show_workflow_execution(data)
     return None
 
 
@@ -921,7 +921,7 @@ class Pragma:
                        'export_xml',
                        'show_resource_manager',
                        'show_scheduling_portal',
-                       'show_workflow_automation'
+                       'show_workflow_execution'
                        ]
 
     pragmas_empty = ['connect',
@@ -952,7 +952,7 @@ class Pragma:
                      'export_xml',
                      'show_resource_manager',
                      'show_scheduling_portal',
-                     'show_workflow_automation'
+                     'show_workflow_execution'
                      ]
 
     pragmas_connected_mode = ['draw_job',
@@ -992,7 +992,7 @@ class Pragma:
                               'export_xml',
                               'show_resource_manager',
                               'show_scheduling_portal',
-                              'show_workflow_automation'
+                              'show_workflow_execution'
                               ]
 
     pragmas_not_connected_mode = ['connect',
