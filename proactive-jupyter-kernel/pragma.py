@@ -311,7 +311,6 @@ def get_help(trigger):
         help_msg += 'Usages:\n' + list_usage_list_resources() 
     else:
         raise ParameterError('Pragma \'' + trigger + '\' not known.')
-
     return help_msg
 
 
@@ -441,7 +440,6 @@ def extract_params(params, data):
         else:
             right = draft[1]
             params = ""
-
         data[left] = right
 
 
@@ -881,7 +879,6 @@ def is_valid(data):
 
 class Pragma:
     pattern = r"\w+"
-
     pragmas_generic = ['draw_job',
                        'configure',
                        'task',
@@ -923,7 +920,6 @@ class Pragma:
                        'show_scheduling_portal',
                        'show_workflow_execution'
                        ]
-
     pragmas_empty = ['connect',
                      'submit_job',
                      'import',
@@ -954,7 +950,6 @@ class Pragma:
                      'show_scheduling_portal',
                      'show_workflow_execution'
                      ]
-
     pragmas_connected_mode = ['draw_job',
                               'task',
                               'delete_task',
@@ -994,7 +989,6 @@ class Pragma:
                               'show_scheduling_portal',
                               'show_workflow_execution'
                               ]
-
     pragmas_not_connected_mode = ['connect',
                                   'help',
                                   'configure'
@@ -1016,16 +1010,12 @@ class Pragma:
         pattern_connect_with_path = r"^( *path *= *" + pattern_path_cars + r" *)$"
         pattern_generic = r"^( *" + pattern_l + r" *= *" + pattern_r + r")( *, *" + pattern_l + r" *= *" + \
                           pattern_r + r" *)*$"
-
         valid_empty = params == "" and self.trigger in Pragma.pragmas_empty
-
         if valid_empty:
             return
-
         invalid_generic = not re.match(pattern_generic, params) and self.trigger in Pragma.pragmas_generic
         invalid_connect = not (re.match(pattern_connect, params) or re.match(pattern_connect_with_url, params) or
                                pattern_connect_with_path) and self.trigger == 'connect'
-
         if invalid_connect or invalid_generic:
             raise ParsingError('Invalid parameters.')
 
