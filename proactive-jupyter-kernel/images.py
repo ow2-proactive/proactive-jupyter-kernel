@@ -20,11 +20,9 @@ def display_data_for_image(filename, flag_save):
         image = f.read()
     if not flag_save:
         os.unlink(filename)
-
     image_type = imghdr.what(None, image)
     if image_type is None:
         raise ValueError("Not a valid image: %s" % image)
-
     image_data = base64.b64encode(image).decode('ascii')
     content = {
         'data': {
@@ -38,13 +36,11 @@ def display_data_for_image(filename, flag_save):
 def extract_image_filenames(output):
     output_lines = []
     image_filenames = []
-
     for line in output.split("\n"):
         if line.startswith(_TEXT_SAVED_IMAGE):
             filename = line.rstrip().split(": ")[-1]
             image_filenames.append(filename)
         else:
             output_lines.append(line)
-
     output = "\n".join(output_lines)
     return image_filenames, output
