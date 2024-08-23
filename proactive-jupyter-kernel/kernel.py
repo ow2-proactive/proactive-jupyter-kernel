@@ -24,6 +24,11 @@ from IPython.display import IFrame
 from .images import display_data_for_image
 from .pragma import *
 
+import logging
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
 __version__ = '0.1'
 
 
@@ -65,6 +70,7 @@ class ProActiveKernel(Kernel):
         return self._banner
 
     def __init__(self, **kwargs):
+        logger.info("Initializing ProActiveKernel")
         Kernel.__init__(self, **kwargs)
         self.gateway = None
         self.proactive_tasks = []
@@ -146,6 +152,7 @@ class ProActiveKernel(Kernel):
         self.proactive_config['proactive_server'] = {}
 
     def __kernel_print_info_message__(self, text):
+        logger.info(f"Kernel info message: {text}")
         message = dict(name='stdout', text=text)
         self.send_response(self.iopub_socket, 'stream', message)
 
@@ -465,6 +472,7 @@ class ProActiveKernel(Kernel):
         return 0
 
     def __connect__(self, input_data):
+        logger.info(f"Connecting to ProActive server: {input_data.get('host', 'default')}")
         if self.proactive_connected:
             self.__kernel_print_info_message__('WARNING: Proactive is already connected.\n')
             self.__kernel_print_info_message__('Disconnecting from server: ' + self.gateway.base_url + ' ...\n')
@@ -542,6 +550,10 @@ class ProActiveKernel(Kernel):
         self.__kernel_print_info_message__('Connected as \'' + input_data['login'] + '\'!\n')
         self.proactive_connected = True
         self.last_connection_info = input_data
+        if self.proactive_connected:
+            logger.info("Successfully connected to ProActive server")
+        else:
+            logger.error("Failed to connect to ProActive server")
         return 0
     
     def __ensure_connected__(self):
@@ -1496,6 +1508,7 @@ if (HOST_NAME) {
                 self.replicated_tasks.append(proactive_task)
 
     def __create_task__(self, input_data):
+        logger.info(f"Creating task: {input_data.get('name', 'Unnamed')}")
         # Verifying if imported variables have been exported in other tasks
         if 'import' in input_data:
             for var_name in input_data['import']:
@@ -1873,6 +1886,7 @@ if (HOST_NAME) {
         self.__kernel_print_info_message__('Validated.\n')
 
     def __submit_job__(self, input_data):
+        logger.info(f"Submitting job: {input_data.get('name', 'Unnamed')}")
         try:
             self.__ensure_connected__()
             if len(self.replicated_tasks):
