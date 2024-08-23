@@ -505,16 +505,13 @@ class ProActiveKernel(Kernel):
             self.gateway.disconnect()
             self.gateway.terminate()
             self.proactive_connected = False
-
         if 'path' in input_data:
             exists = os.path.isfile(input_data['path'])
-
             if exists:
                 try:
                     # raise Exception(self.config)
                     self.proactive_config = cp.ConfigParser()
                     self.proactive_config.read(input_data['path'])
-
                     if 'host' in self.proactive_config['proactive_server']:
                         proactive_protocol = self.proactive_config['proactive_server']['protocol']
                         proactive_host = self.proactive_config['proactive_server']['host']
@@ -525,31 +522,22 @@ class ProActiveKernel(Kernel):
                         proactive_url = self.proactive_config['proactive_server']['url']
                     else:
                         raise ConfigError('Activeeon server host and url not found in the config file.')
-
                     self.gateway = proactive.ProActiveGateway(proactive_url)
                     self.gateway.connect(username=self.proactive_config['user']['login'],
                                          password=self.proactive_config['user']['password'])
-
                     self.__kernel_print_info_message__('Connecting to server ...\n')
-
                     assert self.gateway.isConnected() is True
-
                     self.__kernel_print_info_message__('Connected as \'' + self.proactive_config['user']['login']
                                                      + '\'!\n')
-
                     self.proactive_connected = True
                     self.proactive_default_connection = False
-
                     return 0
-
                 except AssertionError as ae:
                     raise AssertionError(ae)
                 except Exception as e:
                     raise ConfigError(str(e))
-
             else:
                 raise ConfigError(input_data['path'] + ': No such file.\n')
-
         if 'host' in input_data:
             self.proactive_config['proactive_server']['host'] = input_data['host']
             if 'port' in input_data:
@@ -576,27 +564,32 @@ class ProActiveKernel(Kernel):
             proactive_url = "https://" + self.proactive_config['proactive_server']['host'] + ":" + \
                             self.proactive_config['proactive_server']['port']
             self.proactive_default_connection = True
-
         self.proactive_config['proactive_server']['url'] = proactive_url
-
         self.gateway = proactive.ProActiveGateway(proactive_url)
-
         if 'login' not in input_data:
             input_data['login'] = self.raw_input("Login: ")
-
         if 'password' not in input_data:
             input_data['password'] = self.getpass("Password: ")
-
         self.__kernel_print_info_message__('Connecting to server ...\n')
-
         self.gateway.connect(username=input_data['login'], password=input_data['password'])
         assert self.gateway.isConnected() is True
-
         self.__kernel_print_info_message__('Connected as \'' + input_data['login'] + '\'!\n')
-
         self.proactive_connected = True
-
+        self.last_connection_info = input_data
         return 0
+    
+    def __ensure_connected__(self):
+        if not self.proactive_connected or not self.gateway.isConnected():
+            self.__kernel_print_info_message__("Connection lost. Attempting to reconnect...\n")
+            try:
+                if self.proactive_default_connection:
+                    self.__start_proactive__()
+                else:
+                    # Attempt to reconnect using the last known connection parameters
+                    self.__connect__(self.last_connection_info)
+                self.__kernel_print_info_message__("Reconnection successful.\n")
+            except Exception as e:
+                raise ConnectionError("Failed to reconnect: " + str(e))
 
     def __print_usage_from_pragma__(self, pragma):
         trigger = pragma.strip(" #%)").split('(', 1)[0].strip(" ")
@@ -1980,96 +1973,88 @@ if (HOST_NAME) {
         self.__kernel_print_info_message__('Validated.\n')
 
     def __submit_job__(self, input_data):
-        if len(self.replicated_tasks):
-            self.__check_replicates_validity__()
-        if not self.job_created:
-            if input_data['name'] == '':
-                if notebook_path() is not None:
-                    input_data['name'] = notebook_path().rsplit('/', 1)[1].split('.', 1)[0]
-                else:
-                    input_data['name'] = 'DefaultJob_' + str(random.randint(1000, 9999))
-
-            self.__create_job__(input_data)
-
-        elif not self.job_up_to_date:
-            if input_data['name'] == '':
+        try:
+            self.__ensure_connected__()
+            if len(self.replicated_tasks):
+                self.__check_replicates_validity__()
+            if not self.job_created:
+                if input_data['name'] == '':
+                    if notebook_path() is not None:
+                        input_data['name'] = notebook_path().rsplit('/', 1)[1].split('.', 1)[0]
+                    else:
+                        input_data['name'] = 'DefaultJob_' + str(random.randint(1000, 9999))
+                self.__create_job__(input_data)
+            elif not self.job_up_to_date:
+                if input_data['name'] == '':
+                    input_data['name'] = self.job_name
+                self.__create_job__(input_data)
+            elif input_data['name'] != '':
+                self.__kernel_print_info_message__('Job renamed to \'' + input_data['name'] + '\'.\n')
+                self.__set_job_name__(input_data['name'])
+            else:
                 input_data['name'] = self.job_name
-            self.__create_job__(input_data)
-
-        elif input_data['name'] != '':
-            self.__kernel_print_info_message__('Job renamed to \'' + input_data['name'] + '\'.\n')
-            self.__set_job_name__(input_data['name'])
-
-        else:
-            input_data['name'] = self.job_name
-
-        if self.added_nodesource_submitjob:
-            self.proactive_job.removeGenericInformation("NODESOURCENAME")
-            self.__kernel_print_info_message__('Updating created tasks ...\n')
-            for task in self.proactive_tasks:
-                self.__kernel_print_info_message__('Setting the selection script of the task \'' + task.getTaskName()
-                                                 + '\' ...\n')
-                task.setSelectionScript(None)
-                self.job_up_to_date = False
-        if self.added_host_submitjob:
-            for task in self.proactive_tasks:
-                self.__kernel_print_info_message__('Setting the selection script of the task \'' + task.getTaskName()
-                                                 + '\' ...\n')
-                task.setSelectionScript(None)
-                self.job_up_to_date = False
-        if self.added_token_submitjob:
-            self.proactive_job.removeGenericInformation("NODE_ACCESS_TOKEN")
-
-        self.added_nodesource_submitjob = False
-        if 'nodesource' in input_data:
-            restapi = self.gateway.getProactiveRestApi()
-            nodesources = restapi.get_rm_model_nodesources()
-            if input_data['nodesource'] in nodesources:
-                self.__set_job_nodesource__(self.proactive_job, input_data)
-                self.added_nodesource_submitjob = True
+            if self.added_nodesource_submitjob:
+                self.proactive_job.removeGenericInformation("NODESOURCENAME")
+                self.__kernel_print_info_message__('Updating created tasks ...\n')
+                for task in self.proactive_tasks:
+                    self.__kernel_print_info_message__('Setting the selection script of the task \'' + task.getTaskName()
+                                                    + '\' ...\n')
+                    task.setSelectionScript(None)
+                    self.job_up_to_date = False
+            if self.added_host_submitjob:
+                for task in self.proactive_tasks:
+                    self.__kernel_print_info_message__('Setting the selection script of the task \'' + task.getTaskName()
+                                                    + '\' ...\n')
+                    task.setSelectionScript(None)
+                    self.job_up_to_date = False
+            if self.added_token_submitjob:
+                self.proactive_job.removeGenericInformation("NODE_ACCESS_TOKEN")
+            self.added_nodesource_submitjob = False
+            if 'nodesource' in input_data:
+                restapi = self.gateway.getProactiveRestApi()
+                nodesources = restapi.get_rm_model_nodesources()
+                if input_data['nodesource'] in nodesources:
+                    self.__set_job_nodesource__(self.proactive_job, input_data)
+                    self.added_nodesource_submitjob = True
+                else:
+                    raise ParameterError('Invalid node source name!')
+            self.added_host_submitjob = False
+            if 'host' in input_data:
+                restapi = self.gateway.getProactiveRestApi()
+                hosts = restapi.get_rm_model_hosts()
+                if input_data['host'] in hosts:
+                    self.__set_job_host__(self.proactive_job, input_data)
+                    self.added_host_submitjob = True
+                else:
+                    raise ParameterError('Invalid host name!')
+            self.added_token_submitjob = False
+            if 'token' in input_data:
+                restapi = self.gateway.getProactiveRestApi()
+                tokens = restapi.get_rm_model_tokens()
+                if input_data['token'] in tokens:
+                    self.__set_job_token__(self.proactive_job, input_data)
+                    self.added_token_submitjob = True
+                else:
+                    raise ParameterError('Invalid token name!')
+            self.__kernel_print_info_message__('Submitting the job to the proactive scheduler ...\n')
+            if 'input_path' in input_data or 'output_path' in input_data:
+                input_path = input_data['input_path'] if 'input_path' in input_data else '.'
+                output_path = input_data['output_path'] if 'output_path' in input_data else '.'
+                temp_id = self.gateway.submitJobWithInputsAndOutputsPaths(self.proactive_job,
+                                                                        input_path,
+                                                                        output_path,
+                                                                        debug=False)
             else:
-                raise ParameterError('Invalid node source name!')
-
-        self.added_host_submitjob = False
-        if 'host' in input_data:
-            restapi = self.gateway.getProactiveRestApi()
-            hosts = restapi.get_rm_model_hosts()
-            if input_data['host'] in hosts:
-                self.__set_job_host__(self.proactive_job, input_data)
-                self.added_host_submitjob = True
-            else:
-                raise ParameterError('Invalid host name!')
-
-        self.added_token_submitjob = False
-        if 'token' in input_data:
-            restapi = self.gateway.getProactiveRestApi()
-            tokens = restapi.get_rm_model_tokens()
-            if input_data['token'] in tokens:
-                self.__set_job_token__(self.proactive_job, input_data)
-                self.added_token_submitjob = True
-            else:
-                raise ParameterError('Invalid token name!')
-
-        self.__kernel_print_info_message__('Submitting the job to the proactive scheduler ...\n')
-
-        if 'input_path' in input_data or 'output_path' in input_data:
-            input_path = input_data['input_path'] if 'input_path' in input_data else '.'
-            output_path = input_data['output_path'] if 'output_path' in input_data else '.'
-
-            temp_id = self.gateway.submitJobWithInputsAndOutputsPaths(self.proactive_job,
-                                                                      input_path,
-                                                                      output_path,
-                                                                      debug=False)
-        else:
-            temp_id = self.gateway.submitJob(self.proactive_job, debug=False)
-
-        self.submitted_jobs_names[temp_id] = self.job_name
-        self.submitted_jobs_ids[self.job_name] = temp_id
-        self.last_submitted_job_id = temp_id
-
-        self.__kernel_print_info_message__('job_id: ' + str(temp_id) + '\n')
-
-        return 0
+                temp_id = self.gateway.submitJob(self.proactive_job, debug=False)
+            self.submitted_jobs_names[temp_id] = self.job_name
+            self.submitted_jobs_ids[self.job_name] = temp_id
+            self.last_submitted_job_id = temp_id
+            self.__kernel_print_info_message__('job_id: ' + str(temp_id) + '\n')
+            return 0
+        except ConnectionError as ce:
+            return self.__kernel_print_error_message({'ename': 'Connection Error', 'evalue': str(ce)})
+        except Exception as e:
+            return self.__kernel_print_error_message({'ename': 'Error', 'evalue': str(e)})
 
     def __list_submitted_jobs__(self, input_data):
         for job_id in self.submitted_jobs_names:
