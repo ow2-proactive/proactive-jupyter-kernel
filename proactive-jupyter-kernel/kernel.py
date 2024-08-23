@@ -476,8 +476,7 @@ class ProActiveKernel(Kernel):
         if self.proactive_connected:
             self.__kernel_print_info_message__('WARNING: Proactive is already connected.\n')
             self.__kernel_print_info_message__('Disconnecting from server: ' + self.gateway.base_url + ' ...\n')
-            self.gateway.disconnect()
-            self.gateway.terminate()
+            self.gateway.close()
             self.proactive_connected = False
         if 'path' in input_data:
             exists = os.path.isfile(input_data['path'])
@@ -2236,6 +2235,5 @@ if (HOST_NAME) {
 
     def do_shutdown(self, restart):
         if self.gateway is not None:
-            self.gateway.disconnect()
-            self.gateway.terminate()
+            self.gateway.close()
         return {'status': 'ok', 'restart': restart}
