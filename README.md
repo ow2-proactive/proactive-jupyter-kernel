@@ -679,10 +679,10 @@ For the related scheduling portal:
 #%show_scheduling_portal([host=YOUR_HOST], [height=HEIGHT_VALUE], [width=WIDTH_VALUE])
 ```
 
-And, for the related workflow automation:
+And, for the related workflow execution:
 
 ```python
-#%show_workflow_automation([host=YOUR_HOST], [height=HEIGHT_VALUE], [width=WIDTH_VALUE])
+#%show_workflow_execution([host=YOUR_HOST], [height=HEIGHT_VALUE], [width=WIDTH_VALUE])
 ```
 
 NOTE: The parameters `height` and `width` allow the user to adjust the size of the window inside the notebook.
@@ -763,7 +763,7 @@ Features:
 
 * *show_scheduling_portal*: opens the ActiveEon scheduling portal
 
-* *show_workflow_automation*: opens the ActiveEon workflow automation portal
+* *show_workflow_execution*: opens the ActiveEon workflow execution portal
 
 
 #### TODO
