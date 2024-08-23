@@ -26,13 +26,11 @@ def install_my_kernel_spec(user=True, prefix=None):
         logging.debug(f'Writing kernel spec to {kernel_spec_path}')
         with open(kernel_spec_path, 'w') as f:
             json.dump(kernel_json, f, sort_keys=True)
-        
         # TODO: Copy resources once they're specified
         # Uncomment and update this section to download resources
         # git_url = "https://raw.githubusercontent.com/ow2-proactive/proactive-jupyter-kernel/master/proactive-jupyter-kernel/"
         # for size in ['32', '64', '128']:
         #     urllib.request.urlretrieve(f"{git_url}/logo-{size}x{size}.png", os.path.join(td, f'logo-{size}x{size}.png'))
-        
         logging.info('Installing IPython kernel spec')
         try:
             KernelSpecManager().install_kernel_spec(td, 'ProActive', user=user, prefix=prefix)
@@ -55,7 +53,6 @@ def main(argv=None):
         description='Install KernelSpec for ProActive Kernel'
     )
     prefix_locations = parser.add_mutually_exclusive_group()
-
     prefix_locations.add_argument(
         '--user',
         help='Install KernelSpec in user home directory',
@@ -72,17 +69,13 @@ def main(argv=None):
         help='Install KernelSpec in this prefix',
         default=None
     )
-
     args = parser.parse_args(argv)
-
     user = args.user or not _is_root()
     prefix = args.prefix or (sys.prefix if args.sys_prefix else None)
-
     if prefix:
         logging.info(f'Installing with prefix at {prefix}')
     elif user:
         logging.info('Installing for user')
-
     try:
         install_my_kernel_spec(user=user, prefix=prefix)
     except Exception as e:
