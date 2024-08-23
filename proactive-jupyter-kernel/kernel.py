@@ -304,13 +304,11 @@ class ProActiveKernel(Kernel):
 
     def __draw_graph__(self, input_data):
         pos = graphviz_layout(self.graph, prog='dot')
-
         # nodes
         nx.draw_networkx_nodes(self.graph, pos,
                                node_color='orange',
                                node_size=2000,
                                alpha=0.5)
-
         # edges
         nx.draw_networkx_edges(self.graph, pos,
                                arrowstyle='->',
@@ -318,33 +316,25 @@ class ProActiveKernel(Kernel):
                                edge_color='green',
                                width=2,
                                alpha=0.5)
-
         nx.draw_networkx_labels(self.graph, pos,
                                 self.node_labels,
                                 font_size=9)
-
         nx.draw_networkx_edge_labels(self.graph, pos,
                                      alpha=0.7,
                                      font_size=7,
                                      edge_labels=self.edge_labels)
-
         plt.axis('off')
-
         title = self.__get_saving_file_name__(input_data)
-
         plt.title(title)
         filename = './' + title + '.png'
-
         if 'inline' in input_data and input_data['inline'] == 'off':
             if 'save' in input_data and input_data['save'] == 'on':
                 self.__kernel_print_info_message__('Saving the job workflow into a png file ...\n')
                 plt.savefig(filename) # save as png
                 self.__kernel_print_info_message__('\'' + filename + '\' file created.\n')
-
             self.__kernel_print_info_message__('Plotting ...\n')
             plt.show() # display
             self.__kernel_print_info_message__('End.\n')
-
         else:
             if 'save' in input_data and input_data['save'] == 'on':
                 self.__kernel_print_info_message__('Saving the job workflow into a png file ...\n')
@@ -354,7 +344,6 @@ class ProActiveKernel(Kernel):
             else:
                 plt.savefig(filename) # save as png
                 save_file = False
-
             try:
                 self.__kernel_print_info_message__('Plotting ...\n')
                 data = display_data_for_image(filename, save_file)
@@ -363,7 +352,6 @@ class ProActiveKernel(Kernel):
                 self.send_response(self.iopub_socket, 'stream', message)
             else:
                 self.send_response(self.iopub_socket, 'display_data', data)
-
             plt.close()
 
     def __draw_job__(self, input_data):
@@ -372,11 +360,9 @@ class ProActiveKernel(Kernel):
             self.graph = nx.DiGraph()
             self.node_labels.clear()
             self.edge_labels.clear()
-
             # nodes
             nodes_ids = [i for i in range(len(self.proactive_tasks))]
             self.graph.add_nodes_from(nodes_ids)
-
             # edges
             for index_son in range(len(self.proactive_tasks)):
                 dependencies = self.proactive_tasks[index_son].getDependencies()
@@ -390,7 +376,6 @@ class ProActiveKernel(Kernel):
                         if self.proactive_tasks[index_son].getFlowScript().isLoopFlowScript():
                             self.graph.add_edge(index_son, index_parent)
                             self.edge_labels[(index_son, index_parent)] = 'loop'
-
             # branching edges
             for index_parent in range(len(self.proactive_tasks)):
                 parent_task = self.proactive_tasks[index_parent]
@@ -400,52 +385,40 @@ class ProActiveKernel(Kernel):
                         if_task_index = self.__find_task_index_from_name__(parent_flow_script.getActionTarget())
                         else_task_index = self.__find_task_index_from_name__(parent_flow_script.getActionTargetElse())
                         continuation_task_index = self.__find_task_index_from_name__(parent_flow_script.getActionTargetContinuation())
-
                         self.graph.add_edge(index_parent, if_task_index)
                         self.graph.add_edge(index_parent, else_task_index)
                         self.graph.add_edge(index_parent, continuation_task_index)
-
                         self.edge_labels[(index_parent, if_task_index)] = 'if'
                         self.edge_labels[(index_parent, else_task_index)] = 'else'
                         self.edge_labels[(index_parent, continuation_task_index)] = 'continuation'
-
             # node labels
             for i in nodes_ids:
                 # some math labels
                 # self.node_labels[i] = r'$' + self.proactive_tasks[i].getTaskName() + '$'
                 self.node_labels[i] = self.proactive_tasks[i].getTaskName()
-
             self.graph_up_to_date = True
             self.__kernel_print_info_message__('Workflow created.\n')
-
         self.__draw_graph__(input_data)
-
         return 0
 
     def __write_dot__(self, input_data):
         self.__kernel_print_info_message__('Creating the job workflow (dot format) ...\n')
         g_dot = nx.DiGraph()
-
         # nodes
         tasks_names = []
         for task in self.proactive_tasks:
             tasks_names.append(task.getTaskName())
         g_dot.add_nodes_from(tasks_names)
-
         # edges
         for son_task in self.proactive_tasks:
             dependencies = son_task.getDependencies()
             for parent_task in dependencies:
                 g_dot.add_edge(parent_task.getTaskName(), son_task.getTaskName())
-
         g_dot.name = self.job_name
-
         title = self.__get_saving_file_name__(input_data)
-
         self.__kernel_print_info_message__('Writing the dot file ...\n')
         write_dot(g_dot, './' + title + '.dot')
         self.__kernel_print_info_message__('\'' + title + '.dot\' file created.\n')
-
         return 0
 
     @staticmethod
@@ -476,26 +449,19 @@ class ProActiveKernel(Kernel):
             Gtmp = pgv.AGraph(input_data['path'])
             nodes = Gtmp.nodes()
             edges = Gtmp.edges()
-
             inputs_data = ProActiveKernel.__extract_tasks_inputs_from_graph__(nodes, edges)
             for temp_input_data in inputs_data:
                 self.__create_task__(temp_input_data)
-
         else:
             raise ConfigError(input_data['path'] + ': No such file.\n')
-
         return 0
 
     def __create_export_xml__(self, input_data):
         self.__kernel_print_info_message__('Exporting the job workflow (xml format) ...\n')
-
         title = self.__get_saving_file_name__(input_data)
-
         filename = './' + title + '.xml'
         self.gateway.saveJob2XML(self.proactive_job, filename, debug=False)
-
         self.__kernel_print_info_message__('\'' + title + '.xml\' file created.\n')
-
         return 0
 
     def __connect__(self, input_data):
@@ -654,11 +620,9 @@ class ProActiveKernel(Kernel):
             else:
                 raise ParameterError('Language \'' + input_data['language'] +
                                      '\' not supported!\n Supported Languages:\n' + self.script_languages)
-
         else:
             self.__kernel_print_info_message__('Saving \'Python\' imports ...\n')
             self.imports['Python'] = input_data['code']
-
         self.__kernel_print_info_message__('Saved.\n')
 
     def __create_pre_script_from_task__(self, input_data):
@@ -677,7 +641,6 @@ class ProActiveKernel(Kernel):
                 raise Exception('The file \'' + input_data['path'] + '\' does not exist')
         else:
             pre_script.setImplementation('\n' + input_data['code'])
-
         input_data['task'].setPreScript(pre_script)
 
     def __create_pre_script_from_name__(self, input_data):
@@ -707,7 +670,6 @@ class ProActiveKernel(Kernel):
                 raise Exception('The file \'' + input_data['path'] + '\' does not exist')
         else:
             post_script.setImplementation('\n' + input_data['code'])
-
         input_data['task'].setPostScript(post_script)
 
     def __create_post_script_from_name__(self, input_data):
@@ -740,7 +702,6 @@ class ProActiveKernel(Kernel):
                 raise Exception('The file \'' + input_data['path'] + '\' does not exist')
         else:
             proactive_selection_script.setImplementation('\n' + input_data['code'])
-
         input_data['task'].setSelectionScript(proactive_selection_script)
 
     def __create_selection_script_from_name__(self, input_data):
@@ -773,10 +734,8 @@ class ProActiveKernel(Kernel):
                 raise Exception('The file \'' + input_data['path'] + '\' does not exist')
         else:
             proactive_selection_script.setImplementation('\n' + input_data['code'])
-
         self.__kernel_print_info_message__('Saving selection script ...\n')
         self.default_selection_script = proactive_selection_script
-
         if 'force' in input_data and input_data['force'] == 'on':
             self.__kernel_print_info_message__('Updating created tasks ...\n')
             for task in self.proactive_tasks:
@@ -784,7 +743,6 @@ class ProActiveKernel(Kernel):
                                                  + '\' ...\n')
                 task.setSelectionScript(self.default_selection_script)
                 self.job_up_to_date = False
-
         self.__kernel_print_info_message__('Done.\n')
 
     def __create_fork_environment_from_task__(self, input_data):
@@ -806,7 +764,6 @@ class ProActiveKernel(Kernel):
                 raise Exception('The file \'' + input_data['path'] + '\' does not exist')
         else:
             proactive_fork_env.setImplementation('\n' + input_data['code'])
-
         input_data['task'].setForkEnvironment(proactive_fork_env)
 
     def __create_fork_environment_from_name__(self, input_data):
@@ -839,10 +796,8 @@ class ProActiveKernel(Kernel):
                 raise Exception('The file \'' + input_data['path'] + '\' does not exist')
         else:
             proactive_fork_env.setImplementation('\n' + input_data['code'])
-
         self.__kernel_print_info_message__('Saving the fork environment ...\n')
         self.default_fork_env = proactive_fork_env
-
         if 'force' in input_data and input_data['force'] == 'on':
             self.__kernel_print_info_message__('Updating created tasks ...\n')
             for task in self.proactive_tasks:
@@ -850,15 +805,12 @@ class ProActiveKernel(Kernel):
                                                  + '\' ...\n')
                 task.setForkEnvironment(self.default_fork_env)
                 self.job_up_to_date = False
-
         self.__kernel_print_info_message__('Done.\n')
 
     def __build_runtime_environment__(self, input_data):
         from string import Template
-
         DEBUG = False
         VERBOSE = "false"
-
         DEFAULT_CONTAINER_PLATFORM = "docker"
         DEFAULT_CONTAINER_IMAGE = "docker://activeeon/dlm3"
         DEFAULT_CONTAINER_GPU_ENABLED = "false"
@@ -868,7 +820,6 @@ class ProActiveKernel(Kernel):
         DEFAULT_CONTAINER_ISOLATION_ENABLED = "false"
         DEFAULT_CONTAINER_NO_HOME_ENABLED = "false"
         DEFAULT_CONTAINER_HOST_NETWORK_ENABLED = "true"
-
         CONTAINER_PLATFORM = input_data['type'] if 'type' in input_data else DEFAULT_CONTAINER_PLATFORM
         CONTAINER_IMAGE = input_data['image'] if 'image' in input_data else DEFAULT_CONTAINER_IMAGE
         CONTAINER_GPU_ENABLED = input_data['nvidia_gpu'] if 'nvidia_gpu' in input_data else DEFAULT_CONTAINER_GPU_ENABLED
@@ -878,13 +829,10 @@ class ProActiveKernel(Kernel):
         CONTAINER_ISOLATION_ENABLED = input_data['isolation'] if 'isolation' in input_data else DEFAULT_CONTAINER_ISOLATION_ENABLED
         CONTAINER_NO_HOME_ENABLED = input_data['no_home'] if 'no_home' in input_data else DEFAULT_CONTAINER_NO_HOME_ENABLED
         CONTAINER_HOST_NETWORK_ENABLED = input_data['host_network'] if 'host_network' in input_data else DEFAULT_CONTAINER_HOST_NETWORK_ENABLED
-
         if 'debug' in input_data and str.lower(input_data['debug']) == "true":
             DEBUG = True
-
         if 'verbose' in input_data and str.lower(input_data['verbose']) == "true":
             VERBOSE = "true"
-
         params = {
             'CONTAINER_PLATFORM': CONTAINER_PLATFORM,
             'CONTAINER_IMAGE': CONTAINER_IMAGE,
@@ -897,10 +845,8 @@ class ProActiveKernel(Kernel):
             'CONTAINER_HOST_NETWORK_ENABLED': CONTAINER_HOST_NETWORK_ENABLED,
             'VERBOSE': VERBOSE
         }
-
         if DEBUG:
             self.__kernel_print_info_message__(str(params) + '\n')
-
         template = Template('''
 /*
 This template creates a runtime environment for containers-based jobs supporting docker, podman, and singularity.
@@ -1328,20 +1274,16 @@ if (!CONTAINER_ENABLED) {
 }
         ''')
         runtime_code = str(template.substitute(**params))
-
         if DEBUG:
             self.__kernel_print_info_message__(runtime_code + '\n')
-
         return runtime_code
 
     def __create_runtime_environment__(self, input_data):
         proactive_runtime_env = self.__build_runtime_environment__(input_data)
         proactive_fork_env = self.gateway.createForkEnvironment(language="groovy")
         proactive_fork_env.setImplementation(proactive_runtime_env)
-
         self.__kernel_print_info_message__('Saving the runtime environment ...\n')
         self.default_fork_env = proactive_fork_env
-
         if 'force' in input_data and input_data['force'] == 'on':
             self.__kernel_print_info_message__('Updating created tasks ...\n')
             for task in self.proactive_tasks:
@@ -1349,7 +1291,6 @@ if (!CONTAINER_ENABLED) {
                                                  + '\' ...\n')
                 task.setForkEnvironment(self.default_fork_env)
                 self.job_up_to_date = False
-
         self.__kernel_print_info_message__('Done.\n')
 
     def __find_task_index_from_name__(self, name):
@@ -1358,7 +1299,7 @@ if (!CONTAINER_ENABLED) {
                 return task_index
         return None
 
-    def __print_all_dependencies(self):
+    def __print_all_dependencies__(self):
         for son_task in self.proactive_tasks:
             self.__kernel_print_info_message__('Task \'' + son_task.getTaskName() + '\':\n')
             dependencies = son_task.getDependencies()
@@ -1492,7 +1433,6 @@ if (HOST_NAME) {
                 else:
                     input_data['code'] = input_data['code'] + '\nvariables.put("' + var_name + '", ' + var_name + ')'
                 self.exported_vars[input_data['name']].append(var_name)
-
             if isAPythonTask:
                 input_data['code'] = input_data['code'] + \
                                      '\nexcept Exception:' \
@@ -1561,7 +1501,6 @@ if (HOST_NAME) {
             for var_name in input_data['import']:
                 if not self.__isExported__(var_name):
                     raise ParameterError('The variable \'' + var_name + '\' can\'t be imported.')
-
         if input_data['name'] in self.tasks_names:
             self.__kernel_print_info_message__('WARNING: Task \'' + input_data['name'] + '\' already exists ...\n')
             proactive_task = self.proactive_tasks[self.__find_task_index_from_name__(input_data['name'])]
@@ -1570,7 +1509,6 @@ if (HOST_NAME) {
             proactive_task.clearVariables()
             if input_data['name'] in self.exported_vars:
                 del self.exported_vars[input_data['name']]
-
             if 'language' in input_data:
                 if input_data['language'] in self.proactive_script_languages:
                     self.__kernel_print_info_message__('Changing script language to \'' + input_data['language']
@@ -1582,7 +1520,6 @@ if (HOST_NAME) {
             else:
                 self.__kernel_print_info_message__('Changing script language to \'Python\' ...\n')
                 proactive_task.setScriptLanguage(self.proactive_script_languages['Python'])
-
         else:
             if 'language' in input_data:
                 if input_data['language'] in self.proactive_script_languages:
@@ -1597,43 +1534,32 @@ if (HOST_NAME) {
             else:
                 self.__kernel_print_info_message__('Creating a proactive \'Python\' task ...\n')
                 proactive_task = self.gateway.createPythonTask()
-
             if input_data['name'] == '':
                 name = self.__get_unique_task_name__()
                 self.__kernel_print_info_message__('WARNING: Task \'' + input_data['name'] + '\' renamed to : '
                                                  + name + '\n')
                 input_data['name'] = name
-
             proactive_task.setTaskName(input_data['name'])
-
             self.__kernel_print_info_message__('Task \'' + input_data['name'] + '\' created.\n')
-
             self.proactive_tasks.append(proactive_task)
             self.tasks_names.append(input_data['name'])
-
             self.tasks_count += 1
-
         proactive_task.setPreciousResult(bool(input_data['precious_result'].lower() == "true") if 'precious_result' in
                                                                                                   input_data else False)
-
         self.__set_default_selection_script__(proactive_task)
         self.__set_default_fork_environment__(proactive_task)
         self.__set_dependencies_from_input_data__(proactive_task, input_data)
         self.__set_generic_information_from_input_data__(proactive_task, input_data)
         self.__set_variables_from_input_data__(proactive_task, input_data)
-
         # TODO: check how to import/export variables when a file path is provided
         self.__add_importing_variables_to_implementation_script__(input_data)
         self.__add_exporting_variables_to_implementation_script__(input_data)
         self.__add_job_imports_to_implementation_script__(input_data)
         self.__set_implementation_script_from_input_data__(proactive_task, input_data)
-
         self.__add_replicate_control__(proactive_task, input_data)
-
         self.previous_task_history = input_data
         self.is_previous_pragma_task = True
         self.last_modified_task = proactive_task
-
         self.__kernel_print_info_message__('Done.\n')
         self.job_up_to_date = False
         self.graph_up_to_date = False
@@ -1797,32 +1723,24 @@ if (HOST_NAME) {
             task_to_remove = self.proactive_tasks[self.__find_task_index_from_name__(input_data['name'])]
         else:
             raise ParameterError('Task \'' + input_data['name'] + '\' does not exist.')
-
         if self.job_created:
             if task_to_remove in self.proactive_job.job_tasks:
                 self.__kernel_print_info_message__('Deleting task from the job...\n')
                 self.proactive_job.removeTask(task_to_remove)
-
         if task_to_remove in self.replicated_tasks:
             self.__kernel_print_info_message__('Clearing REPLICATE control...\n')
             self.__clean_replicate_information__(task_to_remove)
             self.replicated_tasks.remove(task_to_remove)
-
         self.__kernel_print_info_message__('Deleting task from the tasks list...\n')
         self.proactive_tasks.remove(task_to_remove)
         self.tasks_names.remove(input_data['name'])
-
         self.__kernel_print_info_message__('Cleaning dependencies...\n')
         self.__clean_related_dependencies__(task_to_remove)
-
         if input_data['name'] in self.exported_vars:
             del self.exported_vars[input_data['name']]
-
         self.__kernel_print_info_message__('Done.\n')
-
         self.job_up_to_date = False
         self.graph_up_to_date = False
-
         return
 
     def __restore_variables_and_generic_info_in_input_data__(self, input_data):
@@ -1830,43 +1748,35 @@ if (HOST_NAME) {
         input_data['generic_info'] = [(k, v) for k, v in self.proactive_job.getGenericInformation().items()]
         input_data['variables'] = [(k, v) for k, v in self.proactive_job.getVariables().items()]
         return
-    
+
     def __create_job__(self, input_data):
         if self.job_created and self.job_up_to_date:
             self.__set_job_name__(input_data['name'])
             self.__kernel_print_info_message__('Job renamed to \'' + input_data['name'] + '\'.\n')
             return 0
-
         if self.job_created:
             self.__kernel_print_info_message__('Re-creating the proactive job due to tasks changes ...\n')
             if input_data['trigger'] == 'submit_job':
                 self.__restore_variables_and_generic_info_in_input_data__(input_data)
         else:
             self.__kernel_print_info_message__('Creating a proactive job ...\n')
-
         self.proactive_job = self.gateway.createJob()
         self.__set_job_name__(input_data['name'])
-
         self.__kernel_print_info_message__('Job \'' + input_data['name'] + '\' created.\n')
-
         self.__kernel_print_info_message__('Adding the created tasks to \'' + input_data['name'] + '\' ...\n')
         for task in self.proactive_tasks:
             self.proactive_job.addTask(task)
-
         self.__set_generic_information_from_input_data__(self.proactive_job, input_data)
         self.__set_variables_from_input_data__(self.proactive_job, input_data)
-
         # TODO:
         #  if input_data['input_folder'] is None, use the `tmpdir` variable
         #  same for input_data['output_folder']
         tmpdir = tempfile.mkdtemp(dir=tempfile.gettempdir())
         self.proactive_job.setInputFolder(tmpdir)
         self.proactive_job.setOutputFolder(tmpdir)
-
         self.__kernel_print_info_message__('Done.\n')
         self.job_created = True
         self.job_up_to_date = True
-
         return 0
 
     def __set_job_name__(self, name):
@@ -1889,12 +1799,10 @@ if (HOST_NAME) {
                                                and 'job_name' not in input_data \
                                                else self.__get_job_id_from_inputs__(input_data)
         self.__kernel_print_info_message__('Getting job ' + str(job_id) + ' results ...\n')
-
         try:
             job_result = self.gateway.getJobResult(job_id)
         except Exception:
             raise ResultError("Results unreachable for job: " + job_id)
-
         self.__kernel_print_info_message__('Results:\n')
         self.__kernel_print_info_message__(job_result)
 
@@ -1905,12 +1813,10 @@ if (HOST_NAME) {
                                                else self.__get_job_id_from_inputs__(input_data)
         self.__kernel_print_info_message__('Getting from job ' + str(job_id) + ', task \'' + input_data['task_name']
                                          + '\' results ...\n')
-
         try:
             task_result = self.gateway.getTaskResult(job_id, input_data['task_name'])
         except Exception:
             raise ResultError("Results unreachable for job: " + job_id)
-
         self.__kernel_print_info_message__('Result:\n')
         self.__kernel_print_info_message__(str(task_result))
 
@@ -1920,12 +1826,10 @@ if (HOST_NAME) {
                                                and 'job_name' not in input_data \
                                                else self.__get_job_id_from_inputs__(input_data)
         self.__kernel_print_info_message__('Getting job ' + str(job_id) + ' console outputs ...\n')
-
         try:
             job_result = self.gateway.printJobOutput(job_id)
         except Exception:
             raise ResultError("Results unreachable for job: " + job_id)
-
         self.__kernel_print_info_message__('Outputs:\n')
         self.__kernel_print_info_message__(job_result)
 
@@ -1936,12 +1840,10 @@ if (HOST_NAME) {
                                                else self.__get_job_id_from_inputs__(input_data)
         self.__kernel_print_info_message__('Getting from job ' + str(job_id) + ', task \'' + input_data['task_name']
                                          + '\' console output ...\n')
-
         try:
             task_result = self.gateway.printTaskOutput(job_id, input_data['task_name'])
         except Exception:
             raise ResultError("Results unreachable for job: " + job_id)
-
         self.__kernel_print_info_message__('Output:\n')
         self.__kernel_print_info_message__(str(task_result))
 
@@ -1963,11 +1865,9 @@ if (HOST_NAME) {
                                                              + replicated_task.getTaskName() + '\' REPLICATE control.'})
                 self.__create_task__(input_data)
                 self.last_modified_task.setFlowBlock(self.gateway.getProactiveFlowBlockType().end())
-
             elif _is_not_validated == 1:
                 raise JobValidationError('The replicated task \'' + replicated_task.getTaskName() +
                                          '\' should not have more than one parent task.')
-
             else:
                 children[0].setFlowBlock(self.gateway.getProactiveFlowBlockType().end())
         self.__kernel_print_info_message__('Validated.\n')
@@ -2123,31 +2023,26 @@ if (HOST_NAME) {
                 self.__display_html__(html)
             else:
                 return html
-    
+
     def __list_resources__(self, input_data):
         html_nodesources = self.__list_nodesources__(input_data, False)
         html_hosts = self.__list_hosts__(input_data, False)
         html_token = self.__list_tokens__(input_data, False)
-        
         if html_nodesources !='' or  html_hosts !='' or html_token !='':
             html = '</div><div id="container"><div id="navigation" style="float:left;padding:10px">' + html_nodesources + '</div><div id="content" style="float:left;padding:10px"><div id="shoutout-box">' + html_hosts + '</div></div><div id="content" style="float:left;padding:10px"><div id="shoutout-box">' + html_token  + '</div></div></div>'
             self.__display_html__(html)
-
         if html_nodesources == '':
             warning_msg = '<div><i class="fa fa-warning"></i> Warning Message: None of node source is available.</div>'
             self.__display_html__(warning_msg)
-        
         if html_hosts == '':
             warning_msg = '<div><i class="fa fa-warning"></i> Warning Message: None of host is available.</div>'
             self.__display_html__(warning_msg)
-        
         if html_token == '':
             warning_msg = '<div><i class="fa fa-warning"></i> Warning Message: None of token is available.</div>'
             self.__display_html__(warning_msg)
-
         warning_msg = '<div><i class="fa fa-warning"></i> Warning Message: If you don\'t set a node source, host or token name for your job, it will run on any of them available.</div>'
         self.__display_html__(warning_msg)
-        
+
     @staticmethod
     def __merge_scripts__(code1, code2):
         _code = code1.split('\ntry:\n\tvariables.put')
@@ -2187,13 +2082,11 @@ if (HOST_NAME) {
 
     def __preprocess_pragma_block__(self, pragma_info):
         pragma_string = pragma_info['code'].split("\n", 1)
-
         if len(pragma_string) == 2:
             pragma_info['code'] = pragma_string.pop(1)
         else:
             pragma_info['code'] = ''
         pragma_string = pragma_string[0]
-
         try:
             pragma_info.update(self.pragma.parse(pragma_string))
         except ParsingError as pe:
@@ -2202,13 +2095,11 @@ if (HOST_NAME) {
             return errorValue
         except ParameterError as pe:
             return self.__kernel_print_error_message({'ename': 'Parameter error', 'evalue': pe.strerror})
-
         if self.proactive_connected:
             try:
                 pragma_info['func'] = self.__trigger_pragma__(pragma_info)
             except PragmaError as pe:
                 return self.__kernel_print_error_message({'ename': 'Pragma error', 'evalue': pe.strerror})
-
         elif pragma_info['trigger'] == 'connect':
             pragma_info['func'] = self.__connect__
         elif pragma_info['trigger'] == 'help':
@@ -2222,35 +2113,28 @@ if (HOST_NAME) {
             return self.__kernel_print_error_message({'ename': 'Pragma error', 'evalue':
                 'Directive \'' + pragma_info['trigger']
                 + '\' not known.'})
-
         try:
             self.__traffic_verification__(pragma_info)
         except PragmaError as pe:
             return self.__kernel_print_error_message({'ename': 'Pragma error', 'evalue': pe.strerror})
-
         return pragma_info
 
     def __process_pragma_block__(self, pragma_info):
-
         # TODO: compile python code even when creating a task
         if 'language' in pragma_info and pragma_info['language'] == 'Python':
             try:
                 ast.parse(pragma_info['code'])
             except SyntaxError as e:
                 return self.__kernel_print_error_message({'ename': 'Syntax error', 'evalue': str(e)})
-
         try:
             if not self.proactive_connected and pragma_info['trigger'] not in Pragma.pragmas_not_connected_mode:
                 return self.__kernel_print_error_message({'ename': 'Proactive error',
                                                           'evalue': 'Use \'#%connect()\' to '
                                                                     'connect to proactive server first.'})
-
             if self.proactive_default_connection and pragma_info['trigger'] not in Pragma.pragmas_not_connected_mode:
                 self.__kernel_print_info_message__('WARNING: Proactive is connected by default on \''
                                                  + self.gateway.base_url + '\'.\n')
-
             # TODO: use more functions to reduce do_execute size
-
             try:
                 exitcode = pragma_info['func'](pragma_info)
             except ConfigError as ce:
@@ -2263,25 +2147,20 @@ if (HOST_NAME) {
                 return self.__kernel_print_error_message({'ename': 'Job validation error', 'evalue': jbe.strerror})
             except AssertionError as ae:
                 return self.__kernel_print_error_message({'ename': 'Proactive connexion error', 'evalue': str(ae)})
-
         except Exception as e:
             return self.__kernel_print_error_message({'ename': 'Proactive error', 'evalue': str(e)})
-
         return exitcode
 
     def __execute_block__(self, code):
         pragma_info = {'name': '', 'trigger': 'task', 'code': code, 'func': self.__create_task__}
-
         if re.match(self.pattern_pragma, code):
             pragma_info = self.__preprocess_pragma_block__(pragma_info)
             if 'execution_count' in pragma_info:
                 return pragma_info
-
         return self.__process_pragma_block__(pragma_info)
 
     def __execute_multiblock__(self, code):
         pragma_info = {'name': '', 'trigger': 'task', 'code': code, 'func': self.__create_task__}
-
         if re.match(self.pattern_pragma, code):
             pragma_info = self.__preprocess_pragma_block__(pragma_info)
             if 'execution_count' in pragma_info:
@@ -2313,39 +2192,30 @@ if (HOST_NAME) {
         if not code.strip():
             return {'status': 'ok', 'execution_count': self.execution_count,
                     'payload': [], 'user_expressions': {}}
-
         interrupted = False
-
         if self.proactive_failed_connection:
             self.__kernel_print_error_message({'ename': 'Proactive connexion error',
                                                'evalue': 'Please, reconfigure proactive connection and restart kernel'})
-
             return self.__kernel_print_error_message({'ename': 'Error', 'evalue': self.error_message})
-
         try:
             if self.multiblock_task_config:
                 exitcode = self.__execute_multiblock__(code)
             else:
                 exitcode = self.__execute_block__(code)
-
             if exitcode:
                 return exitcode
-
         except KeyboardInterrupt:
             interrupted = True
             exitcode = 134
         except Exception as e:
             exitcode = e
-
         if interrupted:
             self.__kernel_print_info_message__('Interrupted!')
             return {'status': 'abort', 'execution_count': self.execution_count, 'evalue': exitcode}
-
         if exitcode:
             error_content = self.__kernel_print_error_message({'ename': 'Error', 'evalue': str(exitcode)})
             error_content['status'] = 'error'
             return error_content
-
         else:
             return {'status': 'ok', 'execution_count': self.execution_count,
                     'payload': [], 'user_expressions': {}}
