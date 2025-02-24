@@ -1,3 +1,4 @@
 matplotlib
 networkx
 jupyterlab~=3.0
+configparser
